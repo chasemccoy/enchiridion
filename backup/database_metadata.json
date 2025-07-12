@@ -236,7 +236,7 @@
   ],
   "freelist_count": [
     {
-      "freelist_count": 905
+      "freelist_count": 875
     }
   ],
   "fullfsync": [
@@ -441,8 +441,8 @@
   "wal_checkpoint": [
     {
       "busy": 0,
-      "log": 108,
-      "checkpointed": 108
+      "log": 333,
+      "checkpointed": 333
     }
   ],
   "writable_schema": [

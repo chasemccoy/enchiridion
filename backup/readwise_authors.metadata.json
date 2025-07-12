@@ -10,5 +10,5 @@
     "updated_at"
   ],
   "schema": "CREATE TABLE `readwise_authors` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`name` text NOT NULL,\n\t`origin` text,\n\t`record_id` integer,\n\t`deleted_at` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tFOREIGN KEY (`record_id`) REFERENCES `records`(`id`) ON UPDATE cascade ON DELETE set null\n)",
-  "rowCount": 793
+  "rowCount": 797
 }

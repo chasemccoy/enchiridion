@@ -9,5 +9,5 @@
     "updated_at"
   ],
   "schema": "CREATE TABLE `readwise_document_tags` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`document_id` text NOT NULL,\n\t`tag_id` integer NOT NULL,\n\t`deleted_at` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tFOREIGN KEY (`document_id`) REFERENCES `readwise_documents`(`id`) ON UPDATE cascade ON DELETE cascade,\n\tFOREIGN KEY (`tag_id`) REFERENCES `readwise_tags`(`id`) ON UPDATE cascade ON DELETE cascade\n)",
-  "rowCount": 395
+  "rowCount": 400
 }
