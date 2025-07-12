@@ -23,7 +23,6 @@
       >
         by
         <UButton
-          icon="i-lucide-user-pen"
           size="sm"
           color="neutral"
           variant="link"
@@ -210,7 +209,7 @@ const tags = computed(() => {
 
 .RecordCard__byline {
   display: inline-flex;
-  margin-top: -2px;
+  margin-top: -4px;
   flex-wrap: wrap;
   font-weight: 500;
   font-size: 0.75rem;
@@ -227,16 +226,15 @@ const tags = computed(() => {
   margin-left: 1px;
   padding-inline: 4px;
 
+  &:hover {
+    text-decoration: underline;
+  }
+
   & :deep(span) {
     min-width: 0;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-  }
-
-  & :deep(svg) {
-    width: 14px;
-    height: 14px;
   }
 }
 

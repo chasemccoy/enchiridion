@@ -50,6 +50,10 @@ const faviconUrl = computed(() => {
     color: var(--ui-text);
   }
 
+  & a:hover {
+    text-decoration: underline;
+  }
+
   img {
     width: 1em;
     aspect-ratio: 1;
