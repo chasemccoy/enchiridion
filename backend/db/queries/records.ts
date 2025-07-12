@@ -1,6 +1,13 @@
 import { inArray, sql } from 'drizzle-orm';
 import { db } from '@db/index';
-import { records, type RecordInsert, type RecordSelect } from '@db/schema';
+import {
+  readwiseAuthors,
+  readwiseDocuments,
+  readwiseTags,
+  records,
+  type RecordInsert,
+  type RecordSelect,
+} from '@db/schema';
 import { ListRecordsInputSchema, type APIResponse, type ListRecordsInput } from '@shared/types/api';
 
 export const getRecord = (recordId: RecordSelect['id']) => {
@@ -215,6 +222,38 @@ export const deleteRecord = async (recordIds: Array<RecordSelect['id']>) => {
     const notFound = recordIds.filter((id) => !recordsToDelete.some((r) => r.id === id));
     // eslint-disable-next-line no-console
     console.warn(`Some records were not found: ${notFound.join(', ')}`);
+  }
+
+  // Update all associated tables with a soft delete. For each table with a recordId field, set deletedAt to now
+
+  const deletedReadwiseAuthors = await db
+    .update(readwiseAuthors)
+    .set({ deletedAt: sql`(CURRENT_TIMESTAMP)` })
+    .where(inArray(readwiseAuthors.recordId, recordIds))
+    .returning();
+  for (const author of deletedReadwiseAuthors) {
+    // eslint-disable-next-line no-console
+    console.log(`Deleted Readwise author ${author.name} (${author.id})`);
+  }
+
+  const deletedReadwiseDocuments = await db
+    .update(readwiseDocuments)
+    .set({ deletedAt: sql`(CURRENT_TIMESTAMP)` })
+    .where(inArray(readwiseDocuments.recordId, recordIds))
+    .returning();
+  for (const document of deletedReadwiseDocuments) {
+    // eslint-disable-next-line no-console
+    console.log(`Deleted Readwise document ${document.title} (${document.id})`);
+  }
+
+  const deletedReadwiseTags = await db
+    .update(readwiseTags)
+    .set({ deletedAt: sql`(CURRENT_TIMESTAMP)` })
+    .where(inArray(readwiseTags.recordId, recordIds))
+    .returning();
+  for (const tag of deletedReadwiseTags) {
+    // eslint-disable-next-line no-console
+    console.log(`Deleted Readwise tag ${tag.tag} (${tag.id})`);
   }
 
   return db.delete(records).where(inArray(records.id, recordIds)).returning();
