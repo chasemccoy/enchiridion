@@ -64,16 +64,21 @@ export async function fetchReadwiseDocuments(
   updatedAfter?: Date,
 ): Promise<ReadwiseArticlesResponse> {
   const params = new URLSearchParams();
+
   if (pageCursor) params.append('pageCursor', pageCursor);
+
   if (updatedAfter) {
     const afterDate = new Date(updatedAfter.getTime() + 1);
     params.append('updatedAfter', afterDate.toISOString());
   }
+
   params.append('withHtmlContent', 'true');
 
   let attempt = 0;
+
   while (true) {
     logger.info(`Fetching Readwise documents${pageCursor ? ' (with cursor)' : ''}`);
+
     const response = await fetch(`${API_BASE_URL}?${params.toString()}`, {
       headers: {
         Authorization: `Token ${READWISE_TOKEN}`,
@@ -94,6 +99,7 @@ export async function fetchReadwiseDocuments(
     }
 
     attempt++;
+
     if (attempt >= 3) {
       throw new Error(
         `Failed to fetch Readwise documents: ${response.statusText} (${response.status})`,
@@ -119,6 +125,7 @@ export const mapReadwiseArticleToDocument = (
   integrationRunId: number,
 ): ReadwiseDocumentInsert => {
   let validSourceUrl: string | null = null;
+
   if (article.source_url) {
     try {
       if (/^https?:\/\//.test(article.source_url)) {
@@ -131,6 +138,7 @@ export const mapReadwiseArticleToDocument = (
   }
 
   let validImageUrl: string | null = null;
+
   if (article.image_url) {
     try {
       if (/^https?:\/\//.test(article.image_url)) {
