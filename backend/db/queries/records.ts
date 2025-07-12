@@ -79,8 +79,26 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
           },
         },
         with: {
-          target: true,
+          target: {
+            columns: {
+              id: true,
+              title: true,
+              slug: true,
+            },
+          },
           predicate: true,
+        },
+      },
+      incomingLinks: {
+        columns: {
+          predicateId: true,
+        },
+        with: {
+          predicate: {
+            columns: {
+              type: true,
+            },
+          },
         },
       },
     },

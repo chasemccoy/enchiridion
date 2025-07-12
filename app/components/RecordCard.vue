@@ -93,6 +93,13 @@
       </li>
 
       <li
+        v-if="childrenCount > 0"
+        class="RecordCard__childrenCount"
+      >
+        {{ pluralize(childrenCount, 'child', 'children') }}
+      </li>
+
+      <li
         v-for="tag in tags"
         :key="tag.id"
         class="RecordCard__tag"
@@ -107,7 +114,7 @@
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
 import { computed } from 'vue';
-import { formatDate, slugify } from '@shared/lib/formatting';
+import { formatDate, pluralize, slugify } from '@shared/lib/formatting';
 import useApiClient from '@app/composables/useApiClient';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 
@@ -127,11 +134,18 @@ const href = computed(() => {
 });
 
 const outgoingLinks = computed(() => modelValue.value?.outgoingLinks ?? null);
+const incomingLinks = computed(() => modelValue.value?.incomingLinks ?? null);
 
 const creator = computed(() => {
   if (!outgoingLinks.value) return null;
 
   return outgoingLinks.value.find((link) => link.predicate.slug === 'created_by')?.target ?? null;
+});
+
+const childrenCount = computed(() => {
+  if (!incomingLinks.value) return 0;
+
+  return incomingLinks.value.filter((link) => link.predicate.type === 'containment').length;
 });
 
 const tags = computed(() => {
@@ -278,7 +292,8 @@ const tags = computed(() => {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 2px;
   margin-top: 4px;
   margin-bottom: -2px;
   color: var(--ui-text-dimmed);
@@ -297,5 +312,14 @@ const tags = computed(() => {
   object-position: top;
   border-radius: var(--radius-md);
   margin-bottom: 4px;
+}
+
+.RecordCard__childrenCount {
+  background-color: var(--ui-bg-elevated);
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  color: var(--ui-text-dimmed);
+  text-transform: uppercase;
 }
 </style>

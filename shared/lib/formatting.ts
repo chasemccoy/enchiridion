@@ -63,3 +63,16 @@ export const formatDate = (date: Date | string, options?: { year?: boolean }) =>
     day: 'numeric',
   });
 };
+
+export function pluralize(
+  count: number,
+  singular: string,
+  plural: string,
+  { excludeCount }: { excludeCount?: boolean } = {
+    excludeCount: false,
+  },
+): string {
+  return [!excludeCount ? count : false, count === 1 ? singular : plural]
+    .filter((value) => value !== false)
+    .join(' ');
+}
