@@ -336,12 +336,12 @@ const { links } = defineProps<{
 
 const capturedAt = computed(() => {
   if (!modelValue.value) return null;
-  return formatDate(new Date(modelValue.value.recordCreatedAt));
+  return formatDate(modelValue.value.recordCreatedAt);
 });
 
 const createdAt = computed(() => {
   if (!modelValue.value?.contentCreatedAt) return null;
-  return formatDate(new Date(modelValue.value.contentCreatedAt));
+  return formatDate(modelValue.value.contentCreatedAt);
 });
 
 const incomingLinks = computed(() => links?.incomingLinks ?? null);

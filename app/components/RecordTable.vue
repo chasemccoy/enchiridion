@@ -105,7 +105,7 @@ const columns = [
     accessorKey: 'recordCreatedAt',
     header: 'Saved',
     cell: ({ row }: { row: TableRow<ListRecordsAPIResponse[number]> }) => {
-      return formatDate(new Date(row.getValue('recordCreatedAt')));
+      return formatDate(row.getValue('recordCreatedAt'));
     },
   },
 ];

@@ -199,7 +199,7 @@ const slug = computed({
 
 const createdAt = computed(() => {
   if (!modelValue.value?.contentCreatedAt) return null;
-  return formatDate(new Date(modelValue.value.contentCreatedAt));
+  return formatDate(modelValue.value.contentCreatedAt);
 });
 
 watch(
