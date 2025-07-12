@@ -50,17 +50,19 @@ export const slugify = (str: string) => {
   });
 };
 
-export const formatDate = (date: Date | string, options?: { year?: boolean }) => {
+export const formatDate = (date: Date | string, options?: { year?: boolean; time?: boolean }) => {
   if (typeof date === 'string') {
     date = new Date(date + 'Z');
   }
 
-  const { year = true } = options ?? {};
+  const { year = true, time = false } = options ?? {};
 
   return date.toLocaleDateString('en-US', {
     year: year ? 'numeric' : undefined,
     month: 'long',
     day: 'numeric',
+    hour12: true,
+    ...(time ? { hour: 'numeric', minute: 'numeric' } : {}),
   });
 };
 

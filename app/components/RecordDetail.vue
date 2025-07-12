@@ -336,7 +336,7 @@ const { links } = defineProps<{
 
 const capturedAt = computed(() => {
   if (!modelValue.value) return null;
-  return formatDate(modelValue.value.recordCreatedAt);
+  return formatDate(modelValue.value.recordCreatedAt, { time: true });
 });
 
 const createdAt = computed(() => {
@@ -413,6 +413,10 @@ function handleDeleteLink(linkId: DbId) {
 :deep(.RecordDetail__bylineButton) {
   max-width: 250px;
   margin-left: -2px;
+
+  &:hover {
+    text-decoration: underline;
+  }
 
   & :deep(span) {
     min-width: 0;
