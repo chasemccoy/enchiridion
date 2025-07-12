@@ -40,6 +40,7 @@ const groups = computed(() => {
     {
       id: 'records',
       items: searchResultItems,
+      ignoreFilter: true,
     },
   ];
 });
