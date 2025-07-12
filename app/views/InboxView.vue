@@ -27,13 +27,9 @@
 <script setup lang="ts">
 import SplitViewLayout from '@app/components/SplitViewLayout.vue';
 import useRecords from '@app/composables/useRecords';
-import { RouteName } from '@app/router';
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
 
-const route = useRoute();
-
-const isEmpty = computed(() => route.name === RouteName.inbox);
+const isEmpty = computed(() => !data.value || data.value.length === 0);
 
 const { data } = useRecords({
   limit: 100,
