@@ -119,6 +119,7 @@ watch(isSearchModalOpen, () => {
   background-color: var(--ui-bg);
   border-bottom: 1px solid var(--ui-border);
   padding: 0.25rem 0.5rem;
+  overflow-x: hidden;
 }
 
 .App__content {
