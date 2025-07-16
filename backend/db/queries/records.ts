@@ -206,24 +206,6 @@ export const upsertRecord = async (record: RecordInsert) => {
 
 export type UpsertRecordAPIResponse = APIResponse<typeof upsertRecord>;
 
-export const markAsCurated = async (recordIds: Array<RecordSelect['id']>) => {
-  const updatedRecords = await db
-    .update(records)
-    .set({ isCurated: true, recordUpdatedAt: sql`(CURRENT_TIMESTAMP)` })
-    .where(inArray(records.id, recordIds))
-    .returning({
-      id: records.id,
-    });
-
-  if (updatedRecords.length !== recordIds.length) {
-    throw new Error(
-      `Failed to update records. Input data:\n\n${JSON.stringify(recordIds, null, 2)}`,
-    );
-  }
-
-  return updatedRecords.map((r) => r.id);
-};
-
 export const deleteRecord = async (recordIds: Array<RecordSelect['id']>) => {
   const recordsToDelete = await db.query.records.findMany({
     where: {
