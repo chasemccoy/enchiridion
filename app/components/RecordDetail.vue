@@ -310,7 +310,7 @@ import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import RecordLink from '@app/components/RecordLink.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
 import { capitalize, formatDate } from '@shared/lib/formatting';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import type { LinkInsert, LinkSelect, PredicateSelect } from '@db/schema';
 import { getIconForRecordSource, getIconForRecordType } from '@app/utils';
 import type { DbId } from '@shared/types/api';
@@ -328,6 +328,7 @@ const emit = defineEmits<{
   deleteLink: [{ linkId: DbId }];
   updatePredicate: [{ link: LinkSelect; predicate: PredicateSelect }];
   deleteRecord: [DbId];
+  paste: [ClipboardEvent];
 }>();
 
 const { links } = defineProps<{
@@ -364,6 +365,18 @@ const children = computed(() => {
 
   return incomingLinks.value.filter((link) => link.predicate.type === 'containment');
 });
+
+onMounted(() => {
+  document.addEventListener('paste', handlePaste);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('paste', handlePaste);
+});
+
+function handlePaste(event: ClipboardEvent) {
+  emit('paste', event);
+}
 
 function handleCreateLink(targetRecordId: DbId, predicateId: DbId) {
   if (!modelValue.value) return;

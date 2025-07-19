@@ -13,6 +13,7 @@
     @deleteLink="handleDeleteLink"
     @updatePredicate="handleUpdatePredicate"
     @deleteRecord="handleDeleteRecord"
+    @paste="handlePaste"
   />
 </template>
 
@@ -98,6 +99,26 @@ function handleFileUpload(file: File) {
     file,
     recordId: recordId.value,
   });
+}
+
+function handlePaste(event: ClipboardEvent) {
+  const data = event.clipboardData?.items;
+  const items = Array.from(data ?? []);
+
+  for (const item of items) {
+    if (
+      item.kind === 'file' &&
+      (item.type.startsWith('image/') || item.type.startsWith('video/'))
+    ) {
+      const file = item.getAsFile();
+
+      if (file) {
+        event.preventDefault();
+        handleFileUpload(file);
+        return;
+      }
+    }
+  }
 }
 
 function handleMediaDelete({ mediaId }: { mediaId?: number }) {
