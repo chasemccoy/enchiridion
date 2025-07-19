@@ -59,9 +59,8 @@
     >
       {{ modelValue.summary }}
     </div>
-
     <div
-      v-if="modelValue.content"
+      v-else-if="modelValue.content"
       class="RecordCard__content"
     >
       {{ modelValue.content }}
