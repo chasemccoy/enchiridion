@@ -8,10 +8,17 @@
       <UCommandPalette
         v-model:searchTerm="searchQuery"
         placeholder="Search records..."
-        class="h-80"
+        class="h-100"
         :groups="groups"
         :ui="{
           item: 'SearchModal__item',
+        }"
+        :fuse="{
+          resultLimit: 100,
+          matchAllWhenSearchEmpty: false,
+          fuseOptions: {
+            includeMatches: true,
+          },
         }"
       />
     </template>
@@ -40,7 +47,6 @@ const groups = computed(() => {
     {
       id: 'records',
       items: searchResultItems,
-      ignoreFilter: true,
     },
   ];
 });

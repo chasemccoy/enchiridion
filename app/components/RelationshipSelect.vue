@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     :content="{ align: 'start', sideOffset: 8 }"
     :ui="{
-      content: 'min-w-[300px] max-w-[600px]',
+      content: 'min-w-[300px] max-w-[600px] max-h-[50vh] overflow-y-auto',
     }"
   >
     <UButton
@@ -40,6 +40,10 @@
         placeholder="Search for a record to link..."
         :groups="commandItems"
         :ui="{ input: '[&>input]:h-8 [&>input]:text-sm', item: 'RelationshipSelect__item' }"
+        :fuse="{
+          resultLimit: 100,
+          matchAllWhenSearchEmpty: false,
+        }"
         @update:modelValue="handleRecordSelect"
       />
 
@@ -49,6 +53,9 @@
         placeholder="Select a relationship type..."
         :groups="predicateCommandItems"
         :ui="{ input: '[&>input]:h-8 [&>input]:text-sm' }"
+        :fuse="{
+          resultLimit: 100,
+        }"
         @update:modelValue="handlePredicateSelect"
       />
     </template>
@@ -108,7 +115,6 @@ const commandItems = computed(() => {
     {
       id: 'records',
       items,
-      ignoreFilter: true,
     },
   ];
 });
