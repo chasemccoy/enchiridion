@@ -67,6 +67,16 @@
     </div>
 
     <ul class="RecordCard__tags">
+      <li v-if="modelValue.type !== 'artifact'">
+        <UBadge
+          color="neutral"
+          variant="outline"
+          class="RecordCard__badge"
+          :icon="getIconForRecordType(modelValue.type)"
+        >
+          {{ capitalize(modelValue.type) }}
+        </UBadge>
+      </li>
       <li v-if="modelValue.source === 'twitter'">
         <UIcon
           name="i-lucide-twitter"
@@ -111,10 +121,11 @@
 <script setup lang="ts">
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import { computed } from 'vue';
+import { capitalize, computed } from 'vue';
 import { formatDate, pluralize, slugify } from '@shared/lib/formatting';
 import useApiClient from '@app/composables/useApiClient';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
+import { getIconForRecordType } from '@app/utils';
 
 const modelValue = defineModel<ListRecordsAPIResponse[number]>({ required: true });
 
@@ -318,5 +329,15 @@ const tags = computed(() => {
   font-size: 0.625rem;
   color: var(--ui-text-dimmed);
   text-transform: uppercase;
+}
+
+.RecordCard__badge {
+  width: fit-content;
+
+  & :deep(svg) {
+    width: 12px;
+    height: 12px;
+    color: var(--ui-text-muted);
+  }
 }
 </style>

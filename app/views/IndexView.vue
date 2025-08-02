@@ -18,7 +18,6 @@ const route = useRoute();
 const { data } = useRecords({
   limit: 100,
   filters: {
-    type: 'artifact',
     hasParent: false,
   },
   orderBy: [

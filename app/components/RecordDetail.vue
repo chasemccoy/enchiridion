@@ -33,6 +33,15 @@
       </UBadge>
 
       <UBadge
+        color="neutral"
+        variant="outline"
+        class="RecordDetail__badge"
+        icon="i-lucide-calendar-arrow-down"
+      >
+        {{ capturedAt }}
+      </UBadge>
+
+      <UBadge
         v-if="modelValue"
         color="neutral"
         variant="outline"
@@ -213,24 +222,6 @@
           class="RecordDetail__input"
           variant="outline"
           placeholder="May 4, 1995"
-          readonly
-        />
-      </UButtonGroup>
-
-      <UButtonGroup>
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="Saved"
-          class="RecordDetail__badge"
-        />
-
-        <UInput
-          v-model="capturedAt"
-          class="RecordDetail__input"
-          variant="outline"
-          placeholder="May 4, 2025"
           readonly
         />
       </UButtonGroup>

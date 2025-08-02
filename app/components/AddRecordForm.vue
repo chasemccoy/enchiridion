@@ -277,9 +277,11 @@ function handleUpdatePredicate(link: PartialLinkInsert, predicate: PredicateSele
 
 .AddRecordForm__actions {
   display: flex;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 12px;
   align-items: center;
   margin-bottom: -4px;
+  flex-wrap: wrap;
 }
 
 .AddRecordForm__links {
