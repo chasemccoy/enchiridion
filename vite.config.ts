@@ -16,7 +16,8 @@ export default defineConfig({
     ui({
       ui: {
         colors: {
-          primary: 'indigo',
+          primary: 'emerald',
+          neutral: 'stone',
         },
         badge: {
           slots: {

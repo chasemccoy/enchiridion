@@ -1,25 +1,25 @@
 <template>
-	<UDropdownMenu
-		size="sm"
-		:items="menuItems"
-		:ui="{
-			content: 'min-w-[150px]',
-		}"
-		:content="{
-			align: 'start',
-			alignOffset: 10,
-			sideOffset: 4,
-		}"
-	>
-		<UButton
-			color="neutral"
-			variant="link"
-			trailingIcon="i-lucide-chevrons-up-down"
-			size="sm"
-			class="PredicateSelect__button"
-			:label="label"
-		/>
-	</UDropdownMenu>
+  <UDropdownMenu
+    size="sm"
+    :items="menuItems"
+    :ui="{
+      content: 'min-w-[150px]',
+    }"
+    :content="{
+      align: 'start',
+      alignOffset: 10,
+      sideOffset: 4,
+    }"
+  >
+    <UButton
+      color="neutral"
+      variant="link"
+      trailingIcon="i-lucide-chevrons-up-down"
+      size="sm"
+      class="PredicateSelect__button"
+      :label="label"
+    />
+  </UDropdownMenu>
 </template>
 
 <script setup lang="ts">
@@ -32,90 +32,90 @@ import { computed } from 'vue';
 const modelValue = defineModel<DbId>({ default: 19 });
 
 const emit = defineEmits<{
-	'select:predicate': [PredicateSelect];
-	'delete:link': [];
+  'select:predicate': [PredicateSelect];
+  'delete:link': [];
 }>();
 
 const { linkDirection = 'outgoing' } = defineProps<{
-	linkDirection?: 'incoming' | 'outgoing';
+  linkDirection?: 'incoming' | 'outgoing';
 }>();
 
 const { getPredicates } = usePredicates();
 const { data: predicates } = getPredicates();
 
 const menuItems = computed(() => {
-	if (!predicates.value) return [];
+  if (!predicates.value) return [];
 
-	const predicateItems = predicates.value
-		.filter((p) => p.canonical)
-		.map((p) => {
-			let label = capitalize(p.name);
+  const predicateItems = predicates.value
+    .filter((p) => p.canonical)
+    .map((p) => {
+      let label = capitalize(p.name);
 
-			if (linkDirection === 'incoming') {
-				const inverseSlug = p.inverseSlug;
-				const inversePredicate = predicates.value?.find((p) => p.slug === inverseSlug);
-				label = inversePredicate ? inversePredicate?.name : label;
-			}
+      if (linkDirection === 'incoming') {
+        const inverseSlug = p.inverseSlug;
+        const inversePredicate = predicates.value?.find((p) => p.slug === inverseSlug);
+        label = inversePredicate ? inversePredicate?.name : label;
+      }
 
-			return {
-				label: capitalize(label),
-				type: 'checkbox' as const,
-				checked: modelValue.value === p.id,
-				onUpdateChecked(checked: boolean) {
-					if (checked && p.id !== modelValue.value) {
-						modelValue.value = p.id;
-						emit('select:predicate', p);
-					}
-				},
-			};
-		});
+      return {
+        label: capitalize(label),
+        type: 'checkbox' as const,
+        checked: modelValue.value === p.id,
+        onUpdateChecked(checked: boolean) {
+          if (checked && p.id !== modelValue.value) {
+            modelValue.value = p.id;
+            emit('select:predicate', p);
+          }
+        },
+      };
+    });
 
-	return [
-		predicateItems,
-		[
-			{
-				label: 'Delete',
-				icon: 'i-lucide-trash',
-				color: 'error',
-				onSelect() {
-					emit('delete:link');
-				},
-			},
-		],
-	];
+  return [
+    predicateItems,
+    [
+      {
+        label: 'Delete',
+        icon: 'i-lucide-trash',
+        color: 'error',
+        onSelect() {
+          emit('delete:link');
+        },
+      },
+    ],
+  ];
 });
 
 const selectedPredicate = computed(() => {
-	if (!predicates.value) return null;
-	return predicates.value.find((p) => p.id === modelValue.value);
+  if (!predicates.value) return null;
+  return predicates.value.find((p) => p.id === modelValue.value);
 });
 
 const selectedInverse = computed(() => {
-	if (!predicates.value || !selectedPredicate.value) return null;
+  if (!predicates.value || !selectedPredicate.value) return null;
 
-	const inverseSlug = selectedPredicate.value.inverseSlug;
-	return predicates.value.find((p) => p.slug === inverseSlug);
+  const inverseSlug = selectedPredicate.value.inverseSlug;
+  return predicates.value.find((p) => p.slug === inverseSlug);
 });
 
 const label = computed(() => {
-	let name = selectedPredicate.value?.name;
+  let name = selectedPredicate.value?.name;
 
-	if (linkDirection === 'incoming') {
-		name = selectedInverse.value?.name;
-	}
+  if (linkDirection === 'incoming') {
+    name = selectedInverse.value?.name;
+  }
 
-	return name ? capitalize(name) : 'Predicates';
+  return name ? capitalize(name) : 'Predicates';
 });
 </script>
 
 <style scoped>
 :global(.PredicateSelect__button) {
-	gap: 2px;
+  gap: 2px;
 }
 
 :global(.PredicateSelect__button svg) {
-	width: 14px;
-	height: 14px;
-	color: var(--ui-text-dimmed);
+  width: 14px;
+  height: 14px;
+  color: var(--ui-text-dimmed);
 }
 </style>

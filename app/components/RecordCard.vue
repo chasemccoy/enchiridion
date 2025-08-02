@@ -317,7 +317,7 @@ const tags = computed(() => {
   height: 150px;
   width: 100%;
   object-fit: cover;
-  object-position: top;
+  object-position: 50% 25%;
   border-radius: var(--radius-md);
   margin-bottom: 4px;
 }

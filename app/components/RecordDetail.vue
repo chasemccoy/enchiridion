@@ -248,45 +248,29 @@
 
     <div class="RecordDetail__links">
       <div
-        v-if="outgoingLinks && outgoingLinks.length > 0"
+        v-for="(linksForType, predicateName) in linksByPredicateNameFiltered"
+        :key="predicateName"
         class="RecordDetail__section"
       >
         <h2 class="RecordDetail__sectionTitle">
-          <UIcon name="i-lucide-arrow-up-right" /> Outgoing links ({{ outgoingLinks.length }})
+          <UIcon name="i-lucide-link" />
+          {{ capitalize(String(predicateName)) }}
+          <template v-if="linksForType.length > 3">({{ linksForType.length }})</template>
         </h2>
-        <ul class="RecordDetail__list">
-          <li
-            v-for="link in outgoingLinks"
-            :key="link.id"
-          >
-            <RecordLink
-              :modelValue="link.targetId"
-              :predicate="link.predicate"
-              @updatePredicate="(predicate) => handleUpdatePredicate(link, predicate)"
-              @deleteLink="() => handleDeleteLink(link.id)"
-            />
-          </li>
-        </ul>
-      </div>
 
-      <div
-        v-if="incomingLinks && incomingLinks.length > 0"
-        class="RecordDetail__section"
-      >
-        <h2 class="RecordDetail__sectionTitle">
-          <UIcon name="i-lucide-arrow-down-right" /> Incoming links ({{ incomingLinks.length }})
-        </h2>
         <ul class="RecordDetail__list">
           <li
-            v-for="link in incomingLinks"
-            :key="link.id"
+            v-for="linkData in linksForType"
+            :key="linkData.link.id"
           >
             <RecordLink
-              v-model:predicate="link.predicate"
-              linkDirection="incoming"
-              :modelValue="link.sourceId"
-              @updatePredicate="(predicate) => handleUpdatePredicate(link, predicate)"
-              @deleteLink="() => handleDeleteLink(link.id)"
+              :modelValue="
+                linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId
+              "
+              :predicate="linkData.link.predicate"
+              :linkDirection="linkData.direction"
+              @updatePredicate="(predicate) => handleUpdatePredicate(linkData.link, predicate)"
+              @deleteLink="() => handleDeleteLink(linkData.link.id)"
             />
           </li>
         </ul>
@@ -355,6 +339,47 @@ const children = computed(() => {
   if (!incomingLinks.value) return null;
 
   return incomingLinks.value.filter((link) => link.predicate.type === 'containment');
+});
+
+const linksByPredicateName = computed(() => {
+  if (!links) return {};
+
+  type Link =
+    | NonNullable<typeof links>['outgoingLinks'][number]
+    | NonNullable<typeof links>['incomingLinks'][number];
+
+  type LinkWithDirection = {
+    link: Link;
+    direction: 'incoming' | 'outgoing';
+  };
+
+  const grouped: Record<string, Array<LinkWithDirection>> = {};
+
+  const addLink = (link: Link, direction: 'incoming' | 'outgoing') => {
+    let predicateName = link.predicate.name;
+
+    if (direction === 'incoming' && link.predicate.inverseSlug) {
+      if (link.predicate.inverse?.name) {
+        predicateName = link.predicate.inverse.name;
+      }
+    }
+
+    if (!grouped[predicateName]) {
+      grouped[predicateName] = [];
+    }
+
+    grouped[predicateName].push({ link, direction });
+  };
+
+  links.outgoingLinks?.forEach((link) => addLink(link, 'outgoing'));
+  links.incomingLinks?.forEach((link) => addLink(link, 'incoming'));
+
+  return grouped;
+});
+
+const linksByPredicateNameFiltered = computed(() => {
+  const grouped = linksByPredicateName.value;
+  return Object.fromEntries(Object.entries(grouped).filter(([, links]) => links.length > 0));
 });
 
 onMounted(() => {
@@ -482,8 +507,8 @@ function handleDeleteLink(linkId: DbId) {
   font-weight: 500;
 
   & :deep(svg) {
-    width: 18px;
-    height: 18px;
+    width: 12px;
+    height: 12px;
   }
 }
 

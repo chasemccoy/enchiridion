@@ -14,6 +14,8 @@
   --color-surface: white;
 
   --combinedFieldMinBadgeWidth: 88px;
+
+  --ui-primary: var(--ui-color-primary-700);
 }
 
 html:not(.dark),
