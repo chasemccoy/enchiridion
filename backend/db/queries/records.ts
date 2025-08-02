@@ -5,6 +5,7 @@ import {
   readwiseDocuments,
   readwiseTags,
   records,
+  type PredicateSelect,
   type RecordInsert,
   type RecordSelect,
 } from '@db/schema';
@@ -314,3 +315,48 @@ export const linksForRecord = async (recordId: RecordSelect['id']) => {
 };
 
 export type LinksForRecordAPIResponse = APIResponse<typeof linksForRecord>;
+
+/**
+ * Finds all records that are linked to a given record with a specific predicate
+ * @param recordId - The ID of the record to find links for
+ * @param predicateId - The ID of the predicate to filter links by
+ * @returns A list of records that are linked to the given record with the specified predicate
+ * @example
+ * // Find all records that are linked with "format of" predicate to record with ID 123
+ * const containedRecords = await linksToRecordWithPredicate(123, 'related_to');
+ */
+export const linksToRecordWithPredicateSlug = async (
+  recordId: RecordSelect['id'],
+  predicateSlug: PredicateSelect['slug'],
+) => {
+  return db.query.records.findMany({
+    where: {
+      OR: [
+        {
+          outgoingLinks: {
+            predicate: {
+              slug: predicateSlug,
+            },
+            target: {
+              id: recordId,
+            },
+          },
+        },
+        {
+          incomingLinks: {
+            predicate: {
+              slug: predicateSlug,
+            },
+            source: {
+              id: recordId,
+            },
+          },
+        },
+      ],
+    },
+  });
+};
+
+export type LinksToRecordWithPredicateSlugAPIResponse = APIResponse<
+  typeof linksToRecordWithPredicateSlug
+>;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { RecordInsertSchema } from '@db/schema';
-import { IdParamSchema, ListRecordsInputSchema } from '@shared/types/api';
+import { IdParamSchema, IdSchema, ListRecordsInputSchema } from '@shared/types/api';
 import {
   getRecord,
   listRecords,
@@ -8,8 +8,10 @@ import {
   deleteRecord,
   linksForRecord,
   getRecordBySlug,
+  linksToRecordWithPredicateSlug,
 } from '@db/queries/records';
 import { getFamilyTree } from '@db/queries/tree';
+import { z } from 'zod/v4';
 
 export const recordRoutes = Router();
 
@@ -65,6 +67,19 @@ recordRoutes.get('/record/:id/tree', async (req, res, next) => {
     const { id } = IdParamSchema.parse(req.params);
     const tree = await getFamilyTree(id);
     res.json(tree);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Example: `/record/556/links/related_to`
+recordRoutes.get('/record/:id/links/:predicateSlug', async (req, res, next) => {
+  const paramSchema = z.object({ id: IdSchema, predicateSlug: z.string() });
+
+  try {
+    const { id, predicateSlug } = paramSchema.parse(req.params);
+    const links = await linksToRecordWithPredicateSlug(id, predicateSlug);
+    res.json(links);
   } catch (error) {
     next(error);
   }
