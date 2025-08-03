@@ -4,7 +4,10 @@
     class="AddRecordForm"
     @submit.prevent
   >
-    <TitleField v-model="modelValue.title" />
+    <TitleField
+      v-model="modelValue.title"
+      autofocus
+    />
 
     <RecordTypeSelectButton
       v-if="modelValue.type"
@@ -134,6 +137,7 @@
       type="submit"
       size="xl"
       class="AddRecordForm__submitButton"
+      color="neutral"
       :disabled="!isDirty"
       block
       @click="handleSubmit"

@@ -11,34 +11,34 @@
       <RouterLink :to="href">
         {{ modelValue.title }}
       </RouterLink>
-    </h1>
 
-    <div
-      v-if="creator || modelValue.url"
-      class="RecordCard__byline"
-    >
       <span
-        v-if="creator"
-        class="RecordCard__bylineItem"
+        v-if="creator || modelValue.url"
+        class="RecordCard__byline"
       >
-        by
-        <UButton
-          size="sm"
-          color="neutral"
-          variant="link"
-          class="RecordCard__bylineButton"
-          :to="`/${creator.slug}`"
+        <span
+          v-if="creator"
+          class="RecordCard__bylineItem"
         >
-          <span>{{ creator.title }}</span>
-        </UButton>
-      </span>
+          by
+          <UButton
+            size="sm"
+            color="neutral"
+            variant="link"
+            class="RecordCard__bylineButton"
+            :to="`/${creator.slug}`"
+          >
+            <span>{{ creator.title }}</span>
+          </UButton>
+        </span>
 
-      <LinkWithFavicon
-        v-if="modelValue.url"
-        prefix="at"
-        :modelValue="modelValue.url"
-      />
-    </div>
+        <LinkWithFavicon
+          v-if="modelValue.url"
+          prefix="at"
+          :modelValue="modelValue.url"
+        />
+      </span>
+    </h1>
 
     <img
       v-if="modelValue.media.length > 0 && modelValue.media[0].type === 'image'"
@@ -202,10 +202,11 @@ const tags = computed(() => {
   font-size: 1.25rem;
   line-height: 1.2;
   text-wrap: pretty;
-
-  & a {
-    display: block;
-  }
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  row-gap: 10px;
 
   & a:hover {
     text-decoration: underline;
@@ -220,6 +221,7 @@ const tags = computed(() => {
 .RecordCard__byline {
   display: inline-flex;
   margin-top: -4px;
+  row-gap: 4px;
   flex-wrap: wrap;
   font-weight: 500;
   font-size: 0.75rem;
@@ -234,7 +236,7 @@ const tags = computed(() => {
 :deep(.RecordCard__bylineButton) {
   max-width: 250px;
   margin-left: 1px;
-  padding-inline: 4px;
+  padding: 0 4px;
 
   &:hover {
     text-decoration: underline;
@@ -256,6 +258,7 @@ const tags = computed(() => {
   -webkit-line-clamp: 8;
   line-clamp: 8;
   overflow: hidden;
+  margin-top: 4px;
 }
 
 .RecordCard__section {
@@ -320,6 +323,7 @@ const tags = computed(() => {
   object-position: 50% 25%;
   border-radius: var(--radius-md);
   margin-bottom: 4px;
+  margin-top: 4px;
 }
 
 .RecordCard__childrenCount {

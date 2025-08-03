@@ -7,7 +7,7 @@
 <style scoped>
 .CombinedFields {
   display: grid;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--ui-border);
 

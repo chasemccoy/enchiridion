@@ -163,7 +163,7 @@ function handleDeleteLink() {
 
 .RecordLink__header {
   display: inline-flex;
-  gap: 6px;
+  column-gap: 6px;
   flex-wrap: wrap;
 }
 

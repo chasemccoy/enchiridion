@@ -130,31 +130,6 @@
       @fileDelete="({ mediaId }) => emit('fileDelete', { mediaId })"
     />
 
-    <div class="RecordDetail__actions">
-      <RelationshipSelect
-        :sourceRecordId="modelValue.id"
-        @createLink="handleCreateLink"
-      />
-
-      <FileUploadButton @fileUpload="(file) => emit('fileUpload', file)" />
-
-      <UButton
-        color="neutral"
-        icon="i-lucide-trash"
-        variant="subtle"
-        label="Delete record"
-        size="sm"
-        @click="emit('deleteRecord', modelValue.id)"
-      />
-
-      <USwitch
-        v-model="modelValue.isCurated"
-        label="Curated"
-        size="lg"
-        class="RecordDetail__curatedSwitch"
-      />
-    </div>
-
     <CombinedFields>
       <UFormField
         aria-label="Summary"
@@ -246,14 +221,38 @@
       </UButtonGroup>
     </CombinedFields>
 
+    <div class="RecordDetail__actions">
+      <RelationshipSelect
+        :sourceRecordId="modelValue.id"
+        @createLink="handleCreateLink"
+      />
+
+      <FileUploadButton @fileUpload="(file) => emit('fileUpload', file)" />
+
+      <UButton
+        color="neutral"
+        icon="i-lucide-trash"
+        variant="subtle"
+        label="Delete record"
+        size="sm"
+        @click="emit('deleteRecord', modelValue.id)"
+      />
+
+      <USwitch
+        v-model="modelValue.isCurated"
+        label="Curated"
+        size="lg"
+        class="RecordDetail__curatedSwitch"
+      />
+    </div>
+
     <div class="RecordDetail__links">
       <div
         v-for="(linksForType, predicateName) in linksByPredicateNameFiltered"
         :key="predicateName"
-        class="RecordDetail__section"
+        class="RecordDetail__linksSection"
       >
-        <h2 class="RecordDetail__sectionTitle">
-          <UIcon name="i-lucide-link" />
+        <h2 class="RecordDetail__sectionTitle RecordDetail__linksSectionTitle">
           {{ capitalize(String(predicateName)) }}
           <template v-if="linksForType.length > 3">({{ linksForType.length }})</template>
         </h2>
@@ -264,6 +263,7 @@
             :key="linkData.link.id"
           >
             <RecordLink
+              class="RecordDetail__recordLink shadow-xs"
               :modelValue="
                 linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId
               "
@@ -461,6 +461,7 @@ function handleDeleteLink(linkId: DbId) {
 
 .RecordDetail__children {
   font-size: 1rem;
+  margin-top: 12px;
 
   & > * + * {
     border-top: 1px dashed var(--ui-border);
@@ -487,14 +488,12 @@ function handleDeleteLink(linkId: DbId) {
 
 .RecordDetail__links {
   margin-top: 16px;
-  display: grid;
-  gap: 2rem;
-  align-items: start;
+  columns: 300px auto;
 }
 
 .RecordDetail__section {
   display: grid;
-  gap: 0.25rem;
+  gap: 8px;
 }
 
 .RecordDetail__sectionTitle {
@@ -502,7 +501,6 @@ function handleDeleteLink(linkId: DbId) {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  margin-bottom: 8px;
   color: var(--ui-text-dimmed);
   font-weight: 500;
 
@@ -524,7 +522,7 @@ function handleDeleteLink(linkId: DbId) {
 
 .RecordDetail__list {
   li + li {
-    margin-top: 16px;
+    margin-top: 2px;
   }
 }
 
@@ -554,5 +552,26 @@ function handleDeleteLink(linkId: DbId) {
 
 .RecordDetail__curatedSwitch {
   margin-left: 4px;
+}
+
+.RecordDetail__linksSection {
+  border-radius: var(--radius-xl);
+  padding: 2px;
+  break-inside: avoid;
+  background-color: var(--ui-bg-elevated);
+
+  & + & {
+    margin-top: 16px;
+  }
+}
+
+.RecordDetail__linksSectionTitle {
+  padding: 4px 12px 6px;
+}
+
+.RecordDetail__recordLink {
+  background-color: var(--ui-bg);
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
 }
 </style>

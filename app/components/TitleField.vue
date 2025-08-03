@@ -10,6 +10,7 @@
       :ui="{
         base: 'TitleField__input',
       }"
+      :autofocus
       autoresize
     />
   </UFormField>
@@ -17,6 +18,10 @@
 
 <script setup lang="ts">
 const modelValue = defineModel<string | null>('modelValue');
+
+const { autofocus } = defineProps<{
+  autofocus?: boolean;
+}>();
 </script>
 
 <style scoped>
