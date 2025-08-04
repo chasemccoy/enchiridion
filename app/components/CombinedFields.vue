@@ -9,7 +9,7 @@
   display: grid;
   border-radius: var(--radius-xl);
   overflow: hidden;
-  border: 1px solid var(--ui-border);
+  border: 0.5px solid var(--ui-border);
 
   --ui-radius: 0;
 
@@ -24,7 +24,7 @@
   }
 
   & > * + * {
-    border-top: 1px solid var(--ui-border);
+    border-top: 0.5px solid var(--ui-border);
   }
 
   & :deep(.Badge) {

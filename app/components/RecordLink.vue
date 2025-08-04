@@ -30,17 +30,19 @@
     </div>
 
     <div class="RecordLink__meta">
+      <LinkWithFavicon
+        v-if="record?.url"
+        :modelValue="record.url"
+      />
+    </div>
+
+    <div class="RecordLink__actions">
       <PredicateSelect
         v-if="localPredicate"
         v-model="localPredicate.id"
         :linkDirection="linkDirection"
         @select:predicate="handleSelectPredicate"
         @delete:link="handleDeleteLink"
-      />
-
-      <LinkWithFavicon
-        v-if="record?.url"
-        :modelValue="record.url"
       />
     </div>
   </div>
@@ -159,12 +161,14 @@ function handleDeleteLink() {
 <style scoped>
 .RecordLink {
   display: grid;
+  position: relative;
 }
 
 .RecordLink__header {
   display: inline-flex;
   column-gap: 6px;
   flex-wrap: wrap;
+  padding-right: 24px;
 }
 
 .RecordLink__title,
@@ -191,7 +195,6 @@ function handleDeleteLink() {
 .RecordLink__meta {
   display: flex;
   align-items: center;
-  margin-left: -10px;
   font-size: 0.75rem;
 
   :deep(svg) {
@@ -213,6 +216,19 @@ function handleDeleteLink() {
   -webkit-line-clamp: 5;
   line-clamp: 5;
   overflow: hidden;
-  margin-top: 2px;
+  margin: 6px 0 4px;
+}
+
+.RecordLink__actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.RecordLink:hover .RecordLink__actions,
+.RecordLink__actions:has(button[aria-expanded='true']) {
+  opacity: 1;
 }
 </style>

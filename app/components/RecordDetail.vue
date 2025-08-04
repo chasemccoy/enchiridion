@@ -108,12 +108,12 @@
       />
     </UFormField>
 
-    <div v-if="children && children.length > 0">
+    <div v-if="childrenWithContent && childrenWithContent.length > 0">
       <h2 class="RecordDetail__sectionTitle">Children</h2>
 
       <ul class="RecordDetail__children">
         <li
-          v-for="child in children"
+          v-for="child in childrenWithContent"
           :key="child.id"
         >
           <blockquote>
@@ -341,6 +341,11 @@ const children = computed(() => {
   return incomingLinks.value.filter((link) => link.predicate.type === 'containment');
 });
 
+const childrenWithContent = computed(() => {
+  if (!children.value) return null;
+  return children.value.filter((child) => child.source.content);
+});
+
 const linksByPredicateName = computed(() => {
   if (!links) return {};
 
@@ -419,6 +424,8 @@ function handleDeleteLink(linkId: DbId) {
 .RecordDetail {
   display: grid;
   gap: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .RecordDetail__badges {
@@ -545,9 +552,11 @@ function handleDeleteLink(linkId: DbId) {
 
 .RecordDetail__actions {
   display: flex;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 12px;
   align-items: center;
   margin-bottom: -4px;
+  flex-wrap: wrap;
 }
 
 .RecordDetail__curatedSwitch {
@@ -573,5 +582,6 @@ function handleDeleteLink(linkId: DbId) {
   background-color: var(--ui-bg);
   border-radius: var(--radius-lg);
   padding: 8px 12px;
+  border: 0.5px solid var(--ui-border);
 }
 </style>

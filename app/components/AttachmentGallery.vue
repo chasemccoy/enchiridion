@@ -116,7 +116,7 @@ function handleFileSelect(event: Event) {
 .Attachments__item {
   position: relative;
   box-shadow: inset 0 0 0 1px var(--ui-border-muted);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   padding: 1px;
 
@@ -124,7 +124,7 @@ function handleFileSelect(event: Event) {
   video {
     object-fit: cover;
     aspect-ratio: 1 / 1;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
   }
 }
 
@@ -148,9 +148,13 @@ function handleFileSelect(event: Event) {
 
 :deep(.Attachments__fileUploadButton) {
   background-color: transparent;
+  box-shadow: none;
+  color: var(--ui-text-dimmed);
+  border: 1px dashed var(--ui-border);
 
   &:hover {
     background-color: var(--ui-bg);
+    background-color: var(--ui-bg-elevated);
   }
 }
 

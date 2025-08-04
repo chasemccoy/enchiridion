@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="modelValue"
-    class="RecordCard"
+    class="RecordCard shadow-xs"
     :data-size="size"
   >
     <h1
@@ -173,7 +173,7 @@ const tags = computed(() => {
   display: grid;
   gap: 4px;
   background-color: var(--ui-bg);
-  border: 1px solid var(--ui-border);
+  border: 0.5px solid var(--ui-border);
   border-radius: var(--radius-lg);
   padding: 16px;
 
@@ -193,8 +193,8 @@ const tags = computed(() => {
   }
 
   &:has(.RouterLink--isActive) {
-    border-color: var(--ui-primary);
-    box-shadow: 0 0 0 1px var(--ui-primary);
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 2px;
   }
 }
 

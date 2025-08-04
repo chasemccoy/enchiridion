@@ -3,7 +3,7 @@
     size="sm"
     :items="menuItems"
     :ui="{
-      content: 'min-w-[150px]',
+      content: 'min-w-[200px]',
     }"
     :content="{
       align: 'start',
@@ -14,10 +14,10 @@
     <UButton
       color="neutral"
       variant="link"
-      trailingIcon="i-lucide-chevrons-up-down"
+      trailingIcon="i-lucide-settings"
       size="sm"
       class="PredicateSelect__button"
-      :label="label"
+      :aria-label="label"
     />
   </UDropdownMenu>
 </template>

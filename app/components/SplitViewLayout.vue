@@ -90,7 +90,7 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 <style scoped>
 .SplitViewLayout {
   display: grid;
-  grid-template-columns: minmax(350px, 0.5fr) 1fr;
+  grid-template-columns: minmax(400px, 0.35fr) 1fr;
   gap: 8px;
   overflow: hidden;
   height: calc(100% + 2rem);

@@ -44,6 +44,11 @@ export default defineConfig({
             root: 'w-full',
           },
         },
+        dropdownMenu: {
+          slots: {
+            content: 'dark',
+          },
+        },
       },
     }),
   ],

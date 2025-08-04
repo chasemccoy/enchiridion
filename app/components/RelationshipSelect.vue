@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     :content="{ align: 'start', sideOffset: 8 }"
     :ui="{
-      content: 'min-w-[300px] max-w-[600px] max-h-[50vh] overflow-y-auto',
+      content: 'dark min-w-[300px] max-w-[600px] max-h-[50vh] overflow-y-auto',
     }"
   >
     <UButton
