@@ -18,6 +18,28 @@
   --ui-primary: var(--ui-color-primary-700);
 }
 
+html.dark {
+  --color-white: var(--ui-color-neutral-300);
+
+  --ui-text-dimmed: var(--ui-color-neutral-600);
+  --ui-text-muted: var(--ui-color-neutral-500);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-text: var(--ui-color-neutral-400);
+  --ui-text-highlighted: var(--color-white);
+  --ui-text-inverted: var(--ui-color-neutral-900);
+
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-muted: var(--ui-color-neutral-800);
+  --ui-bg-elevated: var(--ui-color-neutral-900);
+  --ui-bg-accented: var(--ui-color-neutral-700);
+  --ui-bg-inverted: var(--color-white);
+
+  --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-700);
+  --ui-border-accented: var(--ui-color-neutral-800);
+  --ui-border-inverted: var(--color-white);
+}
+
 html:not(.dark),
 html:not(.dark) body {
   background-color: var(--ui-bg-muted);

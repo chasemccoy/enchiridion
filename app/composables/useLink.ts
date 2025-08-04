@@ -14,10 +14,11 @@ export default function useLink() {
           method: 'PUT',
           body: JSON.stringify(data),
         }),
-      onSuccess: ({ sourceId }) => {
-        queryClient.invalidateQueries({ queryKey: ['get-record', sourceId] });
-        queryClient.invalidateQueries({ queryKey: ['get-record-by-slug', sourceId] });
-        queryClient.invalidateQueries({ queryKey: ['get-record-links', sourceId] });
+      onSuccess: ({ sourceId, targetId }) => {
+        ['get-record', 'get-record-by-slug', 'get-record-links'].forEach((key) => {
+          queryClient.invalidateQueries({ queryKey: [key, sourceId] });
+          queryClient.invalidateQueries({ queryKey: [key, targetId] });
+        });
       },
     });
   }

@@ -161,12 +161,14 @@ function handleDeleteLink() {
 <style scoped>
 .RecordLink {
   display: grid;
+  gap: 2px;
   position: relative;
 }
 
 .RecordLink__header {
   display: inline-flex;
   column-gap: 6px;
+  row-gap: 1px;
   flex-wrap: wrap;
   padding-right: 24px;
 }
@@ -208,15 +210,15 @@ function handleDeleteLink() {
 }
 
 .RecordLink__summary {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: 0.8rem;
+  line-height: 1.15rem;
   color: var(--ui-text-muted);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
-  margin: 6px 0 4px;
+  margin: 4px 0 6px;
 }
 
 .RecordLink__actions {
