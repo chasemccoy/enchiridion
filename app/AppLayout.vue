@@ -156,10 +156,6 @@ watch(isSearchModalOpen, () => {
   margin-inline: 8px;
 }
 
-:global(.dark .App__nav) {
-  /* background-color: var(--ui-bg-inverted); */
-}
-
 :global(.App__navLink) {
   padding: 10px;
   cursor: default;

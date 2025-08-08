@@ -1,17 +1,26 @@
 <template>
-  <Head>
-    <title>New record | Enchiridion</title>
-  </Head>
-
-  <div class="AddRecordView">
-    <AddRecordForm
-      v-model="record"
-      v-model:files="files"
-      v-model:links="links"
-      :predicates="predicates"
-      @save="handleSubmit"
-    />
-  </div>
+  <UDrawer
+    v-model:open="modelValue"
+    direction="right"
+    :handle="false"
+    :ui="{
+      content: 'shadow-xl',
+    }"
+    handleOnly
+    inset
+  >
+    <template #content>
+      <div class="AddRecordDrawerView__content">
+        <AddRecordForm
+          v-model="record"
+          v-model:files="files"
+          v-model:links="links"
+          :predicates="predicates"
+          @save="handleSubmit"
+        />
+      </div>
+    </template>
+  </UDrawer>
 </template>
 
 <script setup lang="ts">
@@ -19,7 +28,6 @@ import AddRecordForm from '@app/components/AddRecordForm.vue';
 import useApiClient from '@app/composables/useApiClient';
 import useRecord from '@app/composables/useRecord';
 import type { LinkInsert, MediaInsert, RecordInsert } from '@db/schema';
-import { Head } from '@unhead/vue/components';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { FetchTweetAPIResponse } from '@api/twitter';
@@ -29,6 +37,12 @@ import { mapTweetToRecord } from '@integrations/twitter/records';
 import useLink from '@app/composables/useLink';
 import usePredicates from '@app/composables/usePredicates';
 import type { GetRecordBySlugAPIResponse } from '@db/queries/records';
+
+const modelValue = defineModel<boolean>('open', { required: true, default: false });
+
+const emit = defineEmits<{
+  close: [];
+}>();
 
 export type PartialLinkInsert = Omit<LinkInsert, 'sourceId'>;
 export type PartialMediaInsert = Omit<MediaInsert, 'recordId'> & {
@@ -69,9 +83,9 @@ const { mutate: uploadMediaMutation } = uploadMedia();
 const { data: predicates } = getPredicates();
 
 function handleSubmit(data: NewRecordData) {
-  const { record, files = [], links = [] } = data;
+  const { record: newRecord, files = [], links = [] } = data;
 
-  upsertRecordMutation(record, {
+  upsertRecordMutation(newRecord, {
     onSuccess: (r) => {
       for (const file of files) {
         if (!file.file) continue;
@@ -86,7 +100,23 @@ function handleSubmit(data: NewRecordData) {
         upsertLinkMutation({ sourceId: r.id, ...link });
       }
 
-      router.push(`/${record.slug}`);
+      emit('close');
+      record.value = emptyRecord;
+      toast.add({
+        title: `Record “${newRecord.slug}” was created`,
+        color: 'success',
+        icon: 'i-lucide-check-circle',
+        actions: [
+          {
+            label: 'View',
+            color: 'neutral',
+            variant: 'outline',
+            onClick: () => {
+              router.push(`/${newRecord.slug}`);
+            },
+          },
+        ],
+      });
     },
     onError: (e) => {
       toast.add({
@@ -177,21 +207,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.AddRecordView {
-  background-color: var(--ui-bg);
+.AddRecordDrawerView__content {
   padding: 24px;
-  max-width: 40em;
-  margin: -16px;
-  display: flex;
-  flex-direction: column;
-  min-height: 60dvh;
-
-  @media (min-width: 600px) {
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--ui-border);
-    margin: auto;
-    padding: 32px 40px 40px;
-    width: 100%;
-  }
+  min-width: 500px;
 }
 </style>

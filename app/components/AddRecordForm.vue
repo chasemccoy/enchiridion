@@ -265,14 +265,16 @@ function handleUpdatePredicate(link: PartialLinkInsert, predicate: PredicateSele
 
 <style scoped>
 .AddRecordForm {
+  --combinedFieldMinBadgeWidth: 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  --combinedFieldMinBadgeWidth: 64px;
+  height: 100%;
+  flex-grow: 1;
 }
 
 :deep(.AddRecordForm__submitButton) {
-  margin-top: 24px;
+  margin-top: auto;
 }
 
 .AddRecordForm__content {
