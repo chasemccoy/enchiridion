@@ -322,7 +322,6 @@ const tags = computed(() => {
   border-radius: var(--radius-md);
   margin-bottom: 4px;
   margin-top: 4px;
-  box-shadow: inset 0 0 0 1px var(--ui-border-muted);
 }
 
 .RecordCard__childrenCount {
