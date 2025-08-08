@@ -4,6 +4,10 @@
     :data="modelValue"
     :columns="columns"
     :columnVisibility="columnVisibility"
+    :ui="{
+      root: 'RecordTable',
+    }"
+    sticky
     @select="handleRowSelect"
   >
     <template #title-cell="{ row }">
@@ -116,6 +120,11 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
 </script>
 
 <style scoped>
+:global(.RecordTable) {
+  overflow: initial;
+  padding-bottom: 6rem;
+}
+
 :deep(.RecordTable__contentCell) {
   max-width: 400px;
   text-wrap: auto;

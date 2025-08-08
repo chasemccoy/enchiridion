@@ -3,6 +3,9 @@
     v-model:open="open"
     title="Search"
     description="Search for records"
+    :ui="{
+      content: 'dark',
+    }"
   >
     <template #content>
       <UCommandPalette

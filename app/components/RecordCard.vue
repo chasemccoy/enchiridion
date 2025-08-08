@@ -41,7 +41,7 @@
     </h1>
 
     <img
-      v-if="modelValue.media.length > 0 && modelValue.media[0].type === 'image'"
+      v-if="modelValue.media?.length > 0 && modelValue.media[0].type === 'image'"
       class="RecordCard__image"
       :src="`${backendBaseUrl}${modelValue.media[0].url}`"
       :alt="modelValue.media[0].altText ?? ''"
@@ -255,10 +255,9 @@ const tags = computed(() => {
   font-size: 0.8rem;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 8;
-  line-clamp: 8;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   overflow: hidden;
-  margin-top: 4px;
 }
 
 .RecordCard__section {
@@ -305,7 +304,6 @@ const tags = computed(() => {
   flex-wrap: wrap;
   column-gap: 8px;
   row-gap: 2px;
-  margin-top: 4px;
   margin-bottom: -2px;
   color: var(--ui-text-dimmed);
   font-size: 0.8rem;

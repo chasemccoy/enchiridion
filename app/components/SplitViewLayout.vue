@@ -91,10 +91,8 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 .SplitViewLayout {
   display: grid;
   grid-template-columns: minmax(400px, 0.35fr) 1fr;
-  gap: 8px;
-  overflow: hidden;
-  height: calc(100% + 2rem);
-  margin: -1rem;
+  overflow-y: hidden;
+  height: 100%;
 
   &.SplitViewLayout--empty {
     grid-template-columns: 1fr;
@@ -103,8 +101,12 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 
 .SplitViewLayout_list {
   height: 100%;
-  overflow: auto;
-  padding: 1rem 0.75rem 1rem 1rem;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.SplitViewLayout:has(.SplitViewLayout_detail) .SplitViewLayout_list {
+  padding-right: 1.2rem;
 }
 
 .SplitViewLayout_grid {
@@ -125,6 +127,6 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 
 .SplitViewLayout_detail {
   overflow: auto;
-  padding: 1rem 1.5rem 1rem 0.5rem;
+  padding: 2rem 2rem 4rem 1rem;
 }
 </style>

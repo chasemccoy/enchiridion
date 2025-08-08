@@ -27,21 +27,12 @@
 <script setup lang="ts">
 import SplitViewLayout from '@app/components/SplitViewLayout.vue';
 import useRecords from '@app/composables/useRecords';
-import { computed, onMounted } from 'vue';
+import { computed, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
 const isEmpty = computed(() => !data.value || data.value.length === 0);
-
-onMounted(() => {
-  if (!data.value) return;
-
-  const firstRecord = data.value[0];
-  if (!firstRecord) return;
-
-  router.push(`/inbox/record/${firstRecord.slug}`);
-});
 
 const { data } = useRecords({
   limit: 100,
@@ -64,6 +55,23 @@ const { data } = useRecords({
     },
   ],
 });
+
+const cancelWatch = watch(
+  data,
+  () => {
+    if (!data.value) return;
+
+    const firstRecord = data.value[0];
+
+    if (!firstRecord) return;
+
+    router.push(`/inbox/record/${firstRecord.slug}`);
+    nextTick(() => cancelWatch());
+  },
+  {
+    immediate: true,
+  },
+);
 </script>
 
 <style scoped>
