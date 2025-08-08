@@ -4,7 +4,7 @@
       <UNavigationMenu
         v-if="route.name !== RouteName.add"
         color="neutral"
-        class="App__nav"
+        class="App__nav shadow-2xl"
         :items="navItems"
         :ui="{
           link: 'App__navLink',

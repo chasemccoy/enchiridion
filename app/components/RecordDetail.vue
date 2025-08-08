@@ -246,7 +246,13 @@
       />
     </div>
 
-    <div class="RecordDetail__links">
+    <div
+      v-if="linksByPredicateNameFiltered"
+      class="RecordDetail__links"
+      :class="{
+        'RecordDetail__links--singleChild': Object.keys(linksByPredicateNameFiltered).length === 1,
+      }"
+    >
       <div
         v-for="(linksForType, predicateName) in linksByPredicateNameFiltered"
         :key="predicateName"
@@ -495,6 +501,9 @@ function handleDeleteLink(linkId: DbId) {
 
 .RecordDetail__links {
   margin-top: 16px;
+}
+
+.RecordDetail__links:not(.RecordDetail__links--singleChild) {
   columns: 300px auto;
 }
 
@@ -528,6 +537,9 @@ function handleDeleteLink(linkId: DbId) {
 }
 
 .RecordDetail__list {
+  column-gap: 2px;
+  columns: 300px auto;
+
   li + li {
     margin-top: 2px;
   }
@@ -583,5 +595,6 @@ function handleDeleteLink(linkId: DbId) {
   border-radius: var(--radius-lg);
   padding: 8px 12px;
   border: 0.5px solid var(--ui-border);
+  break-inside: avoid;
 }
 </style>

@@ -2,7 +2,7 @@
   <RecordTable
     v-if="data"
     v-model="data"
-    :hideColumns="['type', 'content', 'url']"
+    :hideColumns="['type', 'content', 'url', 'summary']"
   />
 </template>
 

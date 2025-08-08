@@ -49,7 +49,7 @@ const columnVisibility = computed(() => {
       acc[column] = false;
       return acc;
     },
-    { slug: false, id: false, summary: false, url: false } as Record<string, boolean>,
+    { slug: false, id: false, url: false } as Record<string, boolean>,
   );
 });
 
