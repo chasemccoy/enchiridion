@@ -15,7 +15,6 @@
         >
           <RecordCard
             v-model="modelValue[index]"
-            size="compact"
             v-bind="getRecordCardProps(record)"
             :data-slug="record.slug"
             @vue:Mounted="handleRecordMounted(modelValue[index])"

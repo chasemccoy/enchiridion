@@ -2,7 +2,6 @@
   <div
     v-if="modelValue"
     class="RecordCard shadow-xs"
-    :data-size="size"
   >
     <h1
       v-if="modelValue.title"
@@ -129,9 +128,8 @@ import { getIconForRecordType } from '@app/utils';
 
 const modelValue = defineModel<ListRecordsAPIResponse[number]>({ required: true });
 
-const { to, size = 'default' } = defineProps<{
+const { to } = defineProps<{
   to?: string;
-  size?: 'compact' | 'default';
 }>();
 
 const { backendBaseUrl } = useApiClient();
@@ -171,20 +169,15 @@ const tags = computed(() => {
 <style scoped>
 .RecordCard {
   display: grid;
-  gap: 4px;
   background-color: var(--ui-bg);
   border: 0.5px solid var(--ui-border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 12px;
+  gap: 6px;
 
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
   break-inside: avoid;
-
-  &[data-size='compact'] {
-    padding: 12px;
-    gap: 6px;
-  }
 
   & > * {
     overflow-wrap: break-word;
@@ -199,22 +192,17 @@ const tags = computed(() => {
 }
 
 .RecordCard__title {
-  font-size: 1.25rem;
-  line-height: 1.2;
   text-wrap: pretty;
   display: inline-flex;
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: 4px;
   row-gap: 10px;
+  font-size: 1rem;
+  line-height: 1.3;
 
   & a:hover {
     text-decoration: underline;
-  }
-
-  [data-size='compact'] & {
-    font-size: 1rem;
-    line-height: 1.3;
   }
 }
 

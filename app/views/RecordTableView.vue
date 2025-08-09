@@ -1,6 +1,17 @@
 <template>
   <div class="ConceptsView">
     <header class="ConceptsView__header">
+      <USelectMenu
+        v-model="type"
+        valueKey="id"
+        size="sm"
+        variant="ghost"
+        :items="typeOptions"
+        :searchInput="false"
+      />
+
+      <div v-if="data">{{ data.length }} records</div>
+
       <UInput
         v-model="textFilter"
         placeholder="Filter records…"
@@ -9,17 +20,6 @@
         size="sm"
         variant="ghost"
       />
-
-      <USelectMenu
-        v-model="type"
-        valueKey="id"
-        size="sm"
-        variant="none"
-        :items="typeOptions"
-        :searchInput="false"
-      />
-
-      <div v-if="data">{{ data.length }} records</div>
     </header>
 
     <RecordTable
@@ -102,7 +102,7 @@ const { data } = useRecords(queryOptions);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px 6px 6px;
+  padding: 6px;
   background-color: var(--ui-bg);
   font-size: 12px;
   color: var(--ui-text-muted);
@@ -110,5 +110,6 @@ const { data } = useRecords(queryOptions);
 
 .ConceptsView__filterInput {
   width: fit-content;
+  margin-left: auto;
 }
 </style>
