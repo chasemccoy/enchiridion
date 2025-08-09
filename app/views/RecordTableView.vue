@@ -1,6 +1,15 @@
 <template>
   <div class="ConceptsView">
     <header class="ConceptsView__header">
+      <UInput
+        v-model="textFilter"
+        placeholder="Filter records…"
+        class="ConceptsView__filterInput"
+        icon="i-lucide-search"
+        size="sm"
+        variant="ghost"
+      />
+
       <USelectMenu
         v-model="type"
         valueKey="id"
@@ -16,6 +25,7 @@
     <RecordTable
       v-if="data"
       v-model="data"
+      v-model:globalFilter="textFilter"
       :hideColumns="['type', 'url', 'summary']"
     />
   </div>
@@ -34,6 +44,7 @@ const router = useRouter();
 
 const defaultType = 'artifact';
 const type = ref<RecordType>(defaultType);
+const textFilter = ref('');
 
 const typeOptions = [
   {
@@ -91,10 +102,13 @@ const { data } = useRecords(queryOptions);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 16px 4px 6px;
+  padding: 6px 16px 6px 6px;
   background-color: var(--ui-bg);
   font-size: 12px;
-  border-bottom: 1px solid var(--ui-border);
   color: var(--ui-text-muted);
+}
+
+.ConceptsView__filterInput {
+  width: fit-content;
 }
 </style>

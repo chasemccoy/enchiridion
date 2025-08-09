@@ -1,6 +1,7 @@
 <template>
   <UTable
     v-if="modelValue"
+    v-model:globalFilter="globalFilter"
     :data="modelValue"
     :columns="columns"
     :columnVisibility="columnVisibility"
@@ -8,6 +9,7 @@
       root: 'RecordTable',
       th: 'RecordTable__th',
     }"
+    :globalFilterOptions
     sticky
     @select="handleRowSelect"
   >
@@ -46,12 +48,13 @@
 <script setup lang="ts">
 import useApiClient from '@app/composables/useApiClient';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import type { TableRow } from '@nuxt/ui';
+import type { TableColumn, TableRow } from '@nuxt/ui';
 import { capitalize, formatDate } from '@shared/lib/formatting';
 import { computed, h, resolveComponent } from 'vue';
 import { useRouter } from 'vue-router';
 
 const modelValue = defineModel<ListRecordsAPIResponse>({ required: true });
+const globalFilter = defineModel<string>('globalFilter');
 
 const props = defineProps<{
   hideColumns?: string[];
@@ -59,6 +62,12 @@ const props = defineProps<{
 
 const router = useRouter();
 const { backendBaseUrl } = useApiClient();
+
+const globalFilterOptions = {
+  getColumnCanGlobalFilter: (column: TableColumn<ListRecordsAPIResponse[number]>) => {
+    return column.enableGlobalFilter === undefined ? true : column.enableGlobalFilter;
+  },
+};
 
 const UBadge = resolveComponent('UBadge');
 
@@ -107,6 +116,7 @@ const columns = [
   {
     accessorKey: 'url',
     header: 'URL',
+    enableGlobalFilter: false,
   },
   {
     accessorKey: 'content',
@@ -134,6 +144,7 @@ const columns = [
   {
     accessorKey: 'media',
     header: 'Media',
+    enableGlobalFilter: false,
   },
 ];
 
@@ -160,11 +171,6 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
 
   & .RecordTable__titleCellContent {
     display: grid;
-    gap: 2px;
-  }
-
-  & .RecordTable__titleCellTitle {
-    font-size: 15px;
   }
 
   & .RecordTable__titleCellLink {
