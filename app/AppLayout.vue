@@ -55,12 +55,8 @@ const navItems = [
       icon: 'i-lucide-inbox',
     },
     {
-      to: '/concepts',
-      icon: getIconForRecordType('concept'),
-    },
-    {
-      to: '/entities',
-      icon: getIconForRecordType('entity'),
+      to: '/records',
+      icon: 'i-lucide-table-properties',
     },
   ],
   [
