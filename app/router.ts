@@ -5,11 +5,13 @@ import EntitiesView from '@app/views/EntitiesView.vue';
 import InboxView from '@app/views/InboxView.vue';
 import IndexView from '@app/views/IndexView.vue';
 import RecordDetailView from '@app/views/RecordDetailView.vue';
+import RecordTableView from '@app/views/RecordTableView.vue';
 import { createWebHistory, createRouter } from 'vue-router';
 
 export enum RouteName {
   index = 'index',
   inbox = 'inbox',
+  records = 'records',
   artifacts = 'artifacts',
   concepts = 'concepts',
   entities = 'entities',
@@ -38,6 +40,11 @@ const routes = [
         component: RecordDetailView,
       },
     ],
+  },
+  {
+    path: '/records',
+    name: RouteName.records,
+    component: RecordTableView,
   },
   {
     path: '/artifacts',

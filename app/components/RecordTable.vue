@@ -6,27 +6,45 @@
     :columnVisibility="columnVisibility"
     :ui="{
       root: 'RecordTable',
+      th: 'RecordTable__th',
     }"
     sticky
     @select="handleRowSelect"
   >
     <template #title-cell="{ row }">
-      <a
-        v-if="row.getValue('url')"
-        class="RecordTable__titleCellLink"
-        target="_blank"
-        :href="row.getValue('url')"
-      >
-        {{ row.getValue('title') }}
-      </a>
-      <template v-else>
-        {{ row.getValue('title') }}
-      </template>
+      <img
+        v-if="row.original.media?.[0]"
+        class="RecordTable__media"
+        :src="`${backendBaseUrl}${row.original.media[0].url}`"
+      />
+      <div class="RecordTable__titleCellContent">
+        <div
+          v-if="row.original.title"
+          class="RecordTable__titleCellTitle"
+        >
+          <a
+            v-if="row.original.url"
+            class="RecordTable__titleCellLink"
+            target="_blank"
+            :href="row.original.url"
+          >
+            {{ row.original.title }}
+          </a>
+          <template v-else>
+            {{ row.original.title }}
+          </template>
+        </div>
+
+        <div v-if="row.original.summary || row.original.content">
+          {{ row.original.summary || row.original.content }}
+        </div>
+      </div>
     </template>
   </UTable>
 </template>
 
 <script setup lang="ts">
+import useApiClient from '@app/composables/useApiClient';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
 import type { TableRow } from '@nuxt/ui';
 import { capitalize, formatDate } from '@shared/lib/formatting';
@@ -40,6 +58,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const { backendBaseUrl } = useApiClient();
 
 const UBadge = resolveComponent('UBadge');
 
@@ -49,7 +68,7 @@ const columnVisibility = computed(() => {
       acc[column] = false;
       return acc;
     },
-    { slug: false, id: false, url: false } as Record<string, boolean>,
+    { slug: false, id: false, url: false, content: false, media: false } as Record<string, boolean>,
   );
 });
 
@@ -78,7 +97,7 @@ const columns = [
   },
   {
     accessorKey: 'title',
-    header: 'Title',
+    header: 'Record',
     meta: {
       class: {
         td: 'RecordTable__titleCell',
@@ -112,6 +131,10 @@ const columns = [
       return formatDate(row.getValue('recordCreatedAt'));
     },
   },
+  {
+    accessorKey: 'media',
+    header: 'Media',
+  },
 ];
 
 function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
@@ -131,8 +154,18 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
 }
 
 :deep(.RecordTable__titleCell) {
-  max-width: 400px;
   text-wrap: auto;
+  display: flex;
+  gap: 12px;
+
+  & .RecordTable__titleCellContent {
+    display: grid;
+    gap: 2px;
+  }
+
+  & .RecordTable__titleCellTitle {
+    font-size: 15px;
+  }
 
   & .RecordTable__titleCellLink {
     color: var(--ui-primary);
@@ -142,5 +175,17 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
   & .RecordTable__titleCellLink:hover {
     text-decoration: underline;
   }
+}
+
+:deep(.RecordTable__th) {
+  padding-block: 12px;
+  font-size: 12px;
+}
+
+:deep(.RecordTable__media) {
+  width: 88px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
 }
 </style>
