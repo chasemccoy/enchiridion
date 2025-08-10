@@ -7,6 +7,7 @@
     v-if="record"
     :modelValue="record"
     :links="links"
+    :relatedRecords="relatedRecords"
     @fileUpload="handleFileUpload"
     @fileDelete="handleMediaDelete"
     @createLink="handleCreateLink"
@@ -33,7 +34,8 @@ import type { DbId } from '@shared/types/api';
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
-const { getRecordBySlug, getRecordLinks, upsertRecord, deleteRecord } = useRecord();
+const { getRecordBySlug, getRecordLinks, upsertRecord, deleteRecord, getRelatedRecords } =
+  useRecord();
 const { uploadMedia, deleteMedia, deleteMediaForRecord } = useMedia();
 const { upsertLink, deleteLink } = useLink();
 
@@ -46,6 +48,7 @@ const recordId = computed(() => record.value?.id ?? null);
 const isRecordFetched = computed(() => !!recordId.value);
 
 const { data: links } = getRecordLinks(recordId, isRecordFetched);
+const { data: relatedRecords } = getRelatedRecords(recordId, isRecordFetched);
 
 const { mutate: mutateRecord } = upsertRecord();
 const { mutate: upsertLinkMutation } = upsertLink();

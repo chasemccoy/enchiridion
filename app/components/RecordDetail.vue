@@ -282,6 +282,25 @@
         </ul>
       </div>
     </div>
+
+    <div
+      v-if="relatedRecords && relatedRecords.length > 0"
+      class="RecordDetail__linksSection"
+    >
+      <h2 class="RecordDetail__sectionTitle RecordDetail__linksSectionTitle">Related</h2>
+
+      <ul class="RecordDetail__list">
+        <li
+          v-for="entry in relatedRecords"
+          :key="entry.record.id"
+        >
+          <RecordLink
+            class="RecordDetail__recordLink shadow-xs"
+            :modelValue="entry.record.id"
+          />
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -299,6 +318,7 @@ import SlugField from '@app/components/SlugField.vue';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import TitleField from '@app/components/TitleField.vue';
 import CombinedFields from '@app/components/CombinedFields.vue';
+import type { RelatedRecordsAPIResponse } from '@db/queries/related';
 
 const modelValue = defineModel<GetRecordBySlugAPIResponse>({ required: true });
 
@@ -312,8 +332,9 @@ const emit = defineEmits<{
   paste: [ClipboardEvent];
 }>();
 
-const { links } = defineProps<{
+const { links, relatedRecords } = defineProps<{
   links?: LinksForRecordAPIResponse;
+  relatedRecords?: RelatedRecordsAPIResponse;
 }>();
 
 const capturedAt = computed(() => {

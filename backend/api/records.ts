@@ -10,6 +10,7 @@ import {
   getRecordBySlug,
   linksToRecordWithPredicateSlug,
 } from '@db/queries/records';
+import { findRelatedRecords } from '@db/queries/related';
 import { getFamilyTree } from '@db/queries/tree';
 import { z } from 'zod/v4';
 
@@ -80,6 +81,27 @@ recordRoutes.get('/record/:id/links/:predicateSlug', async (req, res, next) => {
     const { id, predicateSlug } = paramSchema.parse(req.params);
     const links = await linksToRecordWithPredicateSlug(id, predicateSlug);
     res.json(links);
+  } catch (error) {
+    next(error);
+  }
+});
+
+recordRoutes.get('/record/:id/related', async (req, res, next) => {
+  try {
+    const { id } = IdParamSchema.parse(req.params);
+
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    const minScore = req.query.minScore ? parseFloat(req.query.minScore as string) : 0.1;
+    const includeContent = req.query.includeContent === 'true';
+
+    const relatedRecords = await findRelatedRecords({
+      recordId: id,
+      limit,
+      minScore,
+      includeContent,
+    });
+
+    res.json(relatedRecords);
   } catch (error) {
     next(error);
   }
