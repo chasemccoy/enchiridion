@@ -19,6 +19,7 @@
         icon="i-lucide-search"
         size="sm"
         variant="ghost"
+        autofocus
       />
     </header>
 

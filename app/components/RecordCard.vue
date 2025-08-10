@@ -71,6 +71,7 @@
           color="neutral"
           variant="outline"
           class="RecordCard__badge"
+          size="sm"
           :icon="getIconForRecordType(modelValue.type)"
         >
           {{ capitalize(modelValue.type) }}

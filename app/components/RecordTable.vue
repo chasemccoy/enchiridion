@@ -287,6 +287,7 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
 
 .RecordTable__titleCellContent {
   display: grid;
+  grid-auto-rows: min-content;
   gap: 2px;
 }
 
