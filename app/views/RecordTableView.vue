@@ -6,6 +6,7 @@
         valueKey="id"
         size="sm"
         variant="ghost"
+        class="ConceptsView__typeSelect"
         :items="typeOptions"
         :searchInput="false"
       />
@@ -112,5 +113,9 @@ const { data } = useRecords(queryOptions);
 .ConceptsView__filterInput {
   width: fit-content;
   margin-left: auto;
+}
+
+:deep(.ConceptsView__typeSelect) {
+  color: var(--ui-text-muted);
 }
 </style>
