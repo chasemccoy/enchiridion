@@ -5,22 +5,31 @@
     :class="{ 'SplitViewLayout--empty': isEmpty }"
   >
     <div class="SplitViewLayout_list">
-      <ul
+      <div
         v-if="modelValue"
-        class="SplitViewLayout_grid"
+        class="SplitViewLayout_groups"
       >
-        <li
-          v-for="(record, index) in modelValue"
-          :key="record.id"
+        <div
+          v-for="(group, groupKey) in groupedRecords"
+          :key="groupKey"
+          class="SplitViewLayout_group"
         >
-          <RecordCard
-            v-model="modelValue[index]"
-            v-bind="getRecordCardProps(record)"
-            :data-slug="record.slug"
-            @vue:Mounted="handleRecordMounted(modelValue[index])"
-          />
-        </li>
-      </ul>
+          <h3 class="SplitViewLayout_groupHeader">{{ groupKey }}</h3>
+          <ul class="SplitViewLayout_grid">
+            <li
+              v-for="record in group"
+              :key="record.id"
+            >
+              <RecordCard
+                v-model="modelValue[getRecordIndex(record.id)]"
+                v-bind="getRecordCardProps(record)"
+                :data-slug="record.slug"
+                @vue:Mounted="handleRecordMounted(modelValue[getRecordIndex(record.id)])"
+              />
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <div
@@ -35,7 +44,7 @@
 <script setup lang="ts">
 import RecordCard from '@app/components/RecordCard.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import { useTemplateRef, watch } from 'vue';
+import { useTemplateRef, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 const modelValue = defineModel<ListRecordsAPIResponse>();
@@ -47,6 +56,49 @@ const { isEmpty, recordCardProps } = defineProps<{
 
 const elRef = useTemplateRef('elRef');
 const route = useRoute();
+
+// Group records by month and year
+const groupedRecords = computed(() => {
+  if (!modelValue.value) return {};
+
+  const groups: Record<string, ListRecordsAPIResponse> = {};
+
+  modelValue.value.forEach((record) => {
+    if (!record.recordCreatedAt) return;
+
+    const date = new Date(record.recordCreatedAt + 'Z');
+    const monthYear = date.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+
+    if (!groups[monthYear]) {
+      groups[monthYear] = [];
+    }
+
+    groups[monthYear].push(record);
+  });
+
+  // Sort groups by date (newest first)
+  const sortedGroups: Record<string, ListRecordsAPIResponse> = {};
+  Object.keys(groups)
+    .sort((a, b) => {
+      // Parse the month/year strings back to dates for proper sorting
+      const dateA = new Date(a);
+      const dateB = new Date(b);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .forEach((key) => {
+      sortedGroups[key] = groups[key];
+    });
+
+  return sortedGroups;
+});
+
+// Helper function to get the original index of a record in the modelValue array
+function getRecordIndex(recordId: number): number {
+  return modelValue.value?.findIndex((record) => record.id === recordId) ?? -1;
+}
 
 watch(
   route,
@@ -106,6 +158,35 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 
 .SplitViewLayout:has(.SplitViewLayout_detail) .SplitViewLayout_list {
   padding-right: 1.2rem;
+}
+
+.SplitViewLayout_groups {
+  display: grid;
+  gap: 32px;
+}
+
+.SplitViewLayout_group {
+  display: grid;
+  gap: 8px;
+  margin-top: -4px;
+}
+
+.SplitViewLayout_groupHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--ui-text-dimmed);
+
+  &::before,
+  &::after {
+    content: '';
+    height: 1px;
+    background-color: var(--ui-border);
+    display: block;
+    width: 100%;
+  }
 }
 
 .SplitViewLayout_grid {
