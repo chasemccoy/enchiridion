@@ -14,7 +14,10 @@
           :key="groupKey"
           class="SplitViewLayout_group"
         >
-          <h3 class="SplitViewLayout_groupHeader">{{ groupKey }}</h3>
+          <h3 class="SplitViewLayout_groupHeader">
+            {{ groupKey }}
+            <template v-if="group.length > 4">({{ group.length }})</template>
+          </h3>
           <ul class="SplitViewLayout_grid">
             <li
               v-for="record in group"

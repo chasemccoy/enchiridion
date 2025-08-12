@@ -16,7 +16,7 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 
 const { data } = useRecords({
-  limit: 100,
+  limit: 300,
   filters: {
     hasParent: false,
   },

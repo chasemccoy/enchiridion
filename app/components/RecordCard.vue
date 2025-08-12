@@ -84,13 +84,6 @@
         />
       </li>
 
-      <li v-if="modelValue.notes">
-        <UIcon
-          name="i-lucide-message-circle"
-          class="size-4"
-        />
-      </li>
-
       <li>
         <RouterLink
           activeClass="RouterLink--isActive"
@@ -115,6 +108,13 @@
         <RouterLink :to="`/${tag.slug}`"> #{{ slugify(tag.title ?? tag.slug) }} </RouterLink>
       </li>
     </ul>
+
+    <ChatBubble
+      v-if="modelValue.notes"
+      class="RecordCard__notes"
+    >
+      {{ modelValue.notes }}
+    </ChatBubble>
   </div>
 </template>
 
@@ -126,6 +126,7 @@ import { formatDate, pluralize, slugify } from '@shared/lib/formatting';
 import useApiClient from '@app/composables/useApiClient';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import { getIconForRecordType } from '@app/utils';
+import ChatBubble from '@app/components/ChatBubble.vue';
 
 const modelValue = defineModel<ListRecordsAPIResponse[number]>({ required: true });
 
@@ -330,5 +331,9 @@ const tags = computed(() => {
     height: 12px;
     color: var(--ui-text-muted);
   }
+}
+
+.RecordCard__notes {
+  margin-top: 8px;
 }
 </style>
