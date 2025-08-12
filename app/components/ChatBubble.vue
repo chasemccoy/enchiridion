@@ -3,7 +3,7 @@
     <svg
       width="13"
       height="14"
-      fill="var(--ui-bg-muted)"
+      fill="var(--ui-bg-elevated)"
     >
       <path d="M6 .246c-.175 5.992-1.539 8.89-5.5 13.5 6.117.073 9.128-.306 12.5-3L6 .246Z"></path>
     </svg>
@@ -20,7 +20,7 @@
 }
 
 .ChatBubble span {
-  background-color: var(--ui-bg-muted);
+  background-color: var(--ui-bg-elevated);
   color: var(--ui-text-muted);
   font-size: 12px;
   border-radius: 10px;
