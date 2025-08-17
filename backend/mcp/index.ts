@@ -15,7 +15,7 @@ export const server = new McpServer(
   },
   {
     instructions: `
-    This MCP server provides access to the Enchiridion SQLite database.
+    This MCP server provides access to an SQLite database of research materials organized into records, links, and predicates. Records are the main objects in the database, and can be linked to one another via predicates. Links are the relationships between records, and predicates are the types of relationships. Records can be one of three types: artifacts, entities, or concepts.
 
     As an LLM acting on behalf of a user, you can:
     - Retrieve the database schema by reading the "schema://main" resource.
@@ -129,7 +129,7 @@ server.registerTool(
   {
     title: 'Create new record',
     description:
-      'Create a new record (not a link) in the database whose schema is available as a resource at schema://main',
+      'Create a new record (not a link) in the database whose schema is available as a resource at schema://main. Returns the created record.',
     inputSchema: {
       title: z.string(),
       slug: z.string(),
@@ -183,7 +183,7 @@ server.registerTool(
     description:
       'Update an existing record in the database whose schema is available as a resource at schema://main. Returns the updated record. If the record does not exist, it will be created.',
     inputSchema: {
-      title: z.string(),
+      title: z.string().optional(),
       slug: z.string(),
       content: z.string().optional(),
       summary: z.string().optional(),
