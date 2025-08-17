@@ -18,6 +18,7 @@
       "@shared/*": ["./shared/*"],
       "@app/*": ["./app/*"],
       "@integrations/*": ["./backend/integrations/*"],
+      "@mcp/*": ["./backend/mcp/*"],
       "#build/ui": ["./node_modules/@nuxt/ui/.nuxt/ui"]
     }
   },
