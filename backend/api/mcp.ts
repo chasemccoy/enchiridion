@@ -13,8 +13,12 @@ mcpRoutes.post('/mcp', async (req: Request, res: Response) => {
   try {
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
-      enableDnsRebindingProtection: true,
-      allowedHosts: [`localhost:${BACKEND_PORT}`],
+      ...(process.env.NODE_ENV === 'development'
+        ? {
+            enableDnsRebindingProtection: true,
+            allowedHosts: [`localhost:${BACKEND_PORT}`],
+          }
+        : {}),
     });
     res.on('close', () => {
       console.log('Request closed');
@@ -53,7 +57,7 @@ mcpRoutes.get('/mcp', async (_, res: Response) => {
   );
 });
 
-mcpRoutes.delete('/mcp', async (req: Request, res: Response) => {
+mcpRoutes.delete('/mcp', async (_, res: Response) => {
   console.log('Received DELETE MCP request');
 
   res.writeHead(405).end(
