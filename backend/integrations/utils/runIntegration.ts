@@ -33,7 +33,7 @@ export async function runIntegration(
   fn: IntegrationFunction,
   runType: RunType = RunType.enum.sync,
 ): Promise<void> {
-  console.log(`Starting ${integrationType} integration run for ${runType}...`);
+  console.log(`Starting ${integrationType} integration run for ${runType}…`);
 
   // Create a new integration run record
   const [run] = await db

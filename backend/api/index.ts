@@ -9,6 +9,7 @@ import cors from 'cors';
 import { searchRoutes } from 'backend/api/search';
 import { mediaRoutes } from './media';
 import { twitterRoutes } from 'backend/api/twitter';
+import { integrationRoutes } from './integrations';
 
 const PORT = process.env.BACKEND_PORT;
 
@@ -32,6 +33,7 @@ app.use(searchRoutes);
 app.use(mediaRoutes);
 app.use(twitterRoutes);
 app.use(mcpRoutes);
+app.use(integrationRoutes);
 app.use('/uploads', express.static('uploads'));
 
 app.listen(PORT, () => {

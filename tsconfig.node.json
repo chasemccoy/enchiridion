@@ -22,5 +22,11 @@
       "#build/ui": ["./node_modules/@nuxt/ui/.nuxt/ui"]
     }
   },
-  "include": ["vite.config.ts", "backend/**/*.ts", "backend/**/*.tsx", "shared/**/*.ts"]
+  "include": [
+    "vite.config.ts",
+    "backend/**/*.ts",
+    "backend/**/*.tsx",
+    "shared/**/*.ts",
+    "scripts/**/*.ts"
+  ]
 }

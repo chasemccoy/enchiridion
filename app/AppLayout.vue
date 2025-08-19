@@ -23,6 +23,8 @@
       :searchResultItems="searchResultItems"
     />
 
+    <SettingsModalView v-model:isOpen="isSettingsModalOpen" />
+
     <AddRecordDrawerView
       v-model:open="isAddRecordDrawerOpen"
       @close="isAddRecordDrawerOpen = false"
@@ -36,6 +38,7 @@ import useSearch from '@app/composables/useSearch';
 import { RouteName } from '@app/router';
 import { getIconForRecordType } from '@app/utils';
 import AddRecordDrawerView from '@app/views/AddRecordDrawerView.vue';
+import SettingsModalView from '@app/views/SettingsModalView.vue';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -61,6 +64,12 @@ const navItems = [
   ],
   [
     {
+      icon: 'i-lucide-settings',
+      onSelect: () => {
+        isSettingsModalOpen.value = true;
+      },
+    },
+    {
       icon: 'i-lucide-search',
       onSelect: () => {
         isSearchModalOpen.value = true;
@@ -77,6 +86,7 @@ const navItems = [
 
 const isSearchModalOpen = ref(false);
 const isAddRecordDrawerOpen = ref(false);
+const isSettingsModalOpen = ref(false);
 
 defineShortcuts({
   meta_k: () => {

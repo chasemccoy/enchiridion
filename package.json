@@ -25,7 +25,7 @@
 		"db:reset": "pnpm db:clean && pnpm db:push && pnpm db:seed",
 		"db:check": "sqlite3 enchiridion.db 'PRAGMA integrity_check;'",
 		"db:backup": "tsx scripts/backup-database.ts",
-		"sync:readwise": "tsx backend/integrations/readwise/sync.ts",
+		"sync:readwise": "tsx scripts/sync-readwise.ts",
 		"sync": "pnpm sync:readwise"
 	},
 	"dependencies": {

@@ -9,61 +9,61 @@ import { styleText } from 'node:util';
  * @returns An object with logging methods
  */
 export function createIntegrationLogger(integration: string, process: string) {
-	const prefix = `[${integration}:${process}]`;
+  const prefix = `[${integration}:${process}]`;
 
-	return {
-		/**
-		 * Log an informational message
-		 */
-		info: (message: string, ...args: unknown[]) => {
-			console.log(`${prefix} ${message}`, ...args);
-		},
+  return {
+    /**
+     * Log an informational message
+     */
+    info: (message: string, ...args: unknown[]) => {
+      console.log(`${prefix} ${message}`, ...args);
+    },
 
-		/**
-		 * Log a warning message
-		 */
-		warn: (message: string, ...args: unknown[]) => {
-			console.warn(styleText('yellow', `${prefix} ${message}`), ...args);
-		},
+    /**
+     * Log a warning message
+     */
+    warn: (message: string, ...args: unknown[]) => {
+      console.warn(styleText('yellow', `${prefix} ${message}`), ...args);
+    },
 
-		/**
-		 * Log an error message
-		 */
-		error: (message: string, error?: unknown, ...args: unknown[]) => {
-			if (error instanceof Error) {
-				console.error(styleText('red', `${prefix} ${message}:`), error.message, ...args);
+    /**
+     * Log an error message
+     */
+    error: (message: string, error?: unknown, ...args: unknown[]) => {
+      if (error instanceof Error) {
+        console.error(styleText('red', `${prefix} ${message}:`), error.message, ...args);
 
-				if (error.stack) {
-					console.error(styleText('red', error.stack));
-				}
-			} else if (error !== undefined) {
-				console.error(styleText('red', `${prefix} ${message}:`), error, ...args);
-			} else {
-				console.error(styleText('red', `${prefix} ${message}`), ...args);
-			}
-		},
+        if (error.stack) {
+          console.error(styleText('red', error.stack));
+        }
+      } else if (error !== undefined) {
+        console.error(styleText('red', `${prefix} ${message}:`), error, ...args);
+      } else {
+        console.error(styleText('red', `${prefix} ${message}`), ...args);
+      }
+    },
 
-		/**
-		 * Log the start of a process
-		 */
-		start: (message: string = 'Starting') => {
-			console.log(styleText('green', `${prefix} ${message}`));
-		},
+    /**
+     * Log the start of a process
+     */
+    start: (message: string = 'Starting', ...args: unknown[]) => {
+      console.log(styleText('green', `${prefix} ${message}`), ...args);
+    },
 
-		/**
-		 * Log the completion of a process
-		 */
-		complete: (message: string = 'Completed', count?: number) => {
-			const countStr = count !== undefined ? ` (${count} items)` : '';
-			console.log(`${prefix} ${message}${countStr}`);
-		},
+    /**
+     * Log the completion of a process
+     */
+    complete: (message: string = 'Completed', count?: number) => {
+      const countStr = count !== undefined ? ` (${count} items)` : '';
+      console.log(`${prefix} ${message}${countStr}`);
+    },
 
-		/**
-		 * Log a skipped process
-		 */
-		skip: (message: string = 'Skipped', reason?: string) => {
-			const reasonStr = reason ? `: ${reason}` : '';
-			console.log(`${prefix} ${message}${reasonStr}`);
-		},
-	};
+    /**
+     * Log a skipped process
+     */
+    skip: (message: string = 'Skipped', reason?: string) => {
+      const reasonStr = reason ? `: ${reason}` : '';
+      console.log(`${prefix} ${message}${reasonStr}`);
+    },
+  };
 }
