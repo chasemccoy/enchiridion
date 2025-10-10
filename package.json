@@ -38,7 +38,7 @@
 		"better-sqlite3": "^12.1.0",
 		"cors": "^2.8.5",
 		"drizzle-orm": "1.0.0-beta.1-c0277c0",
-		"drizzle-zod": "^0.8.2",
+		"drizzle-zod": "^0.8.3",
 		"express": "^5.1.0",
 		"multer": "^2.0.1",
 		"sharp": "^0.34.2",
@@ -47,7 +47,7 @@
 		"trash": "^10.0.0",
 		"vue": "^3.5.22",
 		"vue-router": "4",
-		"zod": "^3.25.76"
+		"zod": "^4.1.12"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.28.0",
