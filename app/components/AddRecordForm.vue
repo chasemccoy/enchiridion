@@ -65,7 +65,7 @@
 
       <SlugField v-model="slug" />
 
-      <UButtonGroup>
+      <UFieldGroup>
         <UBadge
           color="neutral"
           variant="outline"
@@ -79,9 +79,9 @@
           variant="outline"
           placeholder="https://example.org"
         />
-      </UButtonGroup>
+      </UFieldGroup>
 
-      <UButtonGroup v-if="createdAt">
+      <UFieldGroup v-if="createdAt">
         <UBadge
           color="neutral"
           variant="outline"
@@ -96,9 +96,9 @@
           placeholder="May 4, 1995"
           readonly
         />
-      </UButtonGroup>
+      </UFieldGroup>
 
-      <UButtonGroup>
+      <UFieldGroup>
         <UBadge
           color="neutral"
           variant="outline"
@@ -114,7 +114,7 @@
           :rows="1"
           autoresize
         />
-      </UButtonGroup>
+      </UFieldGroup>
     </CombinedFields>
 
     <div v-if="links.length > 0 && predicates">

@@ -1,5 +1,5 @@
 <template>
-  <UButtonGroup class="SlugField">
+  <UFieldGroup class="SlugField">
     <UBadge
       color="neutral"
       variant="outline"
@@ -19,7 +19,7 @@
       :readonly
       required
     />
-  </UButtonGroup>
+  </UFieldGroup>
 </template>
 
 <script setup lang="ts">
