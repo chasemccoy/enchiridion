@@ -33,7 +33,7 @@ const mapReadwiseAuthorToRecord = (author: ReadwiseAuthorSelect): RecordInsert =
     id: author.recordId ?? undefined,
     type: 'entity',
     title: author.name,
-    slug: slugify(author.name || author.recordId.toString()),
+    slug: slugify((author.name || author.recordId?.toString()) ?? author.id.toString()),
     url: author.origin,
     isCurated: false,
     source: 'readwise',

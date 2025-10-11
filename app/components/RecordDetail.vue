@@ -400,7 +400,7 @@ const linksByPredicateName = computed(() => {
       grouped[predicateName] = [];
     }
 
-    grouped[predicateName].push({ link, direction });
+    grouped[predicateName]?.push({ link, direction });
   };
 
   links.outgoingLinks?.forEach((link) => addLink(link, 'outgoing'));

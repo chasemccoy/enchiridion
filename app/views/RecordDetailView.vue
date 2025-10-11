@@ -157,13 +157,14 @@ function handleDeleteRecord(id: DbId) {
 
   deleteRecordMutation(id, {
     onSuccess: (record) => {
-      if (route.matched.length > 1) {
-        router.push(route.matched[route.matched.length - 2].path);
+      const parentRoute = route.matched[route.matched.length - 2];
+      if (route.matched.length > 1 && parentRoute) {
+        router.push(parentRoute.path);
       }
 
       toast.add({
         title: 'Record deleted',
-        description: `The record with slug “${record[0].slug}” has been deleted.`,
+        description: `The record with slug “${record[0]?.slug}” has been deleted.`,
         color: 'success',
       });
     },

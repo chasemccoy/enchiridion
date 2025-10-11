@@ -76,10 +76,6 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.readwiseDocuments.parentId,
       to: r.readwiseDocuments.id,
     }),
-    author: r.one.readwiseAuthors({
-      from: r.readwiseDocuments.authorId,
-      to: r.readwiseAuthors.id,
-    }),
     documentTags: r.many.readwiseDocumentTags({
       from: r.readwiseDocuments.id,
       to: r.readwiseDocumentTags.documentId,

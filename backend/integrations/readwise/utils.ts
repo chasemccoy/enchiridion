@@ -42,6 +42,8 @@ export async function getMostRecentUpdateTime(): Promise<Date | null> {
       `Last known readwise date: ${mostRecent.contentUpdatedAt?.toLocaleString() ?? 'none'}`,
     );
 
+    if (!mostRecent.contentUpdatedAt) return null;
+
     return new Date(mostRecent.contentUpdatedAt);
   }
 
@@ -171,8 +173,8 @@ export const mapReadwiseArticleToDocument = (
     readingProgress: article.reading_progress,
     firstOpenedAt: formatDateToDbString(article.first_opened_at),
     lastOpenedAt: formatDateToDbString(article.last_opened_at),
-    savedAt: formatDateToDbString(article.saved_at),
-    lastMovedAt: formatDateToDbString(article.last_moved_at),
+    savedAt: formatDateToDbString(article.saved_at) || '',
+    lastMovedAt: formatDateToDbString(article.last_moved_at) || '',
     publishedDate: article.published_date
       ? article.published_date.toISOString().split('T')[0]
       : null,
@@ -305,7 +307,7 @@ export async function createReadwiseAuthors() {
  * @param integrationRunId - Optional integration run ID to limit processing
  * @returns A promise resolving to the processed documents
  */
-export async function createReadwiseTags(integrationRunId) {
+export async function createReadwiseTags(integrationRunId: number) {
   logger.start('Processing document tags');
 
   const documents = await db.query.readwiseDocuments.findMany({

@@ -3,7 +3,8 @@ import { z } from 'zod/v4';
 
 export const DEFAULT_LIMIT = 100;
 
-export type APIResponse<T extends (...args: unknown[]) => unknown> = Awaited<ReturnType<T>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type APIResponse<T extends (...args: any[]) => unknown> = Awaited<ReturnType<T>>;
 
 export const IdSchema = z.coerce.number().int().positive();
 export const IdParamSchema = z.object({ id: IdSchema });

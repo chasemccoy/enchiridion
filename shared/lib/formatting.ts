@@ -25,7 +25,7 @@ export const emptyStringToNull = <T extends z.ZodTypeAny>(schema: T) =>
 
 export const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
-export const formatDateToDbString = (date?: Date) => {
+export const formatDateToDbString = (date?: Date | null) => {
   if (!date) return null;
 
   const pad = (n: number) => n.toString().padStart(2, '0');

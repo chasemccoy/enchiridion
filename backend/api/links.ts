@@ -24,7 +24,6 @@ linkRoutes.get('/predicates', async (_req, res, next) => {
 linkRoutes.put('/link', async (req, res, next) => {
   try {
     const link = LinkInsertSchema.parse(req.body);
-    // @ts-expect-error - Bug with drizzle-zod
     const updatedLink = await upsertLink(link);
     res.json(updatedLink);
   } catch (error) {

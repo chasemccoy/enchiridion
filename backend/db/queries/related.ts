@@ -394,7 +394,11 @@ function calculateContentOverlap(target: RecordWithLinks, sourceKeywords: string
 /**
  * Extracts meaningful keywords from text fields
  */
-function extractKeywords(title?: string, summary?: string, content?: string): string[] {
+function extractKeywords(
+  title?: string | null,
+  summary?: string | null,
+  content?: string | null,
+): string[] {
   const allText = [title, summary, content].filter(Boolean).join(' ').toLowerCase();
 
   // Simple keyword extraction: split by spaces, filter out common words
