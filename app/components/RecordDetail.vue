@@ -247,14 +247,14 @@
     </div>
 
     <div
-      v-if="linksByPredicateNameFiltered"
+      v-if="linksByPredicateName"
       class="RecordDetail__links"
       :class="{
-        'RecordDetail__links--singleChild': Object.keys(linksByPredicateNameFiltered).length === 1,
+        'RecordDetail__links--singleChild': Object.keys(linksByPredicateName).length === 1,
       }"
     >
       <div
-        v-for="(linksForType, predicateName) in linksByPredicateNameFiltered"
+        v-for="(linksForType, predicateName) in linksByPredicateName"
         :key="predicateName"
         class="RecordDetail__linksSection"
       >
@@ -301,11 +301,17 @@
         </li>
       </ul>
     </div>
+
+    <BrowserFrame
+      v-if="modelValue.url && modelValue.type !== 'concept'"
+      :url="modelValue.url"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
+import BrowserFrame from '@app/components/BrowserFrame.vue';
 import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import RecordLink from '@app/components/RecordLink.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
@@ -406,11 +412,6 @@ const linksByPredicateName = computed(() => {
   links.outgoingLinks?.forEach((link) => addLink(link, 'outgoing'));
   links.incomingLinks?.forEach((link) => addLink(link, 'incoming'));
 
-  return grouped;
-});
-
-const linksByPredicateNameFiltered = computed(() => {
-  const grouped = linksByPredicateName.value;
   return Object.fromEntries(Object.entries(grouped).filter(([, links]) => links.length > 0));
 });
 

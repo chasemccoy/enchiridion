@@ -29,12 +29,21 @@
       {{ summary }}
     </div>
 
-    <div class="RecordLink__meta">
-      <LinkWithFavicon
-        v-if="record?.url"
-        :modelValue="record.url"
-      />
-    </div>
+    <ul class="RecordLink__meta">
+      <li>
+        <LinkWithFavicon
+          v-if="record?.url"
+          :modelValue="record.url"
+        />
+      </li>
+
+      <li
+        v-for="tag in tags"
+        :key="tag.id"
+      >
+        <RouterLink :to="`/${tag.slug}`"> #{{ slugify(tag.title ?? tag.slug) }} </RouterLink>
+      </li>
+    </ul>
 
     <div class="RecordLink__actions">
       <PredicateSelect
@@ -55,6 +64,7 @@ import usePredicates from '@app/composables/usePredicates';
 import useRecord from '@app/composables/useRecord';
 import type { PredicateSelect as Predicate } from '@db/schema';
 import type { DbId } from '@shared/types/api';
+import slugify from 'slugify';
 import { computed, ref, toRaw } from 'vue';
 import { RouterLink } from 'vue-router';
 
@@ -149,6 +159,17 @@ const summary = computed(() => {
   return null;
 });
 
+const tags = computed(() => {
+  if (!outgoingLinks.value || !predicateMap.value) return null;
+
+  return outgoingLinks.value
+    .filter((link) => {
+      const predicate = predicateMap.value[link.predicateId];
+      return predicate && predicate.type === 'description';
+    })
+    .map((link) => link.target);
+});
+
 function handleSelectPredicate(predicate: Predicate) {
   emit('updatePredicate', predicate);
 }
@@ -195,8 +216,13 @@ function handleDeleteLink() {
 }
 
 .RecordLink__meta {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  row-gap: 2px;
+  margin-bottom: -2px;
+  color: var(--ui-text-dimmed);
   font-size: 0.75rem;
 
   :deep(svg) {
