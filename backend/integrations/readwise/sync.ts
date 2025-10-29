@@ -89,13 +89,6 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
         }
       }
 
-      // Step 4: Create related entities
-      logger.info('Creating related entities');
-      await createReadwiseAuthors(integrationRunId);
-      await createReadwiseTags(integrationRunId);
-      await createRecordsFromReadwiseAuthors();
-      await createRecordsFromReadwiseTags();
-      await createRecordsFromReadwiseDocuments();
     }
 
     logger.complete('Processed documents', successCount);
@@ -106,10 +99,29 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
   }
 }
 
+/**
+ * Creates all Readwise entities (authors, tags, records) from synced data
+ *
+ * This function consolidates entity creation to run once per integration run,
+ * after both Reader documents and legacy books have been synced.
+ *
+ * @param integrationRunId - The integration run ID
+ */
+async function createReadwiseEntities(integrationRunId: number): Promise<void> {
+  logger.info('Creating related entities');
+  await createReadwiseAuthors(integrationRunId);
+  await createReadwiseTags(integrationRunId);
+  await createRecordsFromReadwiseAuthors();
+  await createRecordsFromReadwiseTags();
+  await createRecordsFromReadwiseDocuments();
+  logger.complete('Created all related entities');
+}
+
 export async function syncReadwiseData(): Promise<void> {
   await runIntegration('readwise', async (integrationRunId) => {
     const readerCount = await syncReadwiseDocuments(integrationRunId);
     const legacyCount = await syncReadwiseBooks(integrationRunId);
+    await createReadwiseEntities(integrationRunId);
     return readerCount + legacyCount;
   });
 }

@@ -118,13 +118,6 @@ export async function syncReadwiseBooks(integrationRunId: number): Promise<numbe
         }
       }
 
-      // Step 4: Create related entities
-      logger.info('Creating related entities for books');
-      await createReadwiseAuthors(integrationRunId);
-      await createReadwiseTags(integrationRunId);
-      await createRecordsFromReadwiseAuthors();
-      await createRecordsFromReadwiseTags();
-      await createRecordsFromReadwiseDocuments();
     }
 
     logger.complete('Processed books', successCount);

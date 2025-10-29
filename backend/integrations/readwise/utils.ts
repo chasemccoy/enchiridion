@@ -27,6 +27,16 @@ const READWISE_TOKEN = requireEnv('READWISE_TOKEN');
 export const logger = createIntegrationLogger('readwise', 'sync');
 
 /**
+ * Gets the oldest date from an array of dates
+ *
+ * @param dates - Array of dates to compare
+ * @returns The oldest date, or current date if array is empty
+ */
+export function getOldestDate(dates: Date[]): Date {
+  return dates.length > 0 ? new Date(Math.min(...dates.map((d) => d.getTime()))) : new Date();
+}
+
+/**
  * Retrieves the most recent update time from the database
  *
  * This is used to determine the cutoff point for fetching new documents
@@ -531,10 +541,9 @@ export const mapBookToDocument = (
   }
 
   // Find the oldest highlight creation date
-  const oldestHighlightDate =
-    book.highlights.length > 0
-      ? new Date(Math.min(...book.highlights.map((h) => new Date(h.created_at).getTime())))
-      : new Date();
+  const oldestHighlightDate = getOldestDate(
+    book.highlights.map((h) => new Date(h.created_at)),
+  );
 
   return {
     id: book.user_book_id.toString(),

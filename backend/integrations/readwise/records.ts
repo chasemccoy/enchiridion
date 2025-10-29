@@ -506,13 +506,13 @@ export async function createRecordsFromReadwiseDocuments() {
     columns: { id: true },
   });
 
+  const createdByPredicateId = await getPredicateId('created_by', db);
+  const taggedWithPredicateId = await getPredicateId('tagged_with', db);
+  const hasFormatPredicateId = await getPredicateId('has_format', db);
+
   for (const doc of documents) {
     const recordId = recordMap.get(doc.id);
     if (!recordId) continue;
-
-    const createdByPredicateId = await getPredicateId('created_by', db);
-    const taggedWithPredicateId = await getPredicateId('tagged_with', db);
-    const hasFormatPredicateId = await getPredicateId('has_format', db);
 
     // Link author via recordCreators.
     if (doc.authorId && authorIndexMap.has(doc.authorId)) {
