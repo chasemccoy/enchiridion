@@ -25,6 +25,7 @@ export const readwiseCategoryEnum = [
   'epub',
   'tweet',
   'video',
+  'book',
 ] as const;
 
 export const ReadwiseCategory = z.enum(readwiseCategoryEnum);

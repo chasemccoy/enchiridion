@@ -17,6 +17,7 @@ import {
   createRecordsFromReadwiseDocuments,
   createRecordsFromReadwiseTags,
 } from '@integrations/readwise/records';
+import { syncReadwiseBooks } from '@integrations/readwise/legacy-sync';
 
 /**
  * Synchronizes Readwise documents with the database
@@ -90,7 +91,7 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
 
       // Step 4: Create related entities
       logger.info('Creating related entities');
-      await createReadwiseAuthors();
+      await createReadwiseAuthors(integrationRunId);
       await createReadwiseTags(integrationRunId);
       await createRecordsFromReadwiseAuthors();
       await createRecordsFromReadwiseTags();
@@ -106,5 +107,9 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
 }
 
 export async function syncReadwiseData(): Promise<void> {
-  await runIntegration('readwise', syncReadwiseDocuments);
+  await runIntegration('readwise', async (integrationRunId) => {
+    const readerCount = await syncReadwiseDocuments(integrationRunId);
+    const legacyCount = await syncReadwiseBooks(integrationRunId);
+    return readerCount + legacyCount;
+  });
 }

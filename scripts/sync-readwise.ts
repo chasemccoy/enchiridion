@@ -1,10 +1,9 @@
-import { runIntegration } from '@integrations/utils/runIntegration';
 import { logger } from '@integrations/readwise/utils';
-import { syncReadwiseDocuments } from '@integrations/readwise/sync';
+import { syncReadwiseData } from '@integrations/readwise/sync';
 
 try {
   logger.start('=== STARTING READWISE SYNC ===');
-  await runIntegration('readwise', syncReadwiseDocuments);
+  await syncReadwiseData();
   logger.complete('=== READWISE SYNC COMPLETED ===');
   logger.info('-'.repeat(50));
   process.exit(0);

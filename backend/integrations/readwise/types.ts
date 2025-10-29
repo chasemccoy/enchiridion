@@ -50,3 +50,60 @@ export const ReadwiseArticlesResponseSchema = z.object({
 
 export type ReadwiseArticle = z.infer<typeof ReadwiseArticleSchema>;
 export type ReadwiseArticlesResponse = z.infer<typeof ReadwiseArticlesResponseSchema>;
+
+// Legacy API v2 schemas for book highlights
+const ReadwiseBookTagSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
+export const ReadwiseBookHighlightSchema = z.object({
+  id: z.number(),
+  is_deleted: z.boolean(),
+  text: z.string(),
+  location: z.number().nullable(),
+  location_type: z.string().nullable(),
+  note: z.string().nullable(),
+  color: z.string().nullable(),
+  highlighted_at: z.coerce.date(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  external_id: z.string().nullable(),
+  end_location: z.number().nullable(),
+  url: z.string().nullable(),
+  book_id: z.number(),
+  tags: z.array(ReadwiseBookTagSchema),
+  is_favorite: z.boolean(),
+  is_discard: z.boolean(),
+  readwise_url: z.string().nullable(),
+});
+
+export const ReadwiseBookSchema = z.object({
+  user_book_id: z.number(),
+  is_deleted: z.boolean(),
+  title: z.string(),
+  author: z.string().nullable(),
+  readable_title: z.string(),
+  source: z.string().nullable(),
+  cover_image_url: z.string().nullable(),
+  unique_url: z.string().nullable(),
+  book_tags: z.array(ReadwiseBookTagSchema),
+  category: z.string().nullable(),
+  document_note: z.string().nullable(),
+  summary: z.string().nullable(),
+  readwise_url: z.string().nullable(),
+  source_url: z.string().nullable(),
+  external_id: z.string().nullable(),
+  asin: z.string().nullable(),
+  highlights: z.array(ReadwiseBookHighlightSchema),
+});
+
+export const ReadwiseBookExportResponseSchema = z.object({
+  count: z.number(),
+  nextPageCursor: z.string().nullable(),
+  results: z.array(ReadwiseBookSchema),
+});
+
+export type ReadwiseBookHighlight = z.infer<typeof ReadwiseBookHighlightSchema>;
+export type ReadwiseBook = z.infer<typeof ReadwiseBookSchema>;
+export type ReadwiseBookExportResponse = z.infer<typeof ReadwiseBookExportResponseSchema>;

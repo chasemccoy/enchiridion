@@ -10,8 +10,14 @@ import {
 } from '@db/schema';
 import { requireEnv } from '../utils/env';
 import { createIntegrationLogger } from '../utils/log';
-import type { ReadwiseArticle, ReadwiseArticlesResponse } from './types';
-import { ReadwiseArticlesResponseSchema } from './types';
+import type {
+  ReadwiseArticle,
+  ReadwiseArticlesResponse,
+  ReadwiseBook,
+  ReadwiseBookHighlight,
+  ReadwiseBookExportResponse,
+} from './types';
+import { ReadwiseArticlesResponseSchema, ReadwiseBookExportResponseSchema } from './types';
 import { formatDateToDbString } from '@shared/lib/formatting';
 
 const API_BASE_URL = 'https://readwise.io/api/v3/list/';
@@ -222,8 +228,11 @@ export function sortDocumentsByHierarchy(documents: ReadwiseArticle[]): Readwise
 
 /**
  * Creates authors from Readwise documents that don't have associated authors yet
+ *
+ * @param integrationRunId - The ID of the current integration run
+ * @returns A promise resolving to the processed documents
  */
-export async function createReadwiseAuthors() {
+export async function createReadwiseAuthors(integrationRunId: number) {
   logger.start('Creating authors from Readwise documents');
 
   const documentsWithoutAuthors = await db.query.readwiseDocuments.findMany({
@@ -234,6 +243,7 @@ export async function createReadwiseAuthors() {
       authorId: {
         isNull: true,
       },
+      integrationRunId,
     },
   });
 
@@ -395,4 +405,221 @@ export async function createReadwiseTags(integrationRunId: number) {
 
   logger.complete(`Processed tags for ${documents.length} documents`);
   return documents;
+}
+
+// ------------------------------------------------------------------------
+// Legacy API v2 utilities for book highlights
+// ------------------------------------------------------------------------
+
+const LEGACY_API_BASE_URL = 'https://readwise.io/api/v2/export/';
+
+/**
+ * Retrieves the most recent update time from legacy books in the database
+ *
+ * This is used to determine the cutoff point for fetching new books
+ *
+ * @returns The date of the most recently updated legacy book, or null if none exists
+ */
+export async function getMostRecentBookUpdateTime(): Promise<Date | null> {
+  const mostRecent = await db.query.readwiseDocuments.findFirst({
+    where: {
+      source: 'books',
+      category: 'highlight', // Use highlights since they have updated_at timestamps
+    },
+    columns: {
+      contentUpdatedAt: true,
+    },
+    orderBy: {
+      contentUpdatedAt: 'desc',
+    },
+  });
+
+  if (mostRecent) {
+    logger.info(
+      `Last known book highlight date: ${mostRecent.contentUpdatedAt?.toLocaleString() ?? 'none'}`,
+    );
+
+    if (!mostRecent.contentUpdatedAt) return null;
+
+    return new Date(mostRecent.contentUpdatedAt);
+  }
+
+  logger.info('No existing book highlights found');
+  return null;
+}
+
+/**
+ * Fetches books from the legacy Readwise API v2
+ *
+ * This function handles pagination and rate limiting automatically.
+ *
+ * @param pageCursor - Optional cursor for pagination
+ * @param updatedAfter - Optional date to filter books updated after this time
+ * @returns Promise resolving to the API response with books
+ * @throws Error if the API request fails
+ */
+export async function fetchBookExport(
+  pageCursor?: string,
+  updatedAfter?: Date,
+): Promise<ReadwiseBookExportResponse> {
+  const params = new URLSearchParams();
+
+  if (pageCursor) params.append('pageCursor', pageCursor);
+
+  if (updatedAfter) {
+    const afterDate = new Date(updatedAfter.getTime() + 1);
+    params.append('updatedAfter', afterDate.toISOString());
+  }
+
+  let attempt = 0;
+
+  while (true) {
+    logger.info(`Fetching legacy books${pageCursor ? ' (with cursor)' : ''}`);
+
+    const response = await fetch(`${LEGACY_API_BASE_URL}?${params.toString()}`, {
+      headers: {
+        Authorization: `Token ${READWISE_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return ReadwiseBookExportResponseSchema.parse(data);
+    }
+
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
+      logger.warn(`Rate limit hit, waiting ${retryAfter} seconds before retrying...`);
+      await new Promise((r) => setTimeout(r, retryAfter * RETRY_DELAY_BASE));
+      continue;
+    }
+
+    attempt++;
+
+    if (attempt >= 3) {
+      throw new Error(`Failed to fetch legacy books: ${response.statusText} (${response.status})`);
+    }
+
+    logger.warn(`Request failed with status ${response.status}, retrying...`);
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_BASE));
+  }
+}
+
+/**
+ * Maps a book to a document format for database insertion
+ *
+ * @param book - The legacy book to map
+ * @param integrationRunId - The ID of the current integration run
+ * @returns A document object ready for database insertion
+ */
+export const mapBookToDocument = (
+  book: ReadwiseBook,
+  integrationRunId: number,
+): ReadwiseDocumentInsert => {
+  let validImageUrl: string | null = null;
+
+  if (book.cover_image_url) {
+    try {
+      if (/^https?:\/\//.test(book.cover_image_url)) {
+        new URL(book.cover_image_url);
+        validImageUrl = book.cover_image_url;
+      }
+    } catch {
+      logger.warn(`Skipping invalid cover_image_url: ${book.cover_image_url}`);
+    }
+  }
+
+  // Find the oldest highlight creation date
+  const oldestHighlightDate =
+    book.highlights.length > 0
+      ? new Date(Math.min(...book.highlights.map((h) => new Date(h.created_at).getTime())))
+      : new Date();
+
+  return {
+    id: book.user_book_id.toString(),
+    parentId: null,
+    url: book.readwise_url || `https://readwise.io/book/${book.user_book_id}`,
+    title: book.title,
+    author: book.author || null,
+    source: 'books',
+    category: 'book',
+    location: 'archive',
+    tags: book.book_tags.length > 0 ? book.book_tags.map((tag) => tag.name) : null,
+    siteName: null,
+    wordCount: null,
+    summary: book.summary || null,
+    content: null,
+    htmlContent: null,
+    notes: book.document_note || null,
+    imageUrl: validImageUrl,
+    sourceUrl: book.source_url || null,
+    readingProgress: null,
+    firstOpenedAt: null,
+    lastOpenedAt: null,
+    savedAt: formatDateToDbString(oldestHighlightDate) || '',
+    lastMovedAt: formatDateToDbString(oldestHighlightDate) || '',
+    publishedDate: null,
+    contentCreatedAt: formatDateToDbString(oldestHighlightDate),
+    contentUpdatedAt: formatDateToDbString(oldestHighlightDate),
+    integrationRunId,
+  };
+};
+
+/**
+ * Maps a book highlight to a document format for database insertion
+ *
+ * @param highlight - The book highlight to map
+ * @param bookId - The ID of the parent book
+ * @param integrationRunId - The ID of the current integration run
+ * @returns A document object ready for database insertion
+ */
+export const mapBookHighlightToDocument = (
+  highlight: ReadwiseBookHighlight,
+  bookId: string,
+  integrationRunId: number,
+): ReadwiseDocumentInsert => {
+  return {
+    id: highlight.id.toString(),
+    parentId: bookId,
+    url: highlight.readwise_url || `https://readwise.io/book/${bookId}/highlight/${highlight.id}`,
+    title: null,
+    author: null,
+    source: 'books',
+    category: 'highlight',
+    location: null,
+    tags: highlight.tags.length > 0 ? highlight.tags.map((tag) => tag.name) : null,
+    siteName: null,
+    wordCount: null,
+    summary: null,
+    content: highlight.text,
+    htmlContent: null,
+    notes: highlight.note || null,
+    imageUrl: null,
+    sourceUrl: highlight.url || null,
+    readingProgress: null,
+    firstOpenedAt: null,
+    lastOpenedAt: null,
+    savedAt: formatDateToDbString(highlight.highlighted_at) || '',
+    lastMovedAt: formatDateToDbString(highlight.highlighted_at) || '',
+    publishedDate: null,
+    contentCreatedAt: formatDateToDbString(highlight.created_at),
+    contentUpdatedAt: formatDateToDbString(highlight.updated_at),
+    integrationRunId,
+  };
+};
+
+/**
+ * Sorts books and highlights by their hierarchical relationship
+ *
+ * This ensures that books are processed before their highlights.
+ *
+ * @param books - The books to sort
+ * @returns Sorted array of books with their highlights
+ */
+export function sortBooksByHierarchy(books: ReadwiseBook[]): ReadwiseBook[] {
+  // Sort books by user_book_id for consistent processing order
+  return [...books].sort((a, b) => {
+    return a.user_book_id - b.user_book_id;
+  });
 }

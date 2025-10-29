@@ -499,6 +499,13 @@ export async function createRecordsFromReadwiseDocuments() {
     columns: { id: true },
   });
 
+  const bookRecord = await db.query.records.findFirst({
+    where: {
+      slug: 'book',
+    },
+    columns: { id: true },
+  });
+
   for (const doc of documents) {
     const recordId = recordMap.get(doc.id);
     if (!recordId) continue;
@@ -541,6 +548,14 @@ export async function createRecordsFromReadwiseDocuments() {
       recordFormatsValues.push({
         sourceId: recordId,
         targetId: videoRecord.id,
+        predicateId: hasFormatPredicateId,
+      });
+    }
+
+    if (doc.category === 'book' && bookRecord) {
+      recordFormatsValues.push({
+        sourceId: recordId,
+        targetId: bookRecord.id,
         predicateId: hasFormatPredicateId,
       });
     }
