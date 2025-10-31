@@ -304,6 +304,7 @@
 
     <BrowserFrame
       v-if="modelValue.url && modelValue.type !== 'concept'"
+      :key="modelValue.url"
       :url="modelValue.url"
     />
   </div>
