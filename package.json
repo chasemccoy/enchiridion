@@ -29,7 +29,7 @@
 		"sync": "pnpm sync:readwise"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.17.3",
+		"@modelcontextprotocol/sdk": "^1.21.0",
 		"@nuxt/ui": "^4.0.1",
 		"@tanstack/vue-query": "^5.80.6",
 		"@types/multer": "^2.0.0",
