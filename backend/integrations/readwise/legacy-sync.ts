@@ -3,8 +3,6 @@ import { readwiseDocuments } from '@db/schema';
 import { sql } from 'drizzle-orm';
 import { runIntegration } from '@integrations/utils/runIntegration';
 import {
-  createReadwiseAuthors,
-  createReadwiseTags,
   fetchBookExport,
   getMostRecentBookUpdateTime,
   logger,
@@ -12,11 +10,6 @@ import {
   mapBookHighlightToDocument,
   sortBooksByHierarchy,
 } from '@integrations/readwise/utils';
-import {
-  createRecordsFromReadwiseAuthors,
-  createRecordsFromReadwiseDocuments,
-  createRecordsFromReadwiseTags,
-} from '@integrations/readwise/records';
 import type { ReadwiseBook } from '@integrations/readwise/types';
 
 /**
@@ -117,7 +110,6 @@ export async function syncReadwiseBooks(integrationRunId: number): Promise<numbe
           });
         }
       }
-
     }
 
     logger.complete('Processed books', successCount);

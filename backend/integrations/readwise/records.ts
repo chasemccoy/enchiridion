@@ -15,12 +15,23 @@ import { slugify } from '@shared/lib/formatting';
 import { createIntegrationLogger } from '@integrations/utils/log';
 import { eq, sql } from 'drizzle-orm';
 import { bulkInsertLinks, getPredicateId, linkRecords } from '@integrations/utils/db';
+import { archiveUrlToWayback } from '@integrations/wayback/archive';
 
 const logger = createIntegrationLogger('readwise', 'create-records');
 
 // ------------------------------------------------------------------------
 // 1. Create readwise authors and upsert corresponding index entities
 // ------------------------------------------------------------------------
+
+/**
+ * Generates a slug for a Readwise author
+ *
+ * @param author - The Readwise author to generate a slug for
+ * @returns A slug string
+ */
+const getReadwiseAuthorSlug = (author: ReadwiseAuthorSelect): string => {
+  return slugify((author.name || author.recordId?.toString()) ?? author.id.toString());
+};
 
 /**
  * Maps a Readwise author to a record
@@ -33,7 +44,7 @@ const mapReadwiseAuthorToRecord = (author: ReadwiseAuthorSelect): RecordInsert =
     id: author.recordId ?? undefined,
     type: 'entity',
     title: author.name,
-    slug: slugify((author.name || author.recordId?.toString()) ?? author.id.toString()),
+    slug: getReadwiseAuthorSlug(author),
     url: author.origin,
     isCurated: false,
     source: 'readwise',
@@ -87,9 +98,36 @@ export async function createRecordsFromReadwiseAuthors() {
     return;
   }
 
-  logger.info(`Found ${authors.length} unmapped Readwise authors`);
+  // Generate slugs for all authors and check which ones already exist
+  const authorSlugs = authors.map((author) => getReadwiseAuthorSlug(author));
 
-  for (const author of authors) {
+  const existingRecords = await db.query.records.findMany({
+    where: {
+      slug: {
+        in: authorSlugs,
+      },
+    },
+    columns: {
+      slug: true,
+    },
+  });
+
+  const existingSlugs = new Set(existingRecords.map((record) => record.slug));
+
+  // Filter out authors whose slugs match existing records
+  const authorsToProcess = authors.filter((author) => {
+    const slug = getReadwiseAuthorSlug(author);
+    return !existingSlugs.has(slug);
+  });
+
+  if (authorsToProcess.length === 0) {
+    logger.skip('No new or updated authors to process');
+    return;
+  }
+
+  logger.info(`Found ${authorsToProcess.length} unmapped Readwise authors`);
+
+  for (const author of authorsToProcess) {
     const entity = mapReadwiseAuthorToRecord(author);
 
     logger.info(entity.slug, entity.url);
@@ -119,6 +157,10 @@ export async function createRecordsFromReadwiseAuthors() {
 
     logger.info(`Created record ${newRecord.id} for author ${author.name} (${author.id})`);
 
+    if (entity.url) {
+      archiveUrlToWayback(entity.url);
+    }
+
     await db
       .update(readwiseAuthors)
       .set({ recordId: newRecord.id })
@@ -127,7 +169,7 @@ export async function createRecordsFromReadwiseAuthors() {
     logger.info(`Linked author ${author.name} to record ${newRecord.id}`);
   }
 
-  logger.complete(`Processed ${authors.length} Readwise authors`);
+  logger.complete(`Processed ${authorsToProcess.length} Readwise authors`);
 }
 
 // ------------------------------------------------------------------------
@@ -383,6 +425,10 @@ export async function createRecordsFromReadwiseDocuments() {
     logger.info(
       `Created record ${newRecord.id} for readwise document ${doc.title || doc.content?.slice(0, 20)} (${doc.id})`,
     );
+
+    if (recordPayload.url) {
+      archiveUrlToWayback(recordPayload.url);
+    }
 
     // Update the readwise document with the corresponding record id.
     await db

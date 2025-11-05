@@ -10,6 +10,7 @@ import {
   type RecordSelect,
 } from '@db/schema';
 import { ListRecordsInputSchema, type APIResponse, type ListRecordsInput } from '@shared/types/api';
+import { archiveUrlToWayback } from '@integrations/wayback/archive';
 
 export const getRecord = (recordId: RecordSelect['id']) => {
   return db.query.records.findFirst({
@@ -182,6 +183,8 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
 export type ListRecordsAPIResponse = APIResponse<typeof listRecords>;
 
 export const upsertRecord = async (record: RecordInsert) => {
+  const isNewRecord = !record.id;
+
   const [modifiedRecord] = await db
     .insert(records)
     .values(record)
@@ -200,6 +203,11 @@ export const upsertRecord = async (record: RecordInsert) => {
 
   if (modifiedRecord instanceof Error) {
     throw new Error(`Record upsert failed. Input data:\n\n${JSON.stringify(record, null, 2)}`);
+  }
+
+  // Archive URL to Wayback Machine for new records
+  if (isNewRecord && modifiedRecord.url) {
+    archiveUrlToWayback(modifiedRecord.url);
   }
 
   return modifiedRecord;
