@@ -78,7 +78,7 @@ export async function getImagesFromTweet(tweet: EnrichedTweet | EnrichedQuotedTw
       const variants = mediaDetail.video_info.variants.filter(
         (variant) => variant.content_type === 'video/mp4',
       );
-      const url = variants[variants.length - 1].url;
+      const url = variants[variants.length - 1]!.url;
       const file = await fetchMedia(url);
       const dataURL = await mediaFileToDataURL(file);
 
