@@ -2,9 +2,6 @@
   <UModal
     v-model:open="isOpen"
     title="Settings"
-    :ui="{
-      content: 'dark',
-    }"
     @after:leave="handleAfterLeave"
   >
     <template #content>
