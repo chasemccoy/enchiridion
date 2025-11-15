@@ -95,8 +95,6 @@ export async function fetchReadwiseDocuments(
   let attempt = 0;
 
   while (true) {
-    logger.info(`Fetching Readwise documents${pageCursor ? ' (with cursor)' : ''}`);
-
     const response = await fetch(`${API_BASE_URL}?${params.toString()}`, {
       headers: {
         Authorization: `Token ${READWISE_TOKEN}`,
@@ -484,8 +482,6 @@ export async function fetchBookExport(
   let attempt = 0;
 
   while (true) {
-    logger.info(`Fetching legacy books${pageCursor ? ' (with cursor)' : ''}`);
-
     const response = await fetch(`${LEGACY_API_BASE_URL}?${params.toString()}`, {
       headers: {
         Authorization: `Token ${READWISE_TOKEN}`,
@@ -541,9 +537,7 @@ export const mapBookToDocument = (
   }
 
   // Find the oldest highlight creation date
-  const oldestHighlightDate = getOldestDate(
-    book.highlights.map((h) => new Date(h.created_at)),
-  );
+  const oldestHighlightDate = getOldestDate(book.highlights.map((h) => new Date(h.created_at)));
 
   return {
     id: book.user_book_id.toString(),

@@ -16,6 +16,7 @@ import {
   createRecordsFromReadwiseAuthors,
   createRecordsFromReadwiseDocuments,
   createRecordsFromReadwiseTags,
+  type NewRecordInfo,
 } from '@integrations/readwise/records';
 import { syncReadwiseBooks } from '@integrations/readwise/legacy-sync';
 
@@ -88,7 +89,6 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
           });
         }
       }
-
     }
 
     logger.complete('Processed documents', successCount);
@@ -106,22 +106,38 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
  * after both Reader documents and legacy books have been synced.
  *
  * @param integrationRunId - The integration run ID
+ * @returns Array of all newly created records with their title and slug
  */
-async function createReadwiseEntities(integrationRunId: number): Promise<void> {
+async function createReadwiseEntities(integrationRunId: number): Promise<NewRecordInfo[]> {
   logger.info('Creating related entities');
   await createReadwiseAuthors(integrationRunId);
   await createReadwiseTags(integrationRunId);
-  await createRecordsFromReadwiseAuthors();
-  await createRecordsFromReadwiseTags();
-  await createRecordsFromReadwiseDocuments();
+  const authorRecords = await createRecordsFromReadwiseAuthors();
+  const tagRecords = await createRecordsFromReadwiseTags();
+  const documentRecords = await createRecordsFromReadwiseDocuments();
+
+  const allNewRecords = [...authorRecords, ...tagRecords, ...documentRecords];
   logger.complete('Created all related entities');
+  return allNewRecords;
 }
 
 export async function syncReadwiseData(): Promise<void> {
   await runIntegration('readwise', async (integrationRunId) => {
     const readerCount = await syncReadwiseDocuments(integrationRunId);
     const legacyCount = await syncReadwiseBooks(integrationRunId);
-    await createReadwiseEntities(integrationRunId);
+    const newRecords = await createReadwiseEntities(integrationRunId);
+
+    // Log all newly created records
+    if (newRecords.length > 0) {
+      logger.info(`\n📝 New records created (${newRecords.length}):`);
+      for (const record of newRecords) {
+        const displayName = record.title || record.slug;
+        logger.info(`  • ${displayName} (slug: ${record.slug})`);
+      }
+    } else {
+      logger.info('No new records were created in this sync');
+    }
+
     return readerCount + legacyCount;
   });
 }

@@ -19,6 +19,11 @@ import { archiveUrlToWayback } from '@integrations/wayback/archive';
 
 const logger = createIntegrationLogger('readwise', 'create-records');
 
+export type NewRecordInfo = {
+  title: string | null;
+  slug: string;
+};
+
 // ------------------------------------------------------------------------
 // 1. Create readwise authors and upsert corresponding index entities
 // ------------------------------------------------------------------------
@@ -53,8 +58,9 @@ const mapReadwiseAuthorToRecord = (author: ReadwiseAuthorSelect): RecordInsert =
 
 /**
  * Creates records from Readwise authors that don't have associated records yet
+ * @returns Array of newly created records with their title and slug
  */
-export async function createRecordsFromReadwiseAuthors() {
+export async function createRecordsFromReadwiseAuthors(): Promise<NewRecordInfo[]> {
   logger.start('Creating records from Readwise authors');
 
   const authors = await db.query.readwiseAuthors.findMany({
@@ -95,7 +101,7 @@ export async function createRecordsFromReadwiseAuthors() {
 
   if (authors.length === 0) {
     logger.skip('No new or updated authors to process');
-    return;
+    return [];
   }
 
   // Generate slugs for all authors and check which ones already exist
@@ -122,10 +128,12 @@ export async function createRecordsFromReadwiseAuthors() {
 
   if (authorsToProcess.length === 0) {
     logger.skip('No new or updated authors to process');
-    return;
+    return [];
   }
 
   logger.info(`Found ${authorsToProcess.length} unmapped Readwise authors`);
+
+  const newRecords: NewRecordInfo[] = [];
 
   for (const author of authorsToProcess) {
     const entity = mapReadwiseAuthorToRecord(author);
@@ -135,6 +143,14 @@ export async function createRecordsFromReadwiseAuthors() {
     let newRecord: { id: number };
 
     try {
+      // Check if record already exists by slug to determine if it's new
+      const existingRecord = await db.query.records.findFirst({
+        where: {
+          slug: entity.slug,
+        },
+        columns: { id: true },
+      });
+
       const [newEntity] = await db
         .insert(records)
         .values(entity)
@@ -145,6 +161,11 @@ export async function createRecordsFromReadwiseAuthors() {
         .returning({ id: records.id });
 
       newRecord = newEntity;
+
+      // Track as new if it didn't exist before
+      if (!existingRecord) {
+        newRecords.push({ title: entity.title ?? null, slug: entity.slug });
+      }
     } catch (error) {
       logger.error(`Failed to create record for author ${author.name} with error: ${error}`);
       continue;
@@ -170,6 +191,7 @@ export async function createRecordsFromReadwiseAuthors() {
   }
 
   logger.complete(`Processed ${authorsToProcess.length} Readwise authors`);
+  return newRecords;
 }
 
 // ------------------------------------------------------------------------
@@ -195,8 +217,9 @@ const mapReadwiseTagToRecord = (tag: ReadwiseTagSelect): RecordInsert => {
 
 /**
  * Creates records from Readwise tags that don't have associated records yet
+ * @returns Array of newly created records with their title and slug
  */
-export async function createRecordsFromReadwiseTags() {
+export async function createRecordsFromReadwiseTags(): Promise<NewRecordInfo[]> {
   logger.start('Creating records from Readwise tags');
 
   const tags = await db.query.readwiseTags.findMany({
@@ -218,13 +241,23 @@ export async function createRecordsFromReadwiseTags() {
 
   if (tags.length === 0) {
     logger.skip('No new or updated tags to process');
-    return;
+    return [];
   }
 
   logger.info(`Found ${tags.length} unmapped Readwise tags`);
 
+  const newRecords: NewRecordInfo[] = [];
+
   for (const tag of tags) {
     const category = mapReadwiseTagToRecord(tag);
+
+    // Check if record already exists by slug to determine if it's new
+    const existingRecord = await db.query.records.findFirst({
+      where: {
+        slug: category.slug,
+      },
+      columns: { id: true },
+    });
 
     const [newCategory] = await db
       .insert(records)
@@ -238,6 +271,11 @@ export async function createRecordsFromReadwiseTags() {
     if (!newCategory) {
       logger.error(`Failed to create record for tag ${tag.tag}`);
       continue;
+    }
+
+    // Track as new if it didn't exist before
+    if (!existingRecord) {
+      newRecords.push({ title: category.title ?? null, slug: category.slug });
     }
 
     logger.info(`Created record ${newCategory.id} for tag ${tag.tag} (${tag.id})`);
@@ -265,6 +303,7 @@ export async function createRecordsFromReadwiseTags() {
   }
 
   logger.complete(`Processed ${tags.length} Readwise tags`);
+  return newRecords;
 }
 
 // ------------------------------------------------------------------------
@@ -313,8 +352,9 @@ export const mapReadwiseDocumentToRecord = (
 
 /**
  * Creates records from Readwise documents that don't have associated records yet
+ * @returns Array of newly created records with their title and slug
  */
-export async function createRecordsFromReadwiseDocuments() {
+export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInfo[]> {
   logger.start('Creating records from Readwise documents');
 
   // Query readwise documents that need records created (skip notes-only docs)
@@ -386,13 +426,14 @@ export async function createRecordsFromReadwiseDocuments() {
 
   if (documents.length === 0) {
     logger.skip('No new or updated documents to process');
-    return;
+    return [];
   }
 
   logger.info(`Found ${documents.length} unmapped Readwise documents`);
 
   // Map to store the new record IDs keyed by the corresponding readwise document ID.
   const recordMap = new Map<string, number>();
+  const newRecords: NewRecordInfo[] = [];
 
   // Step 1: Insert each document as a record.
   for (const doc of documents) {
@@ -402,6 +443,14 @@ export async function createRecordsFromReadwiseDocuments() {
     let newRecord: { id: number };
 
     try {
+      // Check if record already exists by slug to determine if it's new
+      const existingRecord = await db.query.records.findFirst({
+        where: {
+          slug: recordPayload.slug,
+        },
+        columns: { id: true },
+      });
+
       const [insertedRecord] = await db
         .insert(records)
         .values(recordPayload)
@@ -412,6 +461,11 @@ export async function createRecordsFromReadwiseDocuments() {
         .returning({ id: records.id });
 
       newRecord = insertedRecord;
+
+      // Track as new if it didn't exist before
+      if (!existingRecord) {
+        newRecords.push({ title: recordPayload.title ?? null, slug: recordPayload.slug });
+      }
     } catch (error) {
       logger.error(`Failed to create record for readwise document ${doc.id} with error: ${error}`);
       continue;
@@ -622,4 +676,5 @@ export async function createRecordsFromReadwiseDocuments() {
   }
 
   logger.complete(`Processed ${recordMap.size} Readwise documents`);
+  return newRecords;
 }
