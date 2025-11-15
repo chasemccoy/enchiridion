@@ -29,10 +29,9 @@ import { syncReadwiseBooks } from '@integrations/readwise/legacy-sync';
  * 3. Processes and stores the documents
  * 4. Creates related entities (authors, tags, records)
  *
- * @returns The number of successfully processed documents
  * @throws Error if API requests fail
  */
-export async function syncReadwiseDocuments(integrationRunId: number): Promise<number> {
+export async function syncReadwiseDocuments(integrationRunId: number) {
   try {
     logger.info('Starting Readwise documents sync');
 
@@ -92,7 +91,6 @@ export async function syncReadwiseDocuments(integrationRunId: number): Promise<n
     }
 
     logger.complete('Processed documents', successCount);
-    return successCount;
   } catch (error) {
     logger.error('Error syncing Readwise documents', error);
     throw error;
@@ -123,8 +121,8 @@ async function createReadwiseEntities(integrationRunId: number): Promise<NewReco
 
 export async function syncReadwiseData(): Promise<void> {
   await runIntegration('readwise', async (integrationRunId) => {
-    const readerCount = await syncReadwiseDocuments(integrationRunId);
-    const legacyCount = await syncReadwiseBooks(integrationRunId);
+    await syncReadwiseDocuments(integrationRunId);
+    await syncReadwiseBooks(integrationRunId);
     const newRecords = await createReadwiseEntities(integrationRunId);
 
     // Log all newly created records
@@ -134,10 +132,8 @@ export async function syncReadwiseData(): Promise<void> {
         const displayName = record.title || record.slug;
         logger.info(`  • ${displayName} (slug: ${record.slug})`);
       }
-    } else {
-      logger.info('No new records were created in this sync');
     }
 
-    return readerCount + legacyCount;
+    return newRecords.length;
   });
 }

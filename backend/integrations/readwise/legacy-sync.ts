@@ -1,7 +1,6 @@
 import { db } from '@db/index';
 import { readwiseDocuments } from '@db/schema';
 import { sql } from 'drizzle-orm';
-import { runIntegration } from '@integrations/utils/runIntegration';
 import {
   fetchBookExport,
   getMostRecentBookUpdateTime,
@@ -21,10 +20,9 @@ import type { ReadwiseBook } from '@integrations/readwise/types';
  * 3. Processes and stores the books and their highlights
  * 4. Creates related entities (authors, tags, records)
  *
- * @returns The number of successfully processed books
  * @throws Error if API requests fail
  */
-export async function syncReadwiseBooks(integrationRunId: number): Promise<number> {
+export async function syncReadwiseBooks(integrationRunId: number) {
   try {
     logger.info('Starting legacy Readwise books sync');
 
@@ -113,13 +111,8 @@ export async function syncReadwiseBooks(integrationRunId: number): Promise<numbe
     }
 
     logger.complete('Processed books', successCount);
-    return successCount;
   } catch (error) {
     logger.error('Error syncing Readwise books', error);
     throw error;
   }
-}
-
-export async function syncReadwiseBookData(): Promise<void> {
-  await runIntegration('readwise', syncReadwiseBooks);
 }
