@@ -108,9 +108,8 @@ export async function syncReadwiseBooks(integrationRunId: number) {
           });
         }
       }
+      logger.complete('Processed books', successCount);
     }
-
-    logger.complete('Processed books', successCount);
   } catch (error) {
     logger.error('Error syncing Readwise books', error);
     throw error;

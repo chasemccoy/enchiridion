@@ -88,9 +88,9 @@ export async function syncReadwiseDocuments(integrationRunId: number) {
           });
         }
       }
-    }
 
-    logger.complete('Processed documents', successCount);
+      logger.complete('Processed documents', successCount);
+    }
   } catch (error) {
     logger.error('Error syncing Readwise documents', error);
     throw error;
