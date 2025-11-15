@@ -20,14 +20,15 @@
           </h3>
           <ul class="SplitViewLayout_grid">
             <li
-              v-for="record in group"
+              v-for="{ record, index } in group"
               :key="record.id"
             >
               <RecordCard
-                v-model="modelValue[getRecordIndex(record.id)]"
+                v-if="modelValue && modelValue[index]"
+                v-model="modelValue[index]!"
                 v-bind="getRecordCardProps(record)"
                 :data-slug="record.slug"
-                @vue:Mounted="handleRecordMounted(modelValue[getRecordIndex(record.id)])"
+                @vue:Mounted="handleRecordMounted(modelValue[index]!)"
               />
             </li>
           </ul>
@@ -60,13 +61,14 @@ const { isEmpty, recordCardProps } = defineProps<{
 const elRef = useTemplateRef('elRef');
 const route = useRoute();
 
-// Group records by month and year
+// Group records by month and year, including their original indices
 const groupedRecords = computed(() => {
   if (!modelValue.value) return {};
 
-  const groups: Record<string, ListRecordsAPIResponse> = {};
+  type RecordWithIndex = { record: ListRecordsAPIResponse[number]; index: number };
+  const groups: Record<string, RecordWithIndex[]> = {};
 
-  modelValue.value.forEach((record) => {
+  modelValue.value.forEach((record, index) => {
     if (!record.recordCreatedAt) return;
 
     const date = new Date(record.recordCreatedAt + 'Z');
@@ -79,11 +81,11 @@ const groupedRecords = computed(() => {
       groups[monthYear] = [];
     }
 
-    groups[monthYear].push(record);
+    groups[monthYear].push({ record, index });
   });
 
   // Sort groups by date (newest first)
-  const sortedGroups: Record<string, ListRecordsAPIResponse> = {};
+  const sortedGroups: Record<string, RecordWithIndex[]> = {};
   Object.keys(groups)
     .sort((a, b) => {
       // Parse the month/year strings back to dates for proper sorting
@@ -92,16 +94,15 @@ const groupedRecords = computed(() => {
       return dateB.getTime() - dateA.getTime();
     })
     .forEach((key) => {
-      sortedGroups[key] = groups[key];
+      const group = groups[key];
+
+      if (group) {
+        sortedGroups[key] = group;
+      }
     });
 
   return sortedGroups;
 });
-
-// Helper function to get the original index of a record in the modelValue array
-function getRecordIndex(recordId: number): number {
-  return modelValue.value?.findIndex((record) => record.id === recordId) ?? -1;
-}
 
 watch(
   route,
@@ -193,17 +194,17 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 }
 
 .SplitViewLayout_grid {
-  column-gap: 12px;
+  column-gap: 4px;
 
   & > * + * {
-    margin-top: 8px;
+    margin-top: 6px;
   }
 
   .SplitViewLayout--empty & {
     columns: 30ch 3;
 
     & > * + * {
-      margin-top: 12px;
+      margin-top: 4px;
     }
   }
 }

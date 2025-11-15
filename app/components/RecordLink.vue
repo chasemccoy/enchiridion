@@ -3,9 +3,10 @@
     class="RecordLink"
     :class="{ 'RecordLink--loading': isLoading }"
   >
-    <div v-if="isError">Error: {{ error }}</div>
-
-    <div class="RecordLink__header">
+    <div
+      v-if="title"
+      class="RecordLink__header"
+    >
       <RouterLink
         v-if="record"
         class="RecordLink__title"
@@ -25,11 +26,15 @@
     <div
       v-if="summary"
       class="RecordLink__summary"
+      :class="{ 'RecordLink__summary--truncated': truncate }"
     >
       {{ summary }}
     </div>
 
-    <ul class="RecordLink__meta">
+    <ul
+      v-if="title"
+      class="RecordLink__meta"
+    >
       <li>
         <LinkWithFavicon
           v-if="record?.url"
@@ -41,7 +46,7 @@
         v-for="tag in tags"
         :key="tag.id"
       >
-        <RouterLink :to="`/${tag.slug}`"> #{{ slugify(tag.title ?? tag.slug) }} </RouterLink>
+        <RouterLink :to="`/${tag.slug}`">#{{ slugify(tag.title ?? tag.slug) }} </RouterLink>
       </li>
     </ul>
 
@@ -75,17 +80,22 @@ const emit = defineEmits<{
   deleteLink: [];
 }>();
 
-const { predicate, linkDirection = 'outgoing' } = defineProps<{
+const {
+  predicate,
+  linkDirection = 'outgoing',
+  truncate = true,
+} = defineProps<{
   predicate?: Predicate;
   linkDirection?: 'incoming' | 'outgoing';
+  truncate?: boolean;
 }>();
 
-const localPredicate = ref(structuredClone(toRaw(predicate)));
+const localPredicate = ref(predicate ? structuredClone(toRaw(predicate)) : null);
 
 const { getRecord } = useRecord();
 const { getPredicates } = usePredicates();
 
-const { data: record, error, isError, isLoading } = getRecord(modelValue);
+const { data: record, isLoading } = getRecord(modelValue);
 
 const { data: predicates } = getPredicates();
 
@@ -117,27 +127,9 @@ const creator = computed(() => {
   return null;
 });
 
-const parent = computed(() => {
-  if (!outgoingLinks.value || !predicateMap.value || !outgoingLinksById.value) return null;
-
-  for (const edge of outgoingLinks.value) {
-    const predicate = predicateMap.value[edge.predicateId];
-
-    if (predicate && predicate.type === 'containment') {
-      return outgoingLinksById.value[edge.target.id];
-    }
-  }
-
-  return null;
-});
-
 const title = computed(() => {
   if (record.value?.title) {
     return record.value.title;
-  }
-
-  if (parent.value && parent.value.title) {
-    return `↳ ${parent.value.title}`;
   }
 
   if (creator.value && creator.value.title) {
@@ -239,12 +231,15 @@ function handleDeleteLink() {
   font-size: 0.8rem;
   line-height: 1.15rem;
   color: var(--ui-text-muted);
+  margin: 4px 0 6px;
+}
+
+.RecordLink__summary--truncated {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   line-clamp: 3;
   overflow: hidden;
-  margin: 4px 0 6px;
 }
 
 .RecordLink__actions {

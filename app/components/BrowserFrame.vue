@@ -1,5 +1,8 @@
 <template>
-  <div class="BrowserFrame">
+  <div
+    v-if="isSupportedUrl"
+    class="BrowserFrame"
+  >
     <div class="BrowserFrame__chrome">
       <div class="BrowserFrame__trafficLights">
         <div class="BrowserFrame__trafficLight BrowserFrame__trafficLight--close"></div>
@@ -34,6 +37,11 @@ const displayUrl = computed(() => {
   } catch {
     return props.url;
   }
+});
+
+const isSupportedUrl = computed(() => {
+  const blocklist = ['readwise.io', 'readwise.com'];
+  return !blocklist.some((str) => props.url.includes(str));
 });
 </script>
 

@@ -91,6 +91,18 @@
           <span>{{ creator.title }}</span>
         </UButton>
       </span>
+
+      <span
+        v-if="modelValue.url"
+        class="RecordDetail__bylineItem"
+      >
+        at
+        <LinkWithFavicon
+          v-if="modelValue.url"
+          class="RecordDetail__linkWithFavicon"
+          :modelValue="modelValue.url"
+        />
+      </span>
     </div>
 
     <UFormField
@@ -101,7 +113,7 @@
       <UTextarea
         v-model.trim="modelValue.content"
         size="xl"
-        placeholder="Main content of the record"
+        placeholder="Write something about this record"
         variant="none"
         :rows="1"
         autoresize
@@ -109,16 +121,26 @@
     </UFormField>
 
     <div v-if="childrenWithContent && childrenWithContent.length > 0">
-      <h2 class="RecordDetail__sectionTitle">Children</h2>
-
-      <ul class="RecordDetail__children">
+      <ul
+        class="RecordDetail__children"
+        :class="{
+          'RecordDetail__children--singleChild': childrenWithContent.length === 1,
+        }"
+      >
         <li
           v-for="child in childrenWithContent"
           :key="child.id"
         >
-          <blockquote>
-            {{ child.source.content }}
-          </blockquote>
+          <RouterLink :to="`/${child.source.slug}`">
+            <RecordLink
+              class="RecordDetail__recordLink"
+              linkDirection="incoming"
+              :modelValue="child.sourceId"
+              :truncate="false"
+              @updatePredicate="(predicate) => handleUpdatePredicate(child, predicate)"
+              @deleteLink="() => handleDeleteLink(child.id)"
+            />
+          </RouterLink>
         </li>
       </ul>
     </div>
@@ -177,11 +199,6 @@
           </template>
         </UInput>
       </UFieldGroup>
-
-      <SlugField
-        v-model="modelValue.slug"
-        readonly
-      />
 
       <UFieldGroup v-if="createdAt">
         <UBadge
@@ -321,11 +338,11 @@ import { computed, onBeforeUnmount, onMounted } from 'vue';
 import type { LinkInsert, LinkSelect, PredicateSelect } from '@db/schema';
 import { getIconForRecordSource, getIconForRecordType } from '@app/utils';
 import type { DbId } from '@shared/types/api';
-import SlugField from '@app/components/SlugField.vue';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import TitleField from '@app/components/TitleField.vue';
 import CombinedFields from '@app/components/CombinedFields.vue';
 import type { RelatedRecordsAPIResponse } from '@db/queries/related';
+import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 
 const modelValue = defineModel<GetRecordBySlugAPIResponse>({ required: true });
 
@@ -395,6 +412,11 @@ const linksByPredicateName = computed(() => {
   const grouped: Record<string, Array<LinkWithDirection>> = {};
 
   const addLink = (link: Link, direction: 'incoming' | 'outgoing') => {
+    // Exclude containment links as they are handled separately by the children computed property
+    if (link.predicate.type === 'containment') {
+      return;
+    }
+
     let predicateName = link.predicate.name;
 
     if (direction === 'incoming' && link.predicate.inverseSlug) {
@@ -466,6 +488,7 @@ function handleDeleteLink(linkId: DbId) {
 .RecordDetail__byline {
   display: inline-flex;
   margin-top: -12px;
+  flex-wrap: wrap;
 }
 
 .RecordDetail__bylineItem {
@@ -477,7 +500,7 @@ function handleDeleteLink(linkId: DbId) {
 
 :deep(.RecordDetail__bylineButton) {
   max-width: 250px;
-  margin-left: -2px;
+  margin-inline: -2px;
 
   &:hover {
     text-decoration: underline;
@@ -491,34 +514,20 @@ function handleDeleteLink(linkId: DbId) {
   }
 }
 
+:deep(.RecordDetail__linkWithFavicon) {
+  margin-inline: 0.75em;
+}
+
 .RecordDetail__content {
   margin-inline: -12px;
 }
 
-.RecordDetail__children {
-  font-size: 1rem;
-  margin-top: 12px;
+.RecordDetail__children:not(.RecordDetail__children--singleChild) {
+  columns: 300px auto;
+  gap: 8px;
 
   & > * + * {
-    border-top: 1px dashed var(--ui-border);
-    padding-top: 16px;
-    margin-top: 16px;
-  }
-
-  blockquote {
-    padding-left: 20px;
-    position: relative;
-  }
-
-  blockquote::before {
-    content: '';
-    width: 5px;
-    height: 100%;
-    background-color: var(--ui-border);
-    position: absolute;
-    top: 0;
-    left: 0;
-    border-radius: 8px;
+    margin-top: 8px;
   }
 }
 
