@@ -431,7 +431,6 @@ const LEGACY_API_BASE_URL = 'https://readwise.io/api/v2/export/';
 export async function getMostRecentBookUpdateTime(): Promise<Date | null> {
   const mostRecent = await db.query.readwiseDocuments.findFirst({
     where: {
-      source: 'books',
       category: 'highlight', // Use highlights since they have updated_at timestamps
     },
     columns: {

@@ -62,8 +62,6 @@ export async function runIntegration(
       console.log(`Successfully created ${entriesCreated} entries`);
     }
 
-    console.log('Updating integration run status...');
-
     await db
       .update(integrationRuns)
       .set({
