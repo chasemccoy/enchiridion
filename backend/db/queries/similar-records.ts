@@ -2,13 +2,13 @@ import { db } from '@db/index';
 import { type RecordSelect } from '@db/schema';
 import type { APIResponse } from '@shared/types/api';
 
-export interface RelatedRecord {
+export interface SimilarRecord {
   record: RecordSelect;
   score: number;
   reasons: string[];
 }
 
-export interface RelatedRecordsInput {
+export interface SimilarRecordsInput {
   recordId: RecordSelect['id'];
   limit?: number;
   minScore?: number;
@@ -43,7 +43,7 @@ interface RecordWithLinks {
 }
 
 /**
- * Finds records related to a given record using a multi-factor similarity algorithm
+ * Finds records similar to a given record using a multi-factor similarity algorithm
  *
  * Algorithm factors:
  * 1. Direct link relationships (highest weight)
@@ -52,8 +52,8 @@ interface RecordWithLinks {
  * 4. Content overlap and shared keywords
  * 5. Temporal proximity (recent records get slight boost)
  */
-export const findRelatedRecords = async (input: RelatedRecordsInput): Promise<RelatedRecord[]> => {
-  const { recordId, limit = 20, minScore = 0.1, includeContent = false } = input;
+export const findSimilarRecords = async (input: SimilarRecordsInput): Promise<SimilarRecord[]> => {
+  const { recordId, limit = 5, minScore = 0.1, includeContent = false } = input;
 
   // TODO: CACHING - Consider implementing Redis/memory cache for frequently requested records
 
@@ -142,7 +142,7 @@ export const findRelatedRecords = async (input: RelatedRecordsInput): Promise<Re
   });
 
   // Calculate similarity scores for each record
-  const scoredRecords: RelatedRecord[] = [];
+  const scoredRecords: SimilarRecord[] = [];
 
   for (const record of allRecords) {
     // Cast the record to our expected type structure
@@ -572,4 +572,4 @@ async function generateReasons(
   return reasons;
 }
 
-export type RelatedRecordsAPIResponse = APIResponse<typeof findRelatedRecords>;
+export type SimilarRecordsAPIResponse = APIResponse<typeof findSimilarRecords>;

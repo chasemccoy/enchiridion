@@ -8,6 +8,7 @@
     :modelValue="record"
     :links="links"
     :relatedRecords="relatedRecords"
+    :similarRecords="similarRecords"
     @fileUpload="handleFileUpload"
     @fileDelete="handleMediaDelete"
     @createLink="handleCreateLink"
@@ -30,11 +31,12 @@ import { useDebounceFn } from '@vueuse/core';
 import type { LinkInsert, LinkSelect, PredicateSelect, RecordInsert } from '@db/schema';
 import useLink from '@app/composables/useLink';
 import type { DbId } from '@shared/types/api';
+import useRelatedRecords from '@app/composables/useRelatedRecords';
 
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
-const { getRecordBySlug, getRecordLinks, upsertRecord, deleteRecord, getRelatedRecords } =
+const { getRecordBySlug, getRecordLinks, upsertRecord, deleteRecord, getSimilarRecords } =
   useRecord();
 const { uploadMedia, deleteMedia, deleteMediaForRecord } = useMedia();
 const { upsertLink, deleteLink } = useLink();
@@ -48,7 +50,9 @@ const recordId = computed(() => record.value?.id ?? null);
 const isRecordFetched = computed(() => !!recordId.value);
 
 const { data: links } = getRecordLinks(recordId, isRecordFetched);
-const { data: relatedRecords } = getRelatedRecords(recordId, isRecordFetched);
+const { data: similarRecords } = getSimilarRecords(recordId, isRecordFetched);
+
+const { data: relatedRecords } = useRelatedRecords(recordSlug, isRecordFetched);
 
 const { mutate: mutateRecord } = upsertRecord();
 const { mutate: upsertLinkMutation } = upsertLink();

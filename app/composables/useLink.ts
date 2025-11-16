@@ -15,10 +15,12 @@ export default function useLink() {
           body: JSON.stringify(data),
         }),
       onSuccess: ({ sourceId, targetId }) => {
-        ['get-record', 'get-record-by-slug', 'get-record-links'].forEach((key) => {
-          queryClient.invalidateQueries({ queryKey: [key, sourceId] });
-          queryClient.invalidateQueries({ queryKey: [key, targetId] });
-        });
+        ['get-record', 'get-record-by-slug', 'get-record-links', 'get-related-records'].forEach(
+          (key) => {
+            queryClient.invalidateQueries({ queryKey: [key, sourceId] });
+            queryClient.invalidateQueries({ queryKey: [key, targetId] });
+          },
+        );
       },
     });
   }

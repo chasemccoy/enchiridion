@@ -11,7 +11,7 @@ import type { GetFamilyTreeAPIResponse } from '@db/queries/tree';
 import { toValue, type MaybeRef } from 'vue';
 import type { DbId } from '@shared/types/api';
 import type { RecordInsert } from '@db/schema';
-import type { RelatedRecordsAPIResponse } from '@db/queries/related';
+import type { SimilarRecordsAPIResponse } from '@db/queries/similar-records';
 
 type OptionalMaybeRef<T> = MaybeRef<T | null>;
 
@@ -50,10 +50,10 @@ export default function useRecord() {
     });
   }
 
-  function getRelatedRecords(id: OptionalMaybeRef<DbId>, enabled: MaybeRef<boolean> = true) {
+  function getSimilarRecords(id: OptionalMaybeRef<DbId>, enabled: MaybeRef<boolean> = true) {
     return useQuery({
-      queryKey: ['get-related-records', id],
-      queryFn: () => fetch<RelatedRecordsAPIResponse>(`/record/${toValue(id)}/related`),
+      queryKey: ['get-similar-records', id],
+      queryFn: () => fetch<SimilarRecordsAPIResponse>(`/record/${toValue(id)}/similar`),
       enabled,
     });
   }
@@ -88,7 +88,7 @@ export default function useRecord() {
     getRecordBySlug,
     getRecordTree,
     getRecordLinks,
-    getRelatedRecords,
+    getSimilarRecords,
     upsertRecord,
     deleteRecord,
   };

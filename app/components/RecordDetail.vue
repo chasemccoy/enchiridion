@@ -133,7 +133,7 @@
         >
           <RouterLink :to="`/${child.source.slug}`">
             <RecordLink
-              class="RecordDetail__recordLink"
+              class="RecordDetail__recordLink shadow-xs"
               linkDirection="incoming"
               :modelValue="child.sourceId"
               :truncate="false"
@@ -292,7 +292,10 @@
               "
               :predicate="linkData.link.predicate"
               :linkDirection="linkData.direction"
-              @updatePredicate="(predicate) => handleUpdatePredicate(linkData.link, predicate)"
+              @updatePredicate="
+                (predicate) =>
+                  linkData.link ? handleUpdatePredicate(linkData.link, predicate) : undefined
+              "
               @deleteLink="() => handleDeleteLink(linkData.link.id)"
             />
           </li>
@@ -301,14 +304,14 @@
     </div>
 
     <div
-      v-if="relatedRecords && relatedRecords.length > 0"
+      v-if="similarRecords && similarRecords.length > 0"
       class="RecordDetail__linksSection"
     >
-      <h2 class="RecordDetail__sectionTitle RecordDetail__linksSectionTitle">Related</h2>
+      <h2 class="RecordDetail__sectionTitle RecordDetail__linksSectionTitle">Similar records</h2>
 
       <ul class="RecordDetail__list">
         <li
-          v-for="entry in relatedRecords"
+          v-for="entry in similarRecords"
           :key="entry.record.id"
         >
           <RecordLink
@@ -334,15 +337,16 @@ import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import RecordLink from '@app/components/RecordLink.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
 import { capitalize, formatDate } from '@shared/lib/formatting';
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
 import type { LinkInsert, LinkSelect, PredicateSelect } from '@db/schema';
 import { getIconForRecordSource, getIconForRecordType } from '@app/utils';
 import type { DbId } from '@shared/types/api';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import TitleField from '@app/components/TitleField.vue';
 import CombinedFields from '@app/components/CombinedFields.vue';
-import type { RelatedRecordsAPIResponse } from '@db/queries/related';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
+import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
+import type { SimilarRecordsAPIResponse } from '@db/queries/related';
 
 const modelValue = defineModel<GetRecordBySlugAPIResponse>({ required: true });
 
@@ -356,9 +360,10 @@ const emit = defineEmits<{
   paste: [ClipboardEvent];
 }>();
 
-const { links, relatedRecords } = defineProps<{
+const { links, relatedRecords, similarRecords } = defineProps<{
   links?: LinksForRecordAPIResponse;
-  relatedRecords?: RelatedRecordsAPIResponse;
+  relatedRecords?: FindAllRelatedRecordsAPIResponse;
+  similarRecords?: SimilarRecordsAPIResponse;
 }>();
 
 const capturedAt = computed(() => {
@@ -397,49 +402,101 @@ const childrenWithContent = computed(() => {
   return children.value.filter((child) => child.source.content);
 });
 
+type OutgoingLink = NonNullable<typeof links>['outgoingLinks'][number];
+type IncomingLink = NonNullable<typeof links>['incomingLinks'][number];
+type Link = OutgoingLink | IncomingLink;
+
+// VirtualLink represents a recursive relation without a real database link
+// It includes all properties needed to render like a real link
+type VirtualLink = Omit<
+  OutgoingLink,
+  'predicate' | 'predicateId' | 'recordCreatedAt' | 'recordUpdatedAt'
+> & {
+  predicate?: PredicateSelect;
+};
+
+type LinkWithDirection = {
+  link: Link | VirtualLink;
+  direction: 'incoming' | 'outgoing';
+};
+
+const getPredicateName = (link: Link, direction: 'incoming' | 'outgoing'): string => {
+  if (direction === 'incoming' && link.predicate.inverse?.name) {
+    return link.predicate.inverse.name;
+  }
+  return link.predicate.name;
+};
+
 const linksByPredicateName = computed(() => {
   if (!links) return {};
 
-  type Link =
-    | NonNullable<typeof links>['outgoingLinks'][number]
-    | NonNullable<typeof links>['incomingLinks'][number];
-
-  type LinkWithDirection = {
-    link: Link;
-    direction: 'incoming' | 'outgoing';
-  };
-
   const grouped: Record<string, Array<LinkWithDirection>> = {};
 
-  const addLink = (link: Link, direction: 'incoming' | 'outgoing') => {
-    // Exclude containment links as they are handled separately by the children computed property
-    if (link.predicate.type === 'containment') {
-      return;
-    }
+  const addRealLink = (link: Link, direction: 'incoming' | 'outgoing') => {
+    // Skip containment links - handled separately
+    if (link.predicate.type === 'containment') return;
 
-    let predicateName = link.predicate.name;
-
-    if (direction === 'incoming' && link.predicate.inverseSlug) {
-      if (link.predicate.inverse?.name) {
-        predicateName = link.predicate.inverse.name;
-      }
-    }
+    const predicateName = getPredicateName(link, direction);
 
     if (!grouped[predicateName]) {
       grouped[predicateName] = [];
     }
-
-    grouped[predicateName]?.push({ link, direction });
+    grouped[predicateName]!.push({ link, direction });
   };
 
-  links.outgoingLinks?.forEach((link) => addLink(link, 'outgoing'));
-  links.incomingLinks?.forEach((link) => addLink(link, 'incoming'));
+  links.outgoingLinks?.forEach((link) => addRealLink(link, 'outgoing'));
+  links.incomingLinks?.forEach((link) => addRealLink(link, 'incoming'));
+
+  if (relatedRecords && relatedRecords.length > 0 && modelValue.value) {
+    const currentRecordId = modelValue.value.id;
+
+    const relatedToPredicate = [
+      ...(links.outgoingLinks ?? []),
+      ...(links.incomingLinks ?? []),
+    ].find((link) => link.predicate.slug === 'related_to')?.predicate;
+
+    if (!relatedToPredicate)
+      return Object.fromEntries(Object.entries(grouped).filter(([, links]) => links.length > 0));
+
+    // Get record IDs that already have real links
+    const recordsWithRealLinks = new Set<number>();
+    const existingRelatedLinks = grouped['related to'] ?? [];
+
+    for (const linkData of existingRelatedLinks) {
+      const recordId =
+        linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId;
+      recordsWithRealLinks.add(recordId);
+    }
+
+    // Create virtual links for records without real links
+    const virtualLinks: Array<LinkWithDirection> = [];
+
+    for (const { record } of relatedRecords) {
+      if (!recordsWithRealLinks.has(record.id)) {
+        const virtualLink: VirtualLink = {
+          id: currentRecordId + record.id, // Generate unique ID
+          sourceId: currentRecordId,
+          targetId: record.id,
+          notes: null,
+          target: {
+            title: record.title,
+            slug: record.slug,
+          },
+        };
+        virtualLinks.push({ link: virtualLink, direction: 'outgoing' });
+      }
+    }
+
+    // Add virtual links to the related_to section
+    if (virtualLinks.length > 0) {
+      if (!grouped['related to']) {
+        grouped['related to'] = [];
+      }
+      grouped['related to'].push(...virtualLinks);
+    }
+  }
 
   return Object.fromEntries(Object.entries(grouped).filter(([, links]) => links.length > 0));
-});
-
-onMounted(() => {
-  document.addEventListener('paste', handlePaste);
 });
 
 onBeforeUnmount(() => {
@@ -462,8 +519,11 @@ function handleCreateLink(targetRecordId: DbId, predicateId: DbId) {
   });
 }
 
-function handleUpdatePredicate(link: LinkSelect, predicate: PredicateSelect) {
-  emit('updatePredicate', { link, predicate });
+function handleUpdatePredicate(link: LinkSelect | VirtualLink, predicate: PredicateSelect) {
+  emit('updatePredicate', {
+    link: link as LinkSelect,
+    predicate: predicate,
+  });
 }
 
 function handleDeleteLink(linkId: DbId) {
