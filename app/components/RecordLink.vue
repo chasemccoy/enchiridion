@@ -1,6 +1,9 @@
 <template>
-  <div
+  <component
+    v-if="record"
+    :is="!title ? RouterLink : 'div'"
     class="RecordLink"
+    :to="`/${record.slug}`"
     :class="{ 'RecordLink--loading': isLoading }"
   >
     <div
@@ -59,7 +62,7 @@
         @delete:link="handleDeleteLink"
       />
     </div>
-  </div>
+  </component>
 </template>
 
 <script setup lang="ts">

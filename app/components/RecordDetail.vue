@@ -131,16 +131,14 @@
           v-for="child in childrenWithContent"
           :key="child.id"
         >
-          <RouterLink :to="`/${child.source.slug}`">
-            <RecordLink
-              class="RecordDetail__recordLink shadow-xs"
-              linkDirection="incoming"
-              :modelValue="child.sourceId"
-              :truncate="false"
-              @updatePredicate="(predicate) => handleUpdatePredicate(child, predicate)"
-              @deleteLink="() => handleDeleteLink(child.id)"
-            />
-          </RouterLink>
+          <RecordLink
+            class="RecordDetail__recordLink shadow-xs"
+            linkDirection="incoming"
+            :modelValue="child.sourceId"
+            :truncate="false"
+            @updatePredicate="(predicate) => handleUpdatePredicate(child, predicate)"
+            @deleteLink="() => handleDeleteLink(child.id)"
+          />
         </li>
       </ul>
     </div>
@@ -286,7 +284,7 @@
             :key="linkData.link.id"
           >
             <RecordLink
-              class="RecordDetail__recordLink shadow-xs"
+              class="RecordDetail__recordLink shadow-xxs"
               :modelValue="
                 linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId
               "
@@ -346,7 +344,7 @@ import TitleField from '@app/components/TitleField.vue';
 import CombinedFields from '@app/components/CombinedFields.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
-import type { SimilarRecordsAPIResponse } from '@db/queries/related';
+import type { SimilarRecordsAPIResponse } from '@db/queries/similar-records';
 
 const modelValue = defineModel<GetRecordBySlugAPIResponse>({ required: true });
 
