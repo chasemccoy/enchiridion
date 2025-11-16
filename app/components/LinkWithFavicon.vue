@@ -1,21 +1,26 @@
 <template>
-  <span
+  <UTooltip
     v-if="modelValue"
-    class="LinkWithFavicon"
+    :text="modelValue"
+    :ui="{
+      content: 'dark',
+    }"
   >
-    <template v-if="prefix">{{ prefix }}&nbsp;&nbsp;</template>
-    <img
-      v-if="faviconUrl"
-      alt=""
-      :src="faviconUrl"
-    />
-    <a
-      target="_blank"
-      :href="modelValue"
-    >
-      {{ urlOrigin }}
-    </a>
-  </span>
+    <span class="LinkWithFavicon">
+      <template v-if="prefix">{{ prefix }}&nbsp;&nbsp;</template>
+      <img
+        v-if="faviconUrl"
+        alt=""
+        :src="faviconUrl"
+      />
+      <a
+        target="_blank"
+        :href="modelValue"
+      >
+        {{ urlOrigin }}
+      </a>
+    </span>
+  </UTooltip>
 </template>
 
 <script setup lang="ts">
@@ -46,11 +51,8 @@ const faviconUrl = computed(() => {
   color: var(--ui-text-muted);
   transition: color 0.15s ease-in-out;
 
-  &:hover {
-    color: var(--ui-text);
-  }
-
   & a:hover {
+    color: var(--ui-text);
     text-decoration: underline;
   }
 
