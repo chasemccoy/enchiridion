@@ -127,3 +127,22 @@ export const predicates = sqliteTable(
 export type PredicateSelect = typeof predicates.$inferSelect;
 // export const PredicateInsertSchema = createInsertSchema(predicates);
 export type PredicateInsert = typeof predicates.$inferInsert;
+
+/**
+ * FTS5 virtual table for full-text search on records
+ * Note: This table is created via raw SQL in migrations since Drizzle doesn't have native FTS5 support
+ * The table structure is: CREATE VIRTUAL TABLE records_fts USING fts5(id UNINDEXED, title, summary, content, notes, tokenize='unicode61')
+ */
+export interface RecordsFTSRow {
+  id: number;
+  title: string | null;
+  summary: string | null;
+  content: string | null;
+  notes: string | null;
+}
+
+export interface FTS5SearchResult {
+  id: number;
+  rank: number;
+  bm25: number;
+}
