@@ -68,7 +68,8 @@ const isSupportedUrl = computed(() => {
 .BrowserFrame__trafficLight {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: 999px;
+  corner-shape: unset;
   position: relative;
 }
 

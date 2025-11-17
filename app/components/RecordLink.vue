@@ -246,6 +246,7 @@ function handleDeleteLink() {
   font-size: 0.8rem;
   line-height: 1.15rem;
   color: var(--ui-text-muted);
+  white-space: preserve wrap;
 }
 
 .RecordLink:has(.RecordLink__title) .RecordLink__summary {
