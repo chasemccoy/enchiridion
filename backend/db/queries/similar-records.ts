@@ -192,7 +192,7 @@ function buildFTS5Query(
  * - Phrase matching for exact matches
  * - Prefix matching for fuzzy search
  */
-export const findRelatedRecords = async (input: SimilarRecordsInput): Promise<SimilarRecord[]> => {
+export const findSimilarRecords = async (input: SimilarRecordsInput): Promise<SimilarRecord[]> => {
   const { recordId, limit = 5, minScore = 0.1 } = input;
   const config = DEFAULT_FTS5_CONFIG;
 
@@ -408,4 +408,4 @@ export const findRelatedRecords = async (input: SimilarRecordsInput): Promise<Si
   return relatedRecords.sort((a, b) => b.score - a.score).slice(0, limit);
 };
 
-export type RelatedRecordsAPIResponse = APIResponse<typeof findRelatedRecords>;
+export type SimilarRecordsAPIResponse = APIResponse<typeof findSimilarRecords>;
