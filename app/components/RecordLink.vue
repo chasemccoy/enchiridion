@@ -34,6 +34,13 @@
       {{ summary }}
     </div>
 
+    <ChatBubble
+      v-if="record?.notes"
+      class="RecordLink__notes"
+    >
+      {{ record.notes }}
+    </ChatBubble>
+
     <ul
       v-if="title"
       class="RecordLink__meta"
@@ -66,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import ChatBubble from '@app/components/ChatBubble.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import PredicateSelect from '@app/components/PredicateSelect.vue';
 import usePredicates from '@app/composables/usePredicates';
@@ -179,6 +187,10 @@ function handleDeleteLink() {
   display: grid;
   gap: 2px;
   position: relative;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+  background-color: var(--ui-bg);
+  border: 0.5px solid var(--ui-border);
 }
 
 .RecordLink__header {
@@ -259,5 +271,9 @@ function handleDeleteLink() {
 .RecordLink:hover .RecordLink__actions,
 .RecordLink__actions:has(button[aria-expanded='true']) {
   opacity: 1;
+}
+
+.RecordLink__notes {
+  margin-top: 6px;
 }
 </style>

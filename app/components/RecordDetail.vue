@@ -681,10 +681,6 @@ function handleDeleteLink(linkId: DbId) {
 }
 
 .RecordDetail__recordLink {
-  background-color: var(--ui-bg);
-  border-radius: var(--radius-lg);
-  padding: 8px 12px;
-  border: 0.5px solid var(--ui-border);
   break-inside: avoid;
 }
 </style>
