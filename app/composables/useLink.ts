@@ -35,6 +35,7 @@ export default function useLink() {
         queryClient.invalidateQueries({ queryKey: ['get-record'] });
         queryClient.invalidateQueries({ queryKey: ['get-record-by-slug'] });
         queryClient.invalidateQueries({ queryKey: ['get-record-links'] });
+        queryClient.invalidateQueries({ queryKey: ['get-related-records'] });
       },
     });
   }

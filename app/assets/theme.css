@@ -18,6 +18,10 @@
   --ui-primary: var(--ui-color-primary-700);
 }
 
+* {
+  corner-shape: superellipse(1.333);
+}
+
 html.dark {
   --color-white: var(--ui-color-neutral-300);
 

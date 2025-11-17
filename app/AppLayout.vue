@@ -169,7 +169,7 @@ watch(isSearchModalOpen, () => {
 }
 
 :global(.App__navLink:before) {
-  border-radius: 9999px;
+  border-radius: 16px;
   inset: 0;
 }
 
