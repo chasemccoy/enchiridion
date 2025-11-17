@@ -169,8 +169,15 @@ watch(isSearchModalOpen, () => {
 }
 
 :global(.App__navLink:before) {
-  border-radius: 16px;
+  border-radius: 9999px;
   inset: 0;
+}
+
+@supports (corner-shape: superellipse(1.333)) {
+  :global(.App__navLink:before) {
+    border-radius: 16px;
+    inset: 0;
+  }
 }
 
 :global(.App__navLink:not([aria-current]):hover svg),
