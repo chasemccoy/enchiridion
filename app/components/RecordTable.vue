@@ -246,7 +246,7 @@ function getTags(row: TableRow<ListRecordsAPIResponse[number]>) {
   return tags;
 }
 
-function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
+function handleRowSelect(_event: Event, row: TableRow<ListRecordsAPIResponse[number]>) {
   router.push(`/${row.getValue('slug')}`);
 }
 </script>
@@ -257,20 +257,21 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
   padding-bottom: 6rem;
 }
 
-:deep(.RecordTable__td) {
+.RecordTable__td {
   padding-block: 12px;
 }
 
-:deep(.RecordTable__contentCell) {
-  max-width: 400px;
+.RecordTable__contentCell {
   text-wrap: auto;
 }
 
-:deep(.RecordTable__titleCell) {
+:global(.RecordTable__titleCell) {
   text-wrap: auto;
   display: flex;
   gap: 12px;
+}
 
+.RecordTable__titleCell {
   & .RecordTable__titleCellContent {
     display: grid;
   }
@@ -291,12 +292,12 @@ function handleRowSelect(row: TableRow<ListRecordsAPIResponse[number]>) {
   gap: 2px;
 }
 
-:deep(.RecordTable__th) {
+:global(.RecordTable__th) {
   padding-block: 12px;
   font-size: 12px;
 }
 
-:deep(.RecordTable__media) {
+.RecordTable__media {
   width: 120px;
   aspect-ratio: 1;
   object-fit: cover;

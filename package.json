@@ -30,7 +30,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.21.0",
-		"@nuxt/ui": "^4.0.1",
+		"@nuxt/ui": "^4.2.0",
 		"@tanstack/vue-query": "^5.80.6",
 		"@types/multer": "^2.0.0",
 		"@unhead/vue": "^2.0.10",
