@@ -97,7 +97,7 @@
         v-if="childrenCount > 0"
         class="RecordCard__childrenCount"
       >
-        {{ pluralize(childrenCount, 'child', 'children') }}
+        {{ pluralize(childrenCount, 'highlight', 'highlights') }}
       </li>
 
       <li

@@ -73,7 +73,7 @@ import { getIconForRecordType } from '@app/utils';
 
 type SearchResultItem = {
   label?: string;
-  icon: string;
+  icon: string | object;
   id: string;
 };
 

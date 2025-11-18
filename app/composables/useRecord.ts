@@ -8,18 +8,18 @@ import type {
   UpsertRecordAPIResponse,
 } from '@db/queries/records';
 import type { GetFamilyTreeAPIResponse } from '@db/queries/tree';
-import { toValue, type MaybeRef } from 'vue';
+import { toValue, type MaybeRefOrGetter } from 'vue';
 import type { DbId } from '@shared/types/api';
 import type { RecordInsert } from '@db/schema';
 import type { SimilarRecordsAPIResponse } from '@db/queries/similar-records';
 
-type OptionalMaybeRef<T> = MaybeRef<T | null>;
+type OptionalMaybeRef<T> = MaybeRefOrGetter<T | null>;
 
 export default function useRecord() {
   const { fetch } = useApiClient();
   const queryClient = useQueryClient();
 
-  function getRecord(id: OptionalMaybeRef<DbId>, enabled: MaybeRef<boolean> = true) {
+  function getRecord(id: OptionalMaybeRef<DbId>, enabled: MaybeRefOrGetter<boolean> = true) {
     return useQuery({
       queryKey: ['get-record', id],
       queryFn: () => fetch<GetRecordAPIResponse>(`/record/${toValue(id)}`),
@@ -34,7 +34,7 @@ export default function useRecord() {
     });
   }
 
-  function getRecordTree(id: OptionalMaybeRef<DbId>, enabled: MaybeRef<boolean> = true) {
+  function getRecordTree(id: OptionalMaybeRef<DbId>, enabled: MaybeRefOrGetter<boolean> = true) {
     return useQuery({
       queryKey: ['get-record-tree', id],
       queryFn: () => fetch<GetFamilyTreeAPIResponse>(`/record/${toValue(id)}/tree`),
@@ -42,7 +42,7 @@ export default function useRecord() {
     });
   }
 
-  function getRecordLinks(id: OptionalMaybeRef<DbId>, enabled: MaybeRef<boolean> = true) {
+  function getRecordLinks(id: OptionalMaybeRef<DbId>, enabled: MaybeRefOrGetter<boolean> = true) {
     return useQuery({
       queryKey: ['get-record-links', id],
       queryFn: () => fetch<LinksForRecordAPIResponse>(`/record/${toValue(id)}/links`),
@@ -50,7 +50,10 @@ export default function useRecord() {
     });
   }
 
-  function getSimilarRecords(id: OptionalMaybeRef<DbId>, enabled: MaybeRef<boolean> = true) {
+  function getSimilarRecords(
+    id: OptionalMaybeRef<DbId>,
+    enabled: MaybeRefOrGetter<boolean> = true,
+  ) {
     return useQuery({
       queryKey: ['get-similar-records', id],
       queryFn: () => fetch<SimilarRecordsAPIResponse>(`/record/${toValue(id)}/similar`),

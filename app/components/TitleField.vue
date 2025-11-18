@@ -1,5 +1,9 @@
 <template>
-  <UFormField aria-label="Title">
+  <UFormField
+    aria-label="Title"
+    class="TitleField"
+    :class="{ 'TitleField--isFlush': isFlush }"
+  >
     <UTextarea
       v-model.trim="modelValue"
       type="text"
@@ -19,16 +23,20 @@
 <script setup lang="ts">
 const modelValue = defineModel<string | null>('modelValue');
 
-const { autofocus } = defineProps<{
+const { autofocus, isFlush = true } = defineProps<{
   autofocus?: boolean;
+  isFlush?: boolean;
 }>();
 </script>
 
 <style scoped>
 :deep(.TitleField__input) {
   font-size: 1.7rem;
-  margin-inline: -12px;
   padding-block: 0;
   text-wrap: pretty;
+}
+
+.TitleField--isFlush :deep(.TitleField__input) {
+  margin-inline: -12px;
 }
 </style>
