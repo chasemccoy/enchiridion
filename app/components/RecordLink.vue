@@ -4,7 +4,10 @@
     :is="!title ? RouterLink : 'div'"
     class="RecordLink"
     :to="`/${record.slug}`"
-    :class="{ 'RecordLink--loading': isLoading }"
+    :class="{
+      'RecordLink--loading': isLoading,
+      'RecordLink--includeChildren': includeChildren,
+    }"
   >
     <div
       v-if="title"
@@ -40,6 +43,19 @@
     >
       {{ record.notes }}
     </ChatBubble>
+
+    <ul
+      v-if="includeChildren && children && children.length > 0"
+      class="RecordLink__children"
+    >
+      <li
+        v-for="(child, index) in children"
+        :key="index"
+        class="RecordLink__child"
+      >
+        {{ child.content }}
+      </li>
+    </ul>
 
     <ul
       v-if="title"
@@ -95,22 +111,27 @@ const {
   predicate,
   linkDirection = 'outgoing',
   truncate = true,
+  includeChildren = false,
 } = defineProps<{
   predicate?: Predicate;
   linkDirection?: 'incoming' | 'outgoing';
   truncate?: boolean;
+  includeChildren?: boolean;
 }>();
 
 const localPredicate = ref(predicate ? structuredClone(toRaw(predicate)) : null);
 
-const { getRecord } = useRecord();
+const { getRecord, getRecordLinks } = useRecord();
 const { getPredicates } = usePredicates();
 
 const { data: record, isLoading } = getRecord(modelValue);
 
+const { data: links } = getRecordLinks(modelValue, () => includeChildren);
+
 const { data: predicates } = getPredicates();
 
 const outgoingLinks = computed(() => record.value?.outgoingLinks ?? null);
+const incomingLinks = computed(() => links.value?.incomingLinks ?? null);
 
 const predicateMap = computed(() => {
   return Object.fromEntries((predicates.value ?? []).map((p) => [p.id, p]));
@@ -151,15 +172,11 @@ const title = computed(() => {
 });
 
 const summary = computed(() => {
-  if (record.value?.summary) {
+  if (record.value?.summary && !includeChildren) {
     return record.value.summary;
   }
 
-  if (record.value?.content) {
-    return record.value.content;
-  }
-
-  return null;
+  return record.value?.content || record.value?.summary;
 });
 
 const tags = computed(() => {
@@ -171,6 +188,15 @@ const tags = computed(() => {
       return predicate && predicate.type === 'description';
     })
     .map((link) => link.target);
+});
+
+const children = computed(() => {
+  if (!includeChildren || !incomingLinks.value) return null;
+
+  return incomingLinks.value
+    .filter((link) => link.predicate.type === 'containment')
+    .map((link) => link.source)
+    .filter((child) => child.content);
 });
 
 function handleSelectPredicate(predicate: Predicate) {
@@ -196,14 +222,21 @@ function handleDeleteLink() {
 .RecordLink__header {
   display: inline-flex;
   column-gap: 6px;
-  row-gap: 1px;
   flex-wrap: wrap;
   padding-right: 24px;
+  align-items: baseline;
 }
 
 .RecordLink__title,
 .RecordLink__creator {
   font-size: 0.875rem;
+  text-wrap: pretty;
+}
+
+.RecordLink--includeChildren {
+  & .RecordLink__title {
+    font-size: 1rem;
+  }
 }
 
 .RecordLink__title,
@@ -227,7 +260,6 @@ function handleDeleteLink() {
   align-items: center;
   flex-wrap: wrap;
   column-gap: 8px;
-  row-gap: 2px;
   margin-bottom: -2px;
   color: var(--ui-text-dimmed);
   font-size: 0.75rem;
@@ -242,7 +274,8 @@ function handleDeleteLink() {
   color: var(--ui-text-dimmed);
 }
 
-.RecordLink__summary {
+.RecordLink__summary,
+.RecordLink__child {
   font-size: 0.8rem;
   line-height: 1.15rem;
   color: var(--ui-text-muted);
@@ -276,5 +309,21 @@ function handleDeleteLink() {
 
 .RecordLink__notes {
   margin-top: 6px;
+}
+
+.RecordLink__children {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.RecordLink__child {
+  color: var(--ui-text-muted);
+}
+
+.RecordLink__children li {
+  margin-top: 4px;
+  border-top: 1px solid var(--ui-border);
+  padding-top: 8px;
 }
 </style>

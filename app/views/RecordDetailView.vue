@@ -3,20 +3,32 @@
     <title v-if="record?.title">{{ record.title }} | Enchiridion</title>
   </Head>
 
-  <RecordDetail
-    v-if="record"
-    :modelValue="record"
-    :links="links"
-    :relatedRecords="relatedRecords"
-    :similarRecords="similarRecords"
-    @fileUpload="handleFileUpload"
-    @fileDelete="handleMediaDelete"
-    @createLink="handleCreateLink"
-    @deleteLink="handleDeleteLink"
-    @updatePredicate="handleUpdatePredicate"
-    @deleteRecord="handleDeleteRecord"
-    @paste="handlePaste"
-  />
+  <template v-if="record">
+    <ConceptDetail
+      v-if="record.type === 'concept'"
+      :modelValue="record"
+      :links="links"
+      :relatedRecords="relatedRecords"
+      @fileDelete="handleMediaDelete"
+      @createLink="handleCreateLink"
+      @deleteLink="handleDeleteLink"
+      @updatePredicate="handleUpdatePredicate"
+    />
+    <RecordDetail
+      v-else
+      :modelValue="record"
+      :links="links"
+      :relatedRecords="relatedRecords"
+      :similarRecords="similarRecords"
+      @fileUpload="handleFileUpload"
+      @fileDelete="handleMediaDelete"
+      @createLink="handleCreateLink"
+      @deleteLink="handleDeleteLink"
+      @updatePredicate="handleUpdatePredicate"
+      @deleteRecord="handleDeleteRecord"
+      @paste="handlePaste"
+    />
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -32,6 +44,7 @@ import type { LinkInsert, LinkSelect, PredicateSelect, RecordInsert } from '@db/
 import useLink from '@app/composables/useLink';
 import type { DbId } from '@shared/types/api';
 import useRelatedRecords from '@app/composables/useRelatedRecords';
+import ConceptDetail from '@app/components/ConceptDetail.vue';
 
 const router = useRouter();
 const route = useRoute();

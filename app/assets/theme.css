@@ -5,7 +5,7 @@
 
 @theme {
   --font-sans: 'Public Sans', sans-serif;
-  --font-serif: -ui-serif, New York, Georgia, serif;
+  --font-serif: Source Serif Pro, -ui-serif, New York, Georgia, serif;
 }
 
 :root {
