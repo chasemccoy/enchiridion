@@ -29,16 +29,16 @@
 		"sync": "pnpm sync:readwise"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.21.0",
-		"@nuxt/ui": "^4.2.0",
+		"@modelcontextprotocol/sdk": "^1.24.3",
+		"@nuxt/ui": "^4.2.1",
 		"@tanstack/vue-query": "^5.80.6",
 		"@types/multer": "^2.0.0",
 		"@unhead/vue": "^2.0.10",
 		"@vueuse/core": "^13.3.0",
 		"better-sqlite3": "^12.4.1",
 		"cors": "^2.8.5",
-		"drizzle-orm": "1.0.0-beta.1-ac4ce44",
-		"drizzle-zod": "0.8.3-ac4ce44",
+		"drizzle-orm": "1.0.0-beta.1-03a5cdc",
+		"drizzle-zod": "0.8.3-03a5cdc",
 		"express": "^5.1.0",
 		"multer": "^2.0.1",
 		"sharp": "^0.34.2",
@@ -47,7 +47,7 @@
 		"trash": "^10.0.0",
 		"vue": "^3.5.22",
 		"vue-router": "4.6.3",
-		"zod": "^4.1.12"
+		"zod": "^4.1.13"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.28.0",
@@ -58,7 +58,7 @@
 		"@vue/tsconfig": "^0.8.1",
 		"concurrently": "^9.1.2",
 		"dotenv": "^17.2.3",
-		"drizzle-kit": "1.0.0-beta.1-ac4ce44",
+		"drizzle-kit": "1.0.0-beta.1-03a5cdc",
 		"eslint": "^9.28.0",
 		"eslint-config-prettier": "^10.1.5",
 		"eslint-plugin-vue": "^10.1.0",

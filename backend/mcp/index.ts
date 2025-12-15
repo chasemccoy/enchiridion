@@ -6,7 +6,8 @@ import { LimitSchema, OffsetSchema, OrderBySchema, RecordFiltersSchema } from '@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { recordTypeEnum } from '@shared/types';
 import { sql } from 'drizzle-orm';
-import { z } from 'zod';
+import * as z from 'zod';
+import { archiveUrlToWayback } from '@integrations/wayback/archive';
 
 export const server = new McpServer(
   {
@@ -42,6 +43,7 @@ server.registerResource(
       contents: [
         {
           uri: uri.href,
+          // @ts-expect-error idk why this is broken
           text: tables.map((t: { sql: string }) => t.sql).join('\n'),
         },
       ],
@@ -98,7 +100,6 @@ server.registerTool(
   },
   async ({ filters, limit, offset, orderBy }) => {
     try {
-      // @ts-expect-error orderBy is optional
       const results = await listRecords({ filters, limit, offset, orderBy });
 
       return {
@@ -152,6 +153,10 @@ server.registerTool(
           type,
         })
         .returning();
+
+      if (url) {
+        archiveUrlToWayback(url);
+      }
 
       return {
         content: [
