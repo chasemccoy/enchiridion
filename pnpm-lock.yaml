@@ -27,17 +27,17 @@ importers:
         specifier: ^13.3.0
         version: 13.3.0(vue@3.5.22(typescript@5.9.3))
       better-sqlite3:
-        specifier: ^12.4.1
-        version: 12.4.1
+        specifier: ^12.6.2
+        version: 12.6.2
       cors:
         specifier: ^2.8.5
         version: 2.8.5
       drizzle-orm:
         specifier: 1.0.0-beta.1-03a5cdc
-        version: 1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(bun-types@1.2.15)
+        version: 1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)(bun-types@1.2.15)
       drizzle-zod:
         specifier: 0.8.3-03a5cdc
-        version: 0.8.3-03a5cdc(drizzle-orm@1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(bun-types@1.2.15))(zod@4.1.13)
+        version: 0.8.3-03a5cdc(drizzle-orm@1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)(bun-types@1.2.15))(zod@4.1.13)
       express:
         specifier: ^5.1.0
         version: 5.1.0
@@ -1537,9 +1537,9 @@ packages:
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
-  better-sqlite3@12.4.1:
-    resolution: {integrity: sha512-3yVdyZhklTiNrtg+4WqHpJpFDd+WHTg2oM7UcR80GqL05AOV0xEJzc6qNvFYoEtE+hRp1n9MpN6/+4yhlGkDXQ==}
-    engines: {node: 20.x || 22.x || 23.x || 24.x}
+  better-sqlite3@12.6.2:
+    resolution: {integrity: sha512-8VYKM3MjCa9WcaSAI3hzwhmyHVlH8tiGFwf0RlTsZPWJ1I5MkzjiudCo4KC4DxOaL/53A5B1sI/IbldNFDbsKA==}
+    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
@@ -4807,7 +4807,7 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  better-sqlite3@12.4.1:
+  better-sqlite3@12.6.2:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -5039,16 +5039,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(bun-types@1.2.15):
+  drizzle-orm@1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)(bun-types@1.2.15):
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
       '@types/better-sqlite3': 7.6.13
-      better-sqlite3: 12.4.1
+      better-sqlite3: 12.6.2
       bun-types: 1.2.15
 
-  drizzle-zod@0.8.3-03a5cdc(drizzle-orm@1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(bun-types@1.2.15))(zod@4.1.13):
+  drizzle-zod@0.8.3-03a5cdc(drizzle-orm@1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)(bun-types@1.2.15))(zod@4.1.13):
     dependencies:
-      drizzle-orm: 1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.1)(bun-types@1.2.15)
+      drizzle-orm: 1.0.0-beta.1-03a5cdc(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)(bun-types@1.2.15)
       zod: 4.1.13
 
   dunder-proto@1.0.1:
@@ -5899,7 +5899,7 @@ snapshots:
 
   node-abi@3.75.0:
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.3
 
   node-fetch-native@1.6.7: {}
 

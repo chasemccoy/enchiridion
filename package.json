@@ -35,7 +35,7 @@
 		"@types/multer": "^2.0.0",
 		"@unhead/vue": "^2.0.10",
 		"@vueuse/core": "^13.3.0",
-		"better-sqlite3": "^12.4.1",
+		"better-sqlite3": "^12.6.2",
 		"cors": "^2.8.5",
 		"drizzle-orm": "1.0.0-beta.1-03a5cdc",
 		"drizzle-zod": "0.8.3-03a5cdc",
