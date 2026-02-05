@@ -78,7 +78,7 @@ export async function fetchTweet(
 
   throw new TwitterApiError({
     message:
-      typeof json.error === 'string'
+      typeof json?.error === 'string'
         ? json.error
         : `Failed to fetch tweet at "${url}" with "${res.status}".`,
     status: res.status,
