@@ -127,6 +127,7 @@ import useApiClient from '@app/composables/useApiClient';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import { getIconForRecordType } from '@app/utils';
 import ChatBubble from '@app/components/ChatBubble.vue';
+import { getPredicate } from '@shared/predicates';
 
 const modelValue = defineModel<ListRecordsAPIResponse[number]>({ required: true });
 
@@ -148,13 +149,14 @@ const incomingLinks = computed(() => modelValue.value?.incomingLinks ?? null);
 const creator = computed(() => {
   if (!outgoingLinks.value) return null;
 
-  return outgoingLinks.value.find((link) => link.predicate.slug === 'created_by')?.target ?? null;
+  return outgoingLinks.value.find((link) => link.predicate === 'created_by')?.target ?? null;
 });
 
 const childrenCount = computed(() => {
   if (!incomingLinks.value) return 0;
 
-  return incomingLinks.value.filter((link) => link.predicate.type === 'containment').length;
+  return incomingLinks.value.filter((link) => getPredicate(link.predicate).type === 'containment')
+    .length;
 });
 
 const tags = computed(() => {
@@ -162,7 +164,7 @@ const tags = computed(() => {
 
   return (
     outgoingLinks.value
-      .filter((link) => link.predicate.type === 'description')
+      .filter((link) => getPredicate(link.predicate).type === 'description')
       ?.map((link) => link.target) ?? null
   );
 });

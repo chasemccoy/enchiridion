@@ -1,18 +1,15 @@
-import useApiClient from '@app/composables/useApiClient';
-import { useQuery } from '@tanstack/vue-query';
-import type { GetPredicatesAPIResponse } from '@db/queries/links';
+import { ALL_PREDICATES, type Predicate } from '@shared/predicates';
+
+export type { Predicate };
 
 export default function usePredicates() {
-	const { fetch } = useApiClient();
+  function getPredicates() {
+    return {
+      data: { value: ALL_PREDICATES as readonly Predicate[] },
+    };
+  }
 
-	function getPredicates() {
-		return useQuery({
-			queryKey: ['get-predicate-map'],
-			queryFn: () => fetch<GetPredicatesAPIResponse>(`/predicates`),
-		});
-	}
-
-	return {
-		getPredicates,
-	};
+  return {
+    getPredicates,
+  };
 }

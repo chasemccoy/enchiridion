@@ -33,21 +33,6 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.records.id,
       optional: false,
     }),
-    predicate: r.one.predicates({
-      from: r.links.predicateId,
-      to: r.predicates.id,
-      optional: false,
-    }),
-  },
-  predicates: {
-    links: r.many.links({
-      from: r.predicates.id,
-      to: r.links.predicateId,
-    }),
-    inverse: r.one.predicates({
-      from: r.predicates.inverseSlug,
-      to: r.predicates.slug,
-    }),
   },
   readwiseAuthors: {
     documents: r.many.readwiseDocuments({

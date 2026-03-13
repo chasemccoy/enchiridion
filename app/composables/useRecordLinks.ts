@@ -1,6 +1,6 @@
 import type { LinksForRecordAPIResponse } from '@db/queries/records';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
-import type { PredicateSelect } from '@db/schema';
+import { getPredicate, getInversePredicate } from '@shared/predicates';
 import { computed, type MaybeRefOrGetter } from 'vue';
 import { toValue } from 'vue';
 
@@ -12,9 +12,9 @@ type Link = OutgoingLink | IncomingLink;
 // It includes all properties needed to render like a real link
 export type VirtualLink = Omit<
   OutgoingLink,
-  'predicate' | 'predicateId' | 'recordCreatedAt' | 'recordUpdatedAt'
+  'predicate' | 'recordCreatedAt' | 'recordUpdatedAt'
 > & {
-  predicate?: PredicateSelect;
+  predicate?: string;
 };
 
 export type LinkWithDirection = {
@@ -23,10 +23,12 @@ export type LinkWithDirection = {
 };
 
 function getPredicateName(link: Link, direction: 'incoming' | 'outgoing'): string {
-  if (direction === 'incoming' && link.predicate.inverse?.name) {
-    return link.predicate.inverse.name;
+  const pred = getPredicate(link.predicate);
+  if (direction === 'incoming') {
+    const inverse = getInversePredicate(link.predicate);
+    return inverse.name;
   }
-  return link.predicate.name;
+  return pred.name;
 }
 
 export default function useRecordLinks(
@@ -42,7 +44,8 @@ export default function useRecordLinks(
 
     const addRealLink = (link: Link, direction: 'incoming' | 'outgoing') => {
       // Skip containment links - handled separately
-      if (link.predicate.type === 'containment') return;
+      const pred = getPredicate(link.predicate);
+      if (pred.type === 'containment') return;
 
       const predicateName = getPredicateName(link, direction);
 
@@ -59,12 +62,12 @@ export default function useRecordLinks(
     const currentRecordIdValue = toValue(currentRecordId);
 
     if (relatedRecordsValue && relatedRecordsValue.length > 0 && currentRecordIdValue) {
-      const relatedToPredicate = [
+      const hasRelatedToPredicate = [
         ...(linksValue.outgoingLinks ?? []),
         ...(linksValue.incomingLinks ?? []),
-      ].find((link) => link.predicate.slug === 'related_to')?.predicate;
+      ].some((link) => link.predicate === 'related_to');
 
-      if (!relatedToPredicate)
+      if (!hasRelatedToPredicate)
         return Object.fromEntries(Object.entries(grouped).filter(([, links]) => links.length > 0));
 
       // Get record IDs that already have real links

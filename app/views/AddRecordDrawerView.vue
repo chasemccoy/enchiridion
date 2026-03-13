@@ -15,7 +15,6 @@
           v-model="record"
           v-model:files="files"
           v-model:links="links"
-          :predicates="predicates"
           @save="handleSubmit"
         />
       </div>
@@ -35,7 +34,6 @@ import { getImagesFromTweet } from '@app/utils';
 import useMedia from '@app/composables/useMedia';
 import { mapTweetToRecord } from '@integrations/twitter/records';
 import useLink from '@app/composables/useLink';
-import usePredicates from '@app/composables/usePredicates';
 import type { GetRecordBySlugAPIResponse } from '@db/queries/records';
 
 const modelValue = defineModel<boolean>('open', { required: true, default: false });
@@ -75,12 +73,9 @@ const record = ref<RecordInsert>(emptyRecord);
 const { upsertRecord } = useRecord();
 const { uploadMedia } = useMedia();
 const { upsertLink } = useLink();
-const { getPredicates } = usePredicates();
 const { mutate: upsertLinkMutation } = upsertLink();
 const { mutate: upsertRecordMutation } = upsertRecord();
 const { mutate: uploadMediaMutation } = uploadMedia();
-
-const { data: predicates } = getPredicates();
 
 function handleSubmit(data: NewRecordData) {
   const { record: newRecord, files = [], links = [] } = data;
@@ -103,7 +98,7 @@ function handleSubmit(data: NewRecordData) {
       emit('close');
       record.value = emptyRecord;
       toast.add({
-        title: `Record “${newRecord.slug}” was created`,
+        title: `Record "${newRecord.slug}" was created`,
         color: 'success',
         icon: 'i-lucide-check-circle',
         actions: [
@@ -153,7 +148,7 @@ onMounted(async () => {
     if (notFound || tombstone || !tweetDetails) {
       toast.add({
         title: 'Failed to fetch tweet',
-        description: `Couldn’t fetch tweet at ${tweet}`,
+        description: `Couldn't fetch tweet at ${tweet}`,
         color: 'error',
         icon: 'i-lucide-circle-alert',
       });
@@ -164,14 +159,12 @@ onMounted(async () => {
     files.value = await getImagesFromTweet(tweetDetails);
     populatedRecord = mapTweetToRecord(tweetDetails);
 
-    const formatOfPredicate = predicates.value?.find((p) => p.slug === 'has_format');
-
     const tweetRecord = await fetch<GetRecordBySlugAPIResponse>('/record/slug/tweet');
 
-    if (formatOfPredicate && tweetRecord) {
+    if (tweetRecord) {
       links.value.push({
         targetId: tweetRecord.id,
-        predicateId: formatOfPredicate.id,
+        predicate: 'has_format',
       });
     }
   }

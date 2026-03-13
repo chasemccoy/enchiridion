@@ -63,8 +63,8 @@
 </template>
 
 <script setup lang="ts">
-import usePredicates from '@app/composables/usePredicates';
 import useSearch from '@app/composables/useSearch';
+import { CANONICAL_PREDICATES } from '@shared/predicates';
 import { capitalize } from '@shared/lib/formatting';
 import type { DbId } from '@shared/types/api';
 import type { CommandPaletteItem } from '@nuxt/ui';
@@ -78,7 +78,7 @@ type SearchResultItem = {
 };
 
 const emit = defineEmits<{
-  createLink: [targetRecordId: DbId, predicateId: DbId];
+  createLink: [targetRecordId: DbId, predicateSlug: string];
 }>();
 
 const { sourceRecordId } = defineProps<{
@@ -95,9 +95,6 @@ const { data: searchResults } = useSearch(
   searchQuery,
   computed(() => searchQuery.value.length > 0),
 );
-
-const { getPredicates } = usePredicates();
-const { data: predicates } = getPredicates();
 
 const commandItems = computed(() => {
   if (!searchResults.value) return [];
@@ -120,15 +117,11 @@ const commandItems = computed(() => {
 });
 
 const predicateCommandItems = computed(() => {
-  if (!predicates.value) return [];
-
-  const items = predicates.value
-    .filter((p) => p.canonical)
-    .map((p) => ({
-      id: p.id.toString(),
-      label: capitalize(p.name),
-      suffix: capitalize(p.type),
-    }));
+  const items = CANONICAL_PREDICATES.map((p) => ({
+    id: p.slug,
+    label: capitalize(p.name),
+    suffix: capitalize(p.type),
+  }));
 
   return [
     {
@@ -160,7 +153,7 @@ function handleRecordSelect(item: CommandPaletteItem) {
 function handlePredicateSelect(item: CommandPaletteItem) {
   if (!item || !selectedRecord.value) return;
 
-  emit('createLink', parseInt(selectedRecord.value.id), parseInt(item.id));
+  emit('createLink', parseInt(selectedRecord.value.id), item.id);
 
   resetForm();
 }

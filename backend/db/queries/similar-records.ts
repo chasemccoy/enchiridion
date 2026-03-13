@@ -25,20 +25,12 @@ interface RecordWithLinks {
   recordCreatedAt: string;
   recordUpdatedAt: string;
   outgoingLinks: Array<{
-    predicateId: number;
+    predicate: string;
     targetId: number;
-    predicate: {
-      type: string;
-      slug: string;
-    };
   }>;
   incomingLinks: Array<{
-    predicateId: number;
+    predicate: string;
     sourceId: number;
-    predicate: {
-      type: string;
-      slug: string;
-    };
   }>;
 }
 
@@ -113,24 +105,14 @@ export const findSimilarRecords = async (input: SimilarRecordsInput): Promise<Si
     with: {
       outgoingLinks: {
         columns: {
-          predicateId: true,
+          predicate: true,
           targetId: true,
-        },
-        with: {
-          predicate: {
-            columns: { type: true, slug: true },
-          },
         },
       },
       incomingLinks: {
         columns: {
-          predicateId: true,
+          predicate: true,
           sourceId: true,
-        },
-        with: {
-          predicate: {
-            columns: { type: true, slug: true },
-          },
         },
       },
     },
@@ -500,12 +482,6 @@ async function generateReasons(
   targetAllConnections: Set<number>,
 ): Promise<string[]> {
   const reasons: string[] = [];
-
-  // Overall relationship strength
-  // if (score > 0.8) reasons.push('Strongly related');
-  // else if (score > 0.6) reasons.push('Moderately related');
-  // else if (score > 0.4) reasons.push('Somewhat related');
-  // else reasons.push('Weakly related');
 
   // Link relationship reasons
   const hasDirectLink =

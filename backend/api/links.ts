@@ -11,7 +11,7 @@ export const linkRoutes = Router();
 
 linkRoutes.get('/predicates', async (_req, res, next) => {
   try {
-    res.json(await predicates());
+    res.json(predicates());
   } catch (error) {
     next(error);
   }

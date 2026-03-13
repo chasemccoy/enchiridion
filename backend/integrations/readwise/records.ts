@@ -14,7 +14,7 @@ import {
 import { slugify } from '@shared/lib/formatting';
 import { createIntegrationLogger } from '@integrations/utils/log';
 import { eq, sql } from 'drizzle-orm';
-import { bulkInsertLinks, getPredicateId, linkRecords } from '@integrations/utils/db';
+import { bulkInsertLinks, linkRecords } from '@integrations/utils/db';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
 
 const logger = createIntegrationLogger('readwise', 'create-records');
@@ -606,10 +606,6 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
     columns: { id: true },
   });
 
-  const createdByPredicateId = await getPredicateId('created_by', db);
-  const taggedWithPredicateId = await getPredicateId('tagged_with', db);
-  const hasFormatPredicateId = await getPredicateId('has_format', db);
-
   for (const doc of documents) {
     const recordId = recordMap.get(doc.id);
     if (!recordId) continue;
@@ -619,7 +615,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
       recordCreatorsValues.push({
         sourceId: recordId,
         targetId: authorIndexMap.get(doc.authorId)!,
-        predicateId: createdByPredicateId,
+        predicate: 'created_by',
       });
     }
 
@@ -630,7 +626,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
           recordRelationsValues.push({
             sourceId: recordId,
             targetId: tagIndexMap.get(tag)!,
-            predicateId: taggedWithPredicateId,
+            predicate: 'tagged_with',
           });
         }
       }
@@ -640,7 +636,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
       recordFormatsValues.push({
         sourceId: recordId,
         targetId: articleRecord.id,
-        predicateId: hasFormatPredicateId,
+        predicate: 'has_format',
       });
     }
 
@@ -648,7 +644,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
       recordFormatsValues.push({
         sourceId: recordId,
         targetId: videoRecord.id,
-        predicateId: hasFormatPredicateId,
+        predicate: 'has_format',
       });
     }
 
@@ -656,7 +652,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
       recordFormatsValues.push({
         sourceId: recordId,
         targetId: bookRecord.id,
-        predicateId: hasFormatPredicateId,
+        predicate: 'has_format',
       });
     }
   }

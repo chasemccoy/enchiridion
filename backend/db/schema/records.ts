@@ -1,15 +1,8 @@
-import {
-  sqliteTable,
-  text,
-  int,
-  type AnySQLiteColumn,
-  check,
-  index,
-  unique,
-} from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, int, check, index, unique } from 'drizzle-orm/sqlite-core';
 import { contentTimestamps, databaseTimestamps, integrationTypeEnum } from './utils';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { recordTypeEnum } from '@shared/types';
+import { predicateSlugEnum } from '@shared/predicates';
 import { sql } from 'drizzle-orm';
 
 export const records = sqliteTable(
@@ -59,25 +52,20 @@ export const links = sqliteTable(
         onUpdate: 'cascade',
       })
       .notNull(),
-    predicateId: int()
-      .references(() => predicates.id, {
-        onDelete: 'cascade',
-        onUpdate: 'cascade',
-      })
-      .notNull(),
+    predicate: text({ enum: predicateSlugEnum }).notNull(),
     notes: text(),
     ...databaseTimestamps,
   },
   (table) => [
-    index('links_source_predicate_idx').on(table.sourceId, table.predicateId),
-    index('links_target_predicate_idx').on(table.targetId, table.predicateId),
+    index('links_source_predicate_idx').on(table.sourceId, table.predicate),
+    index('links_target_predicate_idx').on(table.targetId, table.predicate),
     index('links_source_idx').on(table.sourceId),
     index('links_target_idx').on(table.targetId),
-    index('links_predicate_idx').on(table.predicateId),
+    index('links_predicate_idx').on(table.predicate),
     unique('links_source_target_predicate_unique').on(
       table.sourceId,
       table.targetId,
-      table.predicateId,
+      table.predicate,
     ),
   ],
 );
@@ -87,43 +75,3 @@ export type LinkSelect = typeof links.$inferSelect;
 
 export const LinkInsertSchema = createInsertSchema(links);
 export type LinkInsert = typeof links.$inferInsert;
-
-const predicateTypeEnum: [string, ...string[]] = [
-  'creation', // authorship, ownership …
-  'containment', // has_part, sequence …
-  'description', // about, tag …
-  'association', // related_to, similar_to …
-  'reference', // cites, responds_to …
-  'identity', // instance_of, same_as …
-] as const;
-
-export const predicates = sqliteTable(
-  'predicates',
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    slug: text().unique().notNull(),
-    name: text().notNull(),
-    type: text({ enum: predicateTypeEnum }).notNull(),
-    role: text(),
-    inverseSlug: text().references((): AnySQLiteColumn => predicates.slug, {
-      onDelete: 'set null',
-      onUpdate: 'cascade',
-    }),
-    canonical: int({ mode: 'boolean' }).notNull().default(true),
-    ...databaseTimestamps,
-  },
-  (table) => [
-    index('predicates_id_type_idx').on(table.id, table.type),
-    index('predicates_slug_idx').on(table.slug),
-    index('predicates_type_idx').on(table.type),
-    index('predicates_role_idx').on(table.role),
-    index('predicates_canonical_idx').on(table.canonical),
-    index('predicates_inverse_slug_idx').on(table.inverseSlug),
-    index('predicates_type_canonical_idx').on(table.type, table.canonical),
-  ],
-);
-
-// export const PredicateSelectSchema = createSelectSchema(predicates);
-export type PredicateSelect = typeof predicates.$inferSelect;
-// export const PredicateInsertSchema = createInsertSchema(predicates);
-export type PredicateInsert = typeof predicates.$inferInsert;

@@ -306,7 +306,8 @@ import RecordLinks from '@app/components/RecordLinks.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
 import { capitalize, formatDate } from '@shared/lib/formatting';
 import { computed, onBeforeUnmount } from 'vue';
-import type { LinkInsert, LinkSelect, PredicateSelect } from '@db/schema';
+import type { LinkInsert, LinkSelect } from '@db/schema';
+import { getPredicate, type Predicate } from '@shared/predicates';
 import { getIconForRecordSource, getIconForRecordType } from '@app/utils';
 import type { DbId } from '@shared/types/api';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
@@ -323,7 +324,7 @@ const emit = defineEmits<{
   fileDelete: [{ mediaId?: number; url?: string }];
   createLink: [{ link: LinkInsert }];
   deleteLink: [{ linkId: DbId }];
-  updatePredicate: [{ link: LinkSelect; predicate: PredicateSelect }];
+  updatePredicate: [{ link: LinkSelect; predicate: Predicate }];
   deleteRecord: [DbId];
   paste: [ClipboardEvent];
 }>();
@@ -350,19 +351,22 @@ const outgoingLinks = computed(() => links?.outgoingLinks ?? null);
 const parent = computed(() => {
   if (!outgoingLinks.value) return null;
 
-  return outgoingLinks.value.find((link) => link.predicate.type === 'containment')?.target ?? null;
+  return (
+    outgoingLinks.value.find((link) => getPredicate(link.predicate).type === 'containment')
+      ?.target ?? null
+  );
 });
 
 const creator = computed(() => {
   if (!outgoingLinks.value) return null;
 
-  return outgoingLinks.value.find((link) => link.predicate.slug === 'created_by')?.target ?? null;
+  return outgoingLinks.value.find((link) => link.predicate === 'created_by')?.target ?? null;
 });
 
 const children = computed(() => {
   if (!incomingLinks.value) return null;
 
-  return incomingLinks.value.filter((link) => link.predicate.type === 'containment');
+  return incomingLinks.value.filter((link) => getPredicate(link.predicate).type === 'containment');
 });
 
 const childrenWithContent = computed(() => {
@@ -378,25 +382,19 @@ function handlePaste(event: ClipboardEvent) {
   emit('paste', event);
 }
 
-function handleCreateLink(targetRecordId: DbId, predicateId: DbId) {
+function handleCreateLink(targetRecordId: DbId, predicateSlug: string) {
   if (!modelValue.value) return;
 
   emit('createLink', {
     link: {
       sourceId: modelValue.value.id,
       targetId: targetRecordId,
-      predicateId,
+      predicate: predicateSlug,
     },
   });
 }
 
-function handleUpdatePredicate({
-  link,
-  predicate,
-}: {
-  link: LinkSelect;
-  predicate: PredicateSelect;
-}) {
+function handleUpdatePredicate({ link, predicate }: { link: LinkSelect; predicate: Predicate }) {
   emit('updatePredicate', { link, predicate });
 }
 

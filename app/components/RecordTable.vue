@@ -77,6 +77,7 @@ import useApiClient from '@app/composables/useApiClient';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import { capitalize, formatDate } from '@shared/lib/formatting';
+import { getPredicate } from '@shared/predicates';
 import slugify from 'slugify';
 import { computed, h, resolveComponent } from 'vue';
 import { useRouter } from 'vue-router';
@@ -216,8 +217,7 @@ function getCreator(row: TableRow<ListRecordsAPIResponse[number]>) {
     return null;
   }
 
-  const creator =
-    outgoingLinks.find((link) => link.predicate.slug === 'created_by')?.target ?? null;
+  const creator = outgoingLinks.find((link) => link.predicate === 'created_by')?.target ?? null;
 
   creatorCache.set(recordId, creator);
   return creator;
@@ -239,7 +239,7 @@ function getTags(row: TableRow<ListRecordsAPIResponse[number]>) {
 
   const tags =
     outgoingLinks
-      .filter((link) => link.predicate.type === 'description')
+      .filter((link) => getPredicate(link.predicate).type === 'description')
       ?.map((link) => link.target) ?? null;
 
   tagsCache.set(recordId, tags);

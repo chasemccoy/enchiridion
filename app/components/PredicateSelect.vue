@@ -23,16 +23,19 @@
 </template>
 
 <script setup lang="ts">
-import usePredicates from '@app/composables/usePredicates';
-import type { PredicateSelect } from '@db/schema';
+import {
+  CANONICAL_PREDICATES,
+  getPredicate,
+  getInversePredicate,
+  type Predicate,
+} from '@shared/predicates';
 import { capitalize } from '@shared/lib/formatting';
-import type { DbId } from '@shared/types/api';
 import { computed } from 'vue';
 
-const modelValue = defineModel<DbId>({ default: 19 });
+const modelValue = defineModel<string>({ default: 'related_to' });
 
 const emit = defineEmits<{
-  'select:predicate': [PredicateSelect];
+  'select:predicate': [Predicate];
   'delete:link': [];
 }>();
 
@@ -40,35 +43,27 @@ const { linkDirection = 'outgoing' } = defineProps<{
   linkDirection?: 'incoming' | 'outgoing';
 }>();
 
-const { getPredicates } = usePredicates();
-const { data: predicates } = getPredicates();
-
 const menuItems = computed(() => {
-  if (!predicates.value) return [];
+  const predicateItems = CANONICAL_PREDICATES.map((p) => {
+    let label = capitalize(p.name);
 
-  const predicateItems = predicates.value
-    .filter((p) => p.canonical)
-    .map((p) => {
-      let label = capitalize(p.name);
+    if (linkDirection === 'incoming') {
+      const inverse = getInversePredicate(p.slug);
+      label = capitalize(inverse.name);
+    }
 
-      if (linkDirection === 'incoming') {
-        const inverseSlug = p.inverseSlug;
-        const inversePredicate = predicates.value?.find((p) => p.slug === inverseSlug);
-        label = inversePredicate ? inversePredicate?.name : label;
-      }
-
-      return {
-        label: capitalize(label),
-        type: 'checkbox' as const,
-        checked: modelValue.value === p.id,
-        onUpdateChecked(checked: boolean) {
-          if (checked && p.id !== modelValue.value) {
-            modelValue.value = p.id;
-            emit('select:predicate', p);
-          }
-        },
-      };
-    });
+    return {
+      label: capitalize(label),
+      type: 'checkbox' as const,
+      checked: modelValue.value === p.slug,
+      onUpdateChecked(checked: boolean) {
+        if (checked && p.slug !== modelValue.value) {
+          modelValue.value = p.slug;
+          emit('select:predicate', p);
+        }
+      },
+    };
+  });
 
   return [
     predicateItems,
@@ -86,25 +81,24 @@ const menuItems = computed(() => {
 });
 
 const selectedPredicate = computed(() => {
-  if (!predicates.value) return null;
-  return predicates.value.find((p) => p.id === modelValue.value);
-});
-
-const selectedInverse = computed(() => {
-  if (!predicates.value || !selectedPredicate.value) return null;
-
-  const inverseSlug = selectedPredicate.value.inverseSlug;
-  return predicates.value.find((p) => p.slug === inverseSlug);
+  try {
+    return getPredicate(modelValue.value);
+  } catch {
+    return null;
+  }
 });
 
 const label = computed(() => {
-  let name = selectedPredicate.value?.name;
+  if (!selectedPredicate.value) return 'Predicates';
+
+  let name = selectedPredicate.value.name;
 
   if (linkDirection === 'incoming') {
-    name = selectedInverse.value?.name;
+    const inverse = getInversePredicate(selectedPredicate.value.slug);
+    name = inverse.name;
   }
 
-  return name ? capitalize(name) : 'Predicates';
+  return capitalize(name);
 });
 </script>
 

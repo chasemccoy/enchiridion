@@ -79,7 +79,7 @@
     <div class="RecordLink__actions">
       <PredicateSelect
         v-if="localPredicate"
-        v-model="localPredicate.id"
+        v-model="localPredicate"
         :linkDirection="linkDirection"
         @select:predicate="handleSelectPredicate"
         @delete:link="handleDeleteLink"
@@ -92,12 +92,11 @@
 import ChatBubble from '@app/components/ChatBubble.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import PredicateSelect from '@app/components/PredicateSelect.vue';
-import usePredicates from '@app/composables/usePredicates';
 import useRecord from '@app/composables/useRecord';
-import type { PredicateSelect as Predicate } from '@db/schema';
+import { getPredicate, type Predicate } from '@shared/predicates';
 import type { DbId } from '@shared/types/api';
 import slugify from 'slugify';
-import { computed, ref, toRaw } from 'vue';
+import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 
 const modelValue = defineModel<DbId>({ required: true });
@@ -113,46 +112,31 @@ const {
   truncate = true,
   includeChildren = false,
 } = defineProps<{
-  predicate?: Predicate;
+  predicate?: string;
   linkDirection?: 'incoming' | 'outgoing';
   truncate?: boolean;
   includeChildren?: boolean;
 }>();
 
-const localPredicate = ref(predicate ? structuredClone(toRaw(predicate)) : null);
+const localPredicate = ref(predicate ?? null);
 
 const { getRecord, getRecordLinks } = useRecord();
-const { getPredicates } = usePredicates();
 
 const { data: record, isLoading } = getRecord(modelValue);
 
 const { data: links } = getRecordLinks(modelValue, () => includeChildren);
 
-const { data: predicates } = getPredicates();
-
 const outgoingLinks = computed(() => record.value?.outgoingLinks ?? null);
 const incomingLinks = computed(() => links.value?.incomingLinks ?? null);
 
-const predicateMap = computed(() => {
-  return Object.fromEntries((predicates.value ?? []).map((p) => [p.id, p]));
-});
-
-const outgoingLinksById = computed(() => {
+const creator = computed(() => {
   if (!outgoingLinks.value) return null;
 
-  return Object.fromEntries(
-    outgoingLinks.value?.map((link) => [link.target.id, link.target]) ?? [],
-  );
-});
-
-const creator = computed(() => {
-  if (!outgoingLinks.value || !predicateMap.value || !outgoingLinksById.value) return null;
-
   for (const edge of outgoingLinks.value) {
-    const predicate = predicateMap.value[edge.predicateId];
+    const pred = getPredicate(edge.predicate);
 
-    if (predicate && predicate.type === 'creation') {
-      return outgoingLinksById.value[edge.target.id];
+    if (pred.type === 'creation') {
+      return edge.target;
     }
   }
 
@@ -180,12 +164,12 @@ const summary = computed(() => {
 });
 
 const tags = computed(() => {
-  if (!outgoingLinks.value || !predicateMap.value) return null;
+  if (!outgoingLinks.value) return null;
 
   return outgoingLinks.value
     .filter((link) => {
-      const predicate = predicateMap.value[link.predicateId];
-      return predicate && predicate.type === 'description';
+      const pred = getPredicate(link.predicate);
+      return pred.type === 'description';
     })
     .map((link) => link.target);
 });
@@ -194,7 +178,10 @@ const children = computed(() => {
   if (!includeChildren || !incomingLinks.value) return null;
 
   return incomingLinks.value
-    .filter((link) => link.predicate.type === 'containment')
+    .filter((link) => {
+      const pred = getPredicate(link.predicate);
+      return pred.type === 'containment';
+    })
     .map((link) => link.source)
     .filter((child) => child.content);
 });

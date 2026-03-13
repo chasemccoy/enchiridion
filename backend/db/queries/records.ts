@@ -5,12 +5,13 @@ import {
   readwiseDocuments,
   readwiseTags,
   records,
-  type PredicateSelect,
   type RecordInsert,
   type RecordSelect,
 } from '@db/schema';
 import { ListRecordsInputSchema, type APIResponse, type ListRecordsInput } from '@shared/types/api';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
+import { getPredicate, type PredicateSlug } from '@shared/predicates';
+import { canonicalPredicateSlugEnum } from '@shared/predicates';
 
 export const getRecord = (recordId: RecordSelect['id']) => {
   return db.query.records.findFirst({
@@ -20,7 +21,7 @@ export const getRecord = (recordId: RecordSelect['id']) => {
     with: {
       outgoingLinks: {
         columns: {
-          predicateId: true,
+          predicate: true,
         },
         with: {
           target: true,
@@ -51,6 +52,17 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
 
   const { type, title, text, url: domain, hasParent, isCurated, hasMedia } = filters || {};
 
+  // Get slugs of predicates that match the desired types
+  const creationAndDescriptionSlugs = canonicalPredicateSlugEnum.filter((slug) => {
+    const p = getPredicate(slug);
+    return p.type === 'creation' || p.type === 'description';
+  });
+
+  const containmentSlugs = canonicalPredicateSlugEnum.filter((slug) => {
+    const p = getPredicate(slug);
+    return p.type === 'containment';
+  });
+
   const rows = await db.query.records.findMany({
     columns: {
       id: true,
@@ -71,13 +83,11 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
       media: true,
       outgoingLinks: {
         columns: {
-          predicateId: true,
+          predicate: true,
         },
         where: {
           predicate: {
-            type: {
-              in: ['creation', 'description'],
-            },
+            in: creationAndDescriptionSlugs,
           },
         },
         with: {
@@ -88,19 +98,11 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
               slug: true,
             },
           },
-          predicate: true,
         },
       },
       incomingLinks: {
         columns: {
-          predicateId: true,
-        },
-        with: {
-          predicate: {
-            columns: {
-              type: true,
-            },
-          },
+          predicate: true,
         },
       },
     },
@@ -150,7 +152,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
         ? {
             outgoingLinks: {
               predicate: {
-                type: 'containment',
+                in: containmentSlugs,
               },
             },
           }
@@ -158,7 +160,9 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
           ? {
               NOT: {
                 outgoingLinks: {
-                  predicate: { type: 'containment' },
+                  predicate: {
+                    in: containmentSlugs,
+                  },
                 },
               },
             }
@@ -281,15 +285,6 @@ export const linksForRecord = async (recordId: RecordSelect['id']) => {
     with: {
       outgoingLinks: {
         with: {
-          predicate: {
-            with: {
-              inverse: {
-                columns: {
-                  name: true,
-                },
-              },
-            },
-          },
           target: {
             columns: {
               title: true,
@@ -300,15 +295,6 @@ export const linksForRecord = async (recordId: RecordSelect['id']) => {
       },
       incomingLinks: {
         with: {
-          predicate: {
-            with: {
-              inverse: {
-                columns: {
-                  name: true,
-                },
-              },
-            },
-          },
           source: {
             columns: {
               title: true,
@@ -327,7 +313,7 @@ export type LinksForRecordAPIResponse = APIResponse<typeof linksForRecord>;
 /**
  * Finds all records that are linked to a given record with a specific predicate
  * @param recordId - The ID of the record to find links for
- * @param predicateId - The ID of the predicate to filter links by
+ * @param predicateSlug - The slug of the predicate to filter links by
  * @returns A list of records that are linked to the given record with the specified predicate
  * @example
  * // Find all records that are linked with "format of" predicate to record with ID 123
@@ -335,16 +321,14 @@ export type LinksForRecordAPIResponse = APIResponse<typeof linksForRecord>;
  */
 export const linksToRecordWithPredicateSlug = async (
   recordId: RecordSelect['id'],
-  predicateSlug: PredicateSelect['slug'],
+  predicateSlug: PredicateSlug,
 ) => {
   return db.query.records.findMany({
     where: {
       OR: [
         {
           outgoingLinks: {
-            predicate: {
-              slug: predicateSlug,
-            },
+            predicate: predicateSlug,
             target: {
               id: recordId,
             },
@@ -352,9 +336,7 @@ export const linksToRecordWithPredicateSlug = async (
         },
         {
           incomingLinks: {
-            predicate: {
-              slug: predicateSlug,
-            },
+            predicate: predicateSlug,
             source: {
               id: recordId,
             },

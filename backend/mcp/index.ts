@@ -5,6 +5,7 @@ import { records } from '@db/schema';
 import { LimitSchema, OffsetSchema, OrderBySchema, RecordFiltersSchema } from '@mcp/schemas';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { recordTypeEnum } from '@shared/types';
+import { predicateSlugEnum } from '@shared/predicates';
 import { sql } from 'drizzle-orm';
 import * as z from 'zod';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
@@ -238,12 +239,12 @@ server.registerTool(
     inputSchema: {
       sourceId: z.number(),
       targetId: z.number(),
-      predicateId: z.number(),
+      predicate: z.enum(predicateSlugEnum),
     },
   },
-  async ({ sourceId, targetId, predicateId }) => {
+  async ({ sourceId, targetId, predicate }) => {
     try {
-      const result = await upsertLink({ sourceId, targetId, predicateId });
+      const result = await upsertLink({ sourceId, targetId, predicate });
 
       return {
         content: [

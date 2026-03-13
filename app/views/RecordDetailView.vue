@@ -40,7 +40,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { Head } from '@unhead/vue/components';
 import type { GetRecordBySlugAPIResponse } from '@db/queries/records';
 import { useDebounceFn } from '@vueuse/core';
-import type { LinkInsert, LinkSelect, PredicateSelect, RecordInsert } from '@db/schema';
+import type { LinkInsert, LinkSelect, RecordInsert } from '@db/schema';
+import type { Predicate } from '@shared/predicates';
 import useLink from '@app/composables/useLink';
 import type { DbId } from '@shared/types/api';
 import useRelatedRecords from '@app/composables/useRelatedRecords';
@@ -106,7 +107,7 @@ watch(isError, () => {
   if (isError.value) {
     toast.add({
       title: 'Record not found',
-      description: `Could not find a record for slug “${recordSlug.value}”`,
+      description: `Could not find a record for slug "${recordSlug.value}"`,
       color: 'error',
     });
   }
@@ -154,16 +155,10 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
   deleteLinkMutation(linkId);
 }
 
-function handleUpdatePredicate({
-  link,
-  predicate,
-}: {
-  link: LinkSelect;
-  predicate: PredicateSelect;
-}) {
+function handleUpdatePredicate({ link, predicate }: { link: LinkSelect; predicate: Predicate }) {
   upsertLinkMutation({
     ...link,
-    predicateId: predicate.id,
+    predicate: predicate.slug,
   });
 }
 
@@ -181,7 +176,7 @@ function handleDeleteRecord(id: DbId) {
 
       toast.add({
         title: 'Record deleted',
-        description: `The record with slug “${record[0]?.slug}” has been deleted.`,
+        description: `The record with slug "${record[0]?.slug}" has been deleted.`,
         color: 'success',
       });
     },
