@@ -1,21 +1,9 @@
 import { Router } from 'express';
 import { IdParamSchema } from '@shared/types/api';
 import { LinkInsertSchema } from '@db/schema';
-import { predicates, upsertLink, deleteLink } from '@db/queries/links';
+import { upsertLink, deleteLink } from '@db/queries/links';
 
 export const linkRoutes = Router();
-
-// ============================================================================
-// GET
-// ============================================================================
-
-linkRoutes.get('/predicates', async (_req, res, next) => {
-  try {
-    res.json(predicates());
-  } catch (error) {
-    next(error);
-  }
-});
 
 // ============================================================================
 // PUT
