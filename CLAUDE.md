@@ -6,27 +6,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Frontend & Backend Development
 
-- `npm run dev` - Start both frontend (Vue) and backend (Express) concurrently
-- `npm run dev:app` - Start only the Vue frontend (port 3456)
-- `npm run dev:backend` - Start only the Express backend (port 4321)
+- `pnpm dev` - Start both frontend (Vue) and backend (Express) concurrently
+- `pnpm dev:app` - Start only the Vue frontend (port 3456)
+- `pnpm dev:backend` - Start only the Express backend (port 4321)
 
 ### Building & Quality Checks
 
-- `npm run build` - Build the Vue frontend for production
-- `npm run lint` - Format, lint, and type-check all code (includes Prettier, ESLint, and vue-tsc)
-- `npm run format` - Format code with Prettier only
+- `pnpm build` - Build the Vue frontend for production
+- `pnpm lint` - Format, lint, and type-check all code (includes Prettier, ESLint, and vue-tsc)
+- `pnpm format` - Format code with Prettier only
 
 ### Database Operations
 
-- `npm run db:push` - Push schema changes to SQLite database
-- `npm run db:studio` - Open Drizzle Studio for database inspection
-- `npm run db:seed` - Seed the database with initial data
-- `npm run db:generate` - Generate migration files
-- `npm run db:migrate` - Run database migrations
+- `pnpm db:push` - Push schema changes to SQLite database
+- `pnpm db:studio` - Open Drizzle Studio for database inspection
+- `pnpm db:seed` - Seed the database with initial data
+- `pnpm db:generate` - Generate migration files
+- `pnpm db:migrate` - Run database migrations
 
 ### Integrations
 
-- `npm run sync:readwise` - Sync records from Readwise integration
+- `pnpm sync:readwise` - Sync records from Readwise integration
 
 ## Architecture Overview
 
