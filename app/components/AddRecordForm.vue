@@ -20,7 +20,7 @@
       class="AddRecordForm__content"
     >
       <UTextarea
-        v-model.trim="modelValue.content"
+        v-model.trim="content"
         size="xl"
         placeholder="Main content of the record"
         variant="none"
@@ -54,7 +54,7 @@
         size="xs"
       >
         <UTextarea
-          v-model.trim="modelValue.summary"
+          v-model.trim="summary"
           size="lg"
           placeholder="A brief summary of this record"
           variant="outline"
@@ -75,7 +75,7 @@
         />
 
         <UInput
-          v-model="modelValue.url"
+          v-model="url"
           variant="outline"
           placeholder="https://example.org"
         />
@@ -108,7 +108,7 @@
         />
 
         <UTextarea
-          v-model="modelValue.notes"
+          v-model="notes"
           variant="outline"
           placeholder="Additional notes"
           :rows="1"
@@ -161,7 +161,7 @@ import type {
   PartialMediaInsert,
 } from '@app/views/AddRecordView.vue';
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
-import { mediaFileToDataURL } from '@app/utils';
+import { mediaFileToDataURL, nullableStringField } from '@app/utils';
 import CombinedFields from '@app/components/CombinedFields.vue';
 import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import type { DbId } from '@shared/types/api';
@@ -181,6 +181,11 @@ const emit = defineEmits<{
 const { predicates } = defineProps<{
   predicates?: GetPredicatesAPIResponse;
 }>();
+
+const content = nullableStringField(modelValue, 'content');
+const summary = nullableStringField(modelValue, 'summary');
+const url = nullableStringField(modelValue, 'url');
+const notes = nullableStringField(modelValue, 'notes');
 
 const formRef = useTemplateRef('formRef');
 

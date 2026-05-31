@@ -7,6 +7,9 @@ import type { APIResponse } from '@shared/types/api';
 
 export async function insertMedia(data: MediaInsert): Promise<MediaSelect> {
   const [inserted] = await db.insert(media).values(data).returning();
+  if (!inserted) {
+    throw new Error('insertMedia: insert returned no row');
+  }
   return inserted;
 }
 

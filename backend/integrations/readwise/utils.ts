@@ -297,7 +297,7 @@ export async function createReadwiseAuthors(integrationRunId: number) {
         })
         .returning();
 
-      insertedRecord = newRecord;
+      insertedRecord = newRecord ?? null;
     } catch (error) {
       logger.error(`Failed to create author ${document.author} with error: ${error}`);
       continue;

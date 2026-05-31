@@ -111,7 +111,7 @@
       class="RecordDetail__content"
     >
       <UTextarea
-        v-model.trim="modelValue.content"
+        v-model.trim="content"
         size="xl"
         placeholder="Write something about this record"
         variant="none"
@@ -156,7 +156,7 @@
         size="xs"
       >
         <UTextarea
-          v-model.trim="modelValue.summary"
+          v-model.trim="summary"
           size="lg"
           placeholder="A brief summary of this record"
           variant="outline"
@@ -175,7 +175,7 @@
         />
 
         <UInput
-          v-model="modelValue.url"
+          v-model="url"
           class="RecordDetail__input"
           variant="outline"
           placeholder="example.com"
@@ -226,7 +226,7 @@
         />
 
         <UTextarea
-          v-model="modelValue.notes"
+          v-model="notes"
           class="RecordDetail__input"
           variant="outline"
           placeholder="Additional notes"
@@ -307,7 +307,7 @@ import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/
 import { capitalize, formatDate } from '@shared/lib/formatting';
 import { computed, onBeforeUnmount } from 'vue';
 import type { LinkInsert, LinkSelect, PredicateSelect } from '@db/schema';
-import { getIconForRecordSource, getIconForRecordType } from '@app/utils';
+import { getIconForRecordSource, getIconForRecordType, nullableStringField } from '@app/utils';
 import type { DbId } from '@shared/types/api';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import TitleField from '@app/components/TitleField.vue';
@@ -333,6 +333,11 @@ const { links, relatedRecords, similarRecords } = defineProps<{
   relatedRecords?: FindAllRelatedRecordsAPIResponse;
   similarRecords?: SimilarRecordsAPIResponse;
 }>();
+
+const content = nullableStringField(modelValue, 'content');
+const summary = nullableStringField(modelValue, 'summary');
+const url = nullableStringField(modelValue, 'url');
+const notes = nullableStringField(modelValue, 'notes');
 
 const capturedAt = computed(() => {
   if (!modelValue.value) return null;

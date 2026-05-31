@@ -36,7 +36,7 @@
           class="ConceptDetail__summary"
         >
           <UTextarea
-            v-model.trim="modelValue.summary"
+            v-model.trim="summary"
             size="lg"
             placeholder="A brief summary of this record"
             variant="none"
@@ -51,7 +51,7 @@
           class="ConceptDetail__notes"
         >
           <UTextarea
-            v-model="modelValue.notes"
+            v-model="notes"
             variant="none"
             placeholder="Additional notes"
             :rows="1"
@@ -83,6 +83,7 @@ import type { DbId } from '@shared/types/api';
 import TitleField from '@app/components/TitleField.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import { computed } from 'vue';
+import { nullableStringField } from '@app/utils';
 import { pluralize } from '@shared/lib/formatting';
 
 const modelValue = defineModel<GetRecordBySlugAPIResponse>({ required: true });
@@ -99,6 +100,9 @@ const { links, relatedRecords } = defineProps<{
   links?: LinksForRecordAPIResponse;
   relatedRecords?: FindAllRelatedRecordsAPIResponse;
 }>();
+
+const summary = nullableStringField(modelValue, 'summary');
+const notes = nullableStringField(modelValue, 'notes');
 
 const linkCount = computed(() => {
   if (!links) return 0;

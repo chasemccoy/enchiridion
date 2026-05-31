@@ -5,7 +5,7 @@
     :class="{ 'TitleField--isFlush': isFlush }"
   >
     <UTextarea
-      v-model.trim="modelValue"
+      v-model.trim="title"
       type="text"
       size="lg"
       variant="none"
@@ -21,12 +21,16 @@
 </template>
 
 <script setup lang="ts">
+import { nullableStringModel } from '@app/utils';
+
 const modelValue = defineModel<string | null>('modelValue');
 
 const { autofocus, isFlush = true } = defineProps<{
   autofocus?: boolean;
   isFlush?: boolean;
 }>();
+
+const title = nullableStringModel(modelValue);
 </script>
 
 <style scoped>

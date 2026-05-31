@@ -140,7 +140,7 @@ export async function createRecordsFromReadwiseAuthors(): Promise<NewRecordInfo[
 
     logger.info(entity.slug, entity.url);
 
-    let newRecord: { id: number };
+    let newRecord: { id: number } | undefined;
 
     try {
       // Check if record already exists by slug to determine if it's new
@@ -440,7 +440,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
     // Map the document into a record insertion payload.
     const recordPayload = mapReadwiseDocumentToRecord(doc);
 
-    let newRecord: { id: number };
+    let newRecord: { id: number } | undefined;
 
     try {
       // Check if record already exists by slug to determine if it's new

@@ -1,7 +1,54 @@
+import { computed, type WritableComputedRef } from 'vue';
 import type { EnrichedQuotedTweet, EnrichedTweet } from '@integrations/twitter/utils';
 import type { RecordType } from '@shared/types';
 import type { PartialMediaInsert } from '@app/views/AddRecordView.vue';
 import { type IntegrationType } from '@db/schema';
+
+/**
+ * Structural ref-like — matches Ref<T>, ModelRef<T>, and WritableComputedRef<T>.
+ */
+type WritableRefLike<T> = { value: T };
+
+/**
+ * Adapts a `string | null` ref to `string | undefined` for nuxt-ui v-model
+ * bindings. Reads null as undefined; writes undefined back as null.
+ */
+export function nullableStringModel(
+  source: WritableRefLike<string | null | undefined>,
+): WritableComputedRef<string | undefined> {
+  return computed({
+    get: () => source.value ?? undefined,
+    set: (value) => {
+      source.value = value ?? null;
+    },
+  });
+}
+
+/**
+ * As nullableStringModel, but reads/writes one nullable string field of an
+ * object held in a ref (or possibly-undefined ref, e.g. an async fetch
+ * result). Uses spread to keep the parent ref reactive when the ref is a
+ * Vue defineModel proxy. Writes are dropped when the underlying value is
+ * undefined.
+ */
+export function nullableStringField<T extends Record<string, unknown>>(
+  source: WritableRefLike<T | undefined>,
+  key: keyof T & string,
+): WritableComputedRef<string | undefined> {
+  return computed({
+    get: () => {
+      const current = source.value;
+      if (!current) return undefined;
+      const value = current[key];
+      return typeof value === 'string' ? value : undefined;
+    },
+    set: (value) => {
+      const current = source.value;
+      if (!current) return;
+      source.value = { ...current, [key]: value ?? null };
+    },
+  });
+}
 
 export function getIconForRecordType(type: RecordType) {
   switch (type) {
