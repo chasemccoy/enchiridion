@@ -1,6 +1,8 @@
-import { sqliteTable, text, int } from 'drizzle-orm/sqlite-core';
+import { snakeCase, text, int } from 'drizzle-orm/sqlite-core';
 import { databaseTimestamps } from './utils';
 import { records } from './records';
+
+const sqliteTable = snakeCase.table;
 
 const mediaTypeEnum: [string, ...string[]] = [
   'application', // application or binary data

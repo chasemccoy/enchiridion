@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { sqliteTable, text, int } from 'drizzle-orm/sqlite-core';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { snakeCase, text, int } from 'drizzle-orm/sqlite-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import { z } from 'zod/v4';
+
+const sqliteTable = snakeCase.table;
 
 const recordCreatedAt = text('created_at')
   .notNull()

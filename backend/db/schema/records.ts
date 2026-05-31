@@ -1,22 +1,25 @@
+import { sql } from 'drizzle-orm';
 import {
-  sqliteTable,
+  snakeCase,
   text,
   int,
   type AnySQLiteColumn,
   check,
   index,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import { contentTimestamps, databaseTimestamps, integrationTypeEnum } from './utils';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { recordTypeEnum } from '@shared/types';
-import { sql } from 'drizzle-orm';
+
+const sqliteTable = snakeCase.table;
 
 export const records = sqliteTable(
   'records',
   {
     id: int().primaryKey({ autoIncrement: true }),
-    slug: text().unique().notNull(),
+    slug: text().notNull(),
     type: text({ enum: recordTypeEnum }).notNull().default('artifact'),
     title: text(),
     url: text(),
@@ -31,7 +34,7 @@ export const records = sqliteTable(
   (table) => [
     check('slug_not_empty', sql`${table.slug} != ''`),
     index('records_type_title_url_idx').on(table.type, table.title, table.url),
-    index('records_slug_idx').on(table.slug),
+    uniqueIndex('records_slug_idx').on(table.slug),
     index('records_record_created_at_idx').on(table.recordCreatedAt),
     index('records_record_updated_at_idx').on(table.recordUpdatedAt),
     index('records_is_curated_idx').on(table.isCurated),
@@ -101,7 +104,7 @@ export const predicates = sqliteTable(
   'predicates',
   {
     id: int().primaryKey({ autoIncrement: true }),
-    slug: text().unique().notNull(),
+    slug: text().notNull(),
     name: text().notNull(),
     type: text({ enum: predicateTypeEnum }).notNull(),
     role: text(),
@@ -114,7 +117,7 @@ export const predicates = sqliteTable(
   },
   (table) => [
     index('predicates_id_type_idx').on(table.id, table.type),
-    index('predicates_slug_idx').on(table.slug),
+    uniqueIndex('predicates_slug_idx').on(table.slug),
     index('predicates_type_idx').on(table.type),
     index('predicates_role_idx').on(table.role),
     index('predicates_canonical_idx').on(table.canonical),

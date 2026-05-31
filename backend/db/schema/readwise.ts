@@ -1,14 +1,9 @@
-import {
-  index,
-  int,
-  sqliteTable,
-  text,
-  unique,
-  type AnySQLiteColumn,
-} from 'drizzle-orm/sqlite-core';
+import { index, int, snakeCase, text, unique, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { contentTimestamps, databaseTimestamps, integrationRuns } from './utils';
 import { records } from './records';
 import { z } from 'zod/v4';
+
+const sqliteTable = snakeCase.table;
 
 export const readwiseLocationEnum = ['new', 'later', 'shortlist', 'archive', 'feed'] as const;
 
