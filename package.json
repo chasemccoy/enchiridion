@@ -31,7 +31,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.24.3",
-		"@nuxt/ui": "^4.2.1",
+		"@nuxt/ui": "^4.8.1",
 		"@tanstack/vue-query": "^5.80.6",
 		"@types/multer": "^2.0.0",
 		"@unhead/vue": "^2.0.10",
@@ -43,7 +43,7 @@
 		"multer": "^2.0.1",
 		"sharp": "^0.34.2",
 		"slugify": "^1.6.6",
-		"tailwindcss": "^4.1.8",
+		"tailwindcss": "^4.3.0",
 		"trash": "^10.0.0",
 		"vue": "^3.5.22",
 		"vue-router": "4.6.3",
