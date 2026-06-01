@@ -10,7 +10,7 @@ const BACKEND_PORT = z.coerce.number().parse(process.env.BACKEND_PORT);
 
 // https://vite.dev/config/
 export default defineConfig({
-  root: 'app',
+  root: path.resolve(__dirname, 'app'),
   plugins: [
     vue(),
     ui({

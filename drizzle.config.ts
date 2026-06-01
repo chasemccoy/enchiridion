@@ -7,4 +7,8 @@ export default defineConfig({
   dbCredentials: {
     url: 'file:enchiridion.db',
   },
+  // The sqlite-vec tables (`vec_records`, `vec_records_meta`, and the vec0
+  // shadow tables) are created at runtime in backend/db/index.ts, not via
+  // Drizzle. Exclude them so `db:push` never tries to drop them.
+  tablesFilter: ['!vec_*'],
 });

@@ -11,6 +11,7 @@ import {
 } from '@db/schema';
 import { ListRecordsInputSchema, type APIResponse, type ListRecordsInput } from '@shared/types/api';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
+import { embedRecord, removeRecordEmbeddings } from '@integrations/embeddings';
 
 export const getRecord = (recordId: RecordSelect['id']) => {
   return db.query.records.findFirst({
@@ -182,7 +183,8 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
 
 export type ListRecordsAPIResponse = APIResponse<typeof listRecords>;
 
-export const upsertRecord = async (record: RecordInsert) => {
+export const upsertRecord = async (record: RecordInsert, options: { embed?: boolean } = {}) => {
+  const { embed = true } = options;
   const isNewRecord = !record.id;
 
   const [modifiedRecord] = await db
@@ -208,6 +210,12 @@ export const upsertRecord = async (record: RecordInsert) => {
   // Archive URL to Wayback Machine for new records
   if (isNewRecord && modifiedRecord.url) {
     archiveUrlToWayback(modifiedRecord.url);
+  }
+
+  // Generate/refresh the record's embedding in the background. Best-effort:
+  // embedRecord never throws and no-ops when OPENAI_API_KEY is unset.
+  if (embed) {
+    void embedRecord(modifiedRecord);
   }
 
   return modifiedRecord;
@@ -265,7 +273,12 @@ export const deleteRecord = async (recordIds: Array<RecordSelect['id']>) => {
     console.log(`Deleted Readwise tag ${tag.tag} (${tag.id})`);
   }
 
-  return db.delete(records).where(inArray(records.id, recordIds)).returning();
+  const deleted = await db.delete(records).where(inArray(records.id, recordIds)).returning();
+
+  // Virtual/vec tables can't use FK cascade, so prune embeddings explicitly.
+  removeRecordEmbeddings(recordIds);
+
+  return deleted;
 };
 
 export type DeleteRecordAPIResponse = APIResponse<typeof deleteRecord>;
