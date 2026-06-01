@@ -9,11 +9,11 @@ export const treeRoutes = Router();
 // ============================================================================
 
 treeRoutes.get('/tree/:id', async (req, res, next) => {
-	try {
-		const { id } = IdParamSchema.parse(req.params);
-		const tree = await getFamilyTree(id);
-		res.json(tree);
-	} catch (error) {
-		next(error);
-	}
+  try {
+    const { id } = IdParamSchema.parse(req.params);
+    const tree = await getFamilyTree(id);
+    res.json(tree);
+  } catch (error) {
+    next(error);
+  }
 });

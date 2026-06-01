@@ -1,13 +1,6 @@
 {
   "name": "readwise_tags",
-  "columns": [
-    "id",
-    "tag",
-    "record_id",
-    "deleted_at",
-    "created_at",
-    "updated_at"
-  ],
+  "columns": ["id", "tag", "record_id", "deleted_at", "created_at", "updated_at"],
   "schema": "CREATE TABLE `readwise_tags` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`tag` text NOT NULL,\n\t`record_id` integer,\n\t`deleted_at` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tFOREIGN KEY (`record_id`) REFERENCES `records`(`id`) ON UPDATE cascade ON DELETE set null\n)",
   "rowCount": 28
 }

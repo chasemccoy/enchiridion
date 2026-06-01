@@ -1,8 +1,8 @@
 <template>
-	<label class="FormField">
-		<div class="FormField__label">{{ label }}</div>
-		<slot />
-	</label>
+  <label class="FormField">
+    <div class="FormField__label">{{ label }}</div>
+    <slot />
+  </label>
 </template>
 
 <script setup lang="ts">
@@ -11,12 +11,12 @@ defineProps<{ label: string }>();
 
 <style scoped>
 .FormField {
-	display: grid;
-	gap: 6px;
+  display: grid;
+  gap: 6px;
 }
 
 .FormField__label {
-	font-weight: var(--font-weight-medium);
-	font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-label);
 }
 </style>

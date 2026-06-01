@@ -3,10 +3,7 @@
   "name": "Enchiridion",
   "version": "1.0",
   "description": "Save pages and selections to Enchiridion",
-  "permissions": [
-    "activeTab",
-    "scripting"
-  ],
+  "permissions": ["activeTab", "scripting"],
   "action": {
     "default_title": "Save to Enchiridion",
     "default_icon": {

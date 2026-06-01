@@ -4,7 +4,6 @@ A full-stack knowledge graph application for managing and connecting ideas, link
 
 ![CleanShot 2025-06-28 at 16 45 32@2x](https://github.com/user-attachments/assets/4f61b4b8-e756-4e83-b6fa-599d1640371a)
 
-
 ## 🏗️ Architecture
 
 ### Tech stack

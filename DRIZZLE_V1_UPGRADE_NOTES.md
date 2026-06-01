@@ -7,6 +7,7 @@ exits 0, all API routes (`search`, `record/slug/...`, `record/.../related`,
 `tree/...`, `record/.../similar`) return 200.
 
 ## Dependency changes
+
 - `drizzle-orm`: `1.0.0-beta.1-03a5cdc` → `1.0.0-rc.4-5d5b77c`
 - `drizzle-kit`: `1.0.0-beta.1-03a5cdc` → `1.0.0-rc.4-5d5b77c`
 - `drizzle-zod`: removed (folded into `drizzle-orm/zod` in v1)
@@ -15,6 +16,7 @@ exits 0, all API routes (`search`, `record/slug/...`, `record/.../related`,
 ## Code migration
 
 ### Casing API moved (the main change)
+
 In rc.1 the instance-level `casing: 'snake_case'` option on `drizzle()` was
 removed. Casing now lives at table-definition time via the `snakeCase` helper
 exposed from `drizzle-orm/sqlite-core`. The wrapper has the exact same
@@ -31,6 +33,7 @@ Applied across all four schema files: `records.ts`, `readwise.ts`, `media.ts`,
 import.
 
 ### Other touched files
+
 - `backend/db/index.ts`: dropped `casing: 'snake_case'` (now ignored) and the
   unused `schema` arg (RQBv2 takes `relations` only).
 - `drizzle.config.ts`: dropped top-level `casing: 'snake_case'` (no longer in
@@ -45,12 +48,13 @@ import.
 
 `pnpm drizzle-kit push --force` (or a generated migration) against the live DB
 wants to **recreate every table** to:
+
 - give existing unique constraints **explicit names** (e.g. anonymous unique →
   `links_source_target_predicate_unique`), and
 - rewrite one check expression (`"records"."slug" != ''` → `"slug" != ''`).
 
-These differences are between *what the new schema generator emits* and
-*what's currently in the DB*. They are cosmetic — the runtime is fully working
+These differences are between _what the new schema generator emits_ and
+_what's currently in the DB_. They are cosmetic — the runtime is fully working
 without applying them.
 
 ### ⚠️ Why this can't be applied with the standard SQLite recreate dance
@@ -83,6 +87,7 @@ data is intact. The damaged DB is preserved at
 `/tmp/enchiridion.damaged-*.db` for forensic comparison if needed.
 
 ### If you want to retry this cleanup later
+
 You can't use the in-process migrator for this. Options:
 
 1. **Run the recreate DDL outside drizzle's transaction.** Use `sqlite3` CLI
@@ -107,6 +112,7 @@ a follow-up to either remove `.unique()` from the schema (if intentional) or
 add the missing unique index (if a real bug).
 
 ## Migrations folder
+
 Not touched in this upgrade. The existing single migration
 (`0000_uneven_dexter_bennett.sql`) is preserved in the old beta.1 format.
 `drizzle-kit up` would convert it to the v1 dir-based format, but I rolled
