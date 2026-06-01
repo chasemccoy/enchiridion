@@ -2,6 +2,9 @@
   "name": "enchiridion",
   "version": "0.1.0",
   "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24"
+  },
   "description": "",
   "type": "module",
   "keywords": [],
