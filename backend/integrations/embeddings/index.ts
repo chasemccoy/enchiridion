@@ -86,8 +86,8 @@ export const getLinkedTitlesForEmbedding = (recordId: number): LinkedTitlesByBuc
     const bucket = EMBEDDING_LINK_BUCKETS.find((b) => b.slugs.includes(row.slug));
     if (!bucket) continue;
     const label = bucket.label;
-    (buckets[label] ??= []);
-    (seen[label] ??= new Set());
+    buckets[label] ??= [];
+    seen[label] ??= new Set();
     if (!seen[label].has(row.neighbor_title)) {
       seen[label].add(row.neighbor_title);
       buckets[label].push(row.neighbor_title);

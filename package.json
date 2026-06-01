@@ -31,7 +31,7 @@
     "embed": "tsx scripts/embed-records.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.24.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@nuxt/ui": "^4.8.1",
     "@tanstack/vue-query": "^5.80.6",
     "@types/multer": "^2.0.0",

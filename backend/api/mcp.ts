@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { server } from '@mcp/index';
+import { createMcpServer } from '@mcp/index';
 import { z } from 'zod/v4';
 
 const BACKEND_PORT = z.coerce.number().parse(process.env.BACKEND_PORT);
@@ -10,6 +10,7 @@ const BACKEND_PORT = z.coerce.number().parse(process.env.BACKEND_PORT);
 export const mcpRoutes = Router();
 
 mcpRoutes.post('/mcp', async (req: Request, res: Response) => {
+  const server = createMcpServer();
   try {
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
