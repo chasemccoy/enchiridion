@@ -62,10 +62,12 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
     title,
     text,
     url: domain,
+    source,
     hasParent,
     hideUntitledChildren,
     isCurated,
     hasMedia,
+    hasTitle,
   } = filters || {};
 
   const rows = await db.query.records.findMany({
@@ -113,8 +115,9 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
     },
     where: {
       type,
+      source,
       title:
-        title === null
+        title === null || hasTitle === false
           ? {
               isNull: true,
             }

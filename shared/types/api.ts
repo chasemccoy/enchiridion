@@ -1,6 +1,13 @@
 import { RecordTypeSchema } from '@shared/types';
 import { z } from 'zod/v4';
 
+// Must stay in sync with backend/db/schema/utils.ts → integrationTypeEnum.
+// Inlined here so this shared module can be imported from the frontend without
+// pulling in the backend graph.
+const integrationSourceEnum = ['manual', 'readwise', 'twitter'] as const;
+export const IntegrationSourceSchema = z.enum(integrationSourceEnum);
+export type IntegrationSource = z.infer<typeof IntegrationSourceSchema>;
+
 export const DEFAULT_LIMIT = 100;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,6 +53,14 @@ export const RecordFiltersSchema = z.object({
   title: z.string().nullable().optional(),
   text: z.string().nullable().optional(),
   url: z.string().nullable().optional(),
+  source: z
+    .union([
+      IntegrationSourceSchema.optional(),
+      z.object({
+        in: z.array(IntegrationSourceSchema),
+      }),
+    ])
+    .optional(),
   hasParent: z.boolean().optional(),
   /**
    * Exclude records that have a parent AND have no title — i.e. nested content
@@ -55,6 +70,10 @@ export const RecordFiltersSchema = z.object({
   hideUntitledChildren: z.boolean().optional(),
   isCurated: z.boolean().optional(),
   hasMedia: z.boolean().optional(),
+  /** Filter by title presence. true = title is non-null, false = title is null. */
+  hasTitle: z.boolean().optional(),
+  /** Filter by presence in the sqlite-vec embeddings table. */
+  hasEmbedding: z.boolean().optional(),
 });
 
 export const LimitSchema = z.number().int().positive();

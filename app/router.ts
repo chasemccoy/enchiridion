@@ -6,6 +6,7 @@ import InboxView from '@app/views/InboxView.vue';
 import IndexView from '@app/views/IndexView.vue';
 import RecordDetailView from '@app/views/RecordDetailView.vue';
 import RecordTableView from '@app/views/RecordTableView.vue';
+import SearchView from '@app/views/SearchView.vue';
 import { createWebHistory, createRouter } from 'vue-router';
 
 export enum RouteName {
@@ -15,6 +16,7 @@ export enum RouteName {
   artifacts = 'artifacts',
   concepts = 'concepts',
   entities = 'entities',
+  search = 'search',
   add = 'add',
 }
 
@@ -60,6 +62,11 @@ const routes = [
     path: '/entities',
     name: RouteName.entities,
     component: EntitiesView,
+  },
+  {
+    path: '/search',
+    name: RouteName.search,
+    component: SearchView,
   },
   {
     path: '/add',

@@ -61,18 +61,16 @@ const navItems = [
       to: '/records',
       icon: 'i-lucide-table-properties',
     },
+    {
+      to: '/search',
+      icon: 'i-lucide-search',
+    },
   ],
   [
     {
       icon: 'i-lucide-settings',
       onSelect: () => {
         isSettingsModalOpen.value = true;
-      },
-    },
-    {
-      icon: 'i-lucide-search',
-      onSelect: () => {
-        isSearchModalOpen.value = true;
       },
     },
     {

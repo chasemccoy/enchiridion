@@ -1,5 +1,6 @@
 import { listRecords } from '@db/queries/records';
-import { isEmbeddingEnabled, searchRecordsByEmbedding } from '@integrations/embeddings';
+import { semanticSearchListRecords } from '@db/queries/semantic-search';
+import { isEmbeddingEnabled } from '@integrations/embeddings';
 import { Router } from 'express';
 
 export const searchRoutes = Router();
@@ -18,11 +19,13 @@ searchRoutes.get('/search', async (req, res, next) => {
   }
 });
 
-// Semantic (vector) search over record embeddings.
+// Semantic (vector) search over record embeddings. Returns rows in the same
+// shape as `listRecords` so the UI can reuse RecordCard, with a cosine
+// similarity `score` (in [-1, 1]) attached to each row.
 searchRoutes.get('/search/semantic', async (req, res, next) => {
   try {
     const query = typeof req.query.q === 'string' ? req.query.q : '';
-    const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 10;
+    const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 50;
 
     if (!query.trim()) {
       res.status(400).json({ error: 'Missing query parameter "q"' });
@@ -33,9 +36,9 @@ searchRoutes.get('/search/semantic', async (req, res, next) => {
       return;
     }
 
-    const results = await searchRecordsByEmbedding({
+    const results = await semanticSearchListRecords({
       query,
-      limit: Number.isFinite(limit) ? limit : 10,
+      limit: Number.isFinite(limit) ? limit : 50,
     });
     res.json(results);
   } catch (error) {

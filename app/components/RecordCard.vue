@@ -2,6 +2,7 @@
   <div
     v-if="modelValue"
     class="RecordCard shadow-xs"
+    :class="{ 'RecordCard--expanded': expanded }"
   >
     <h1
       v-if="modelValue.title"
@@ -52,18 +53,22 @@
       readonly
     />
 
+    <MarkdownRender
+      v-if="preferContent && modelValue.content"
+      class="RecordCard__content"
+      :source="modelValue.content"
+    />
     <div
-      v-if="modelValue.summary"
+      v-else-if="modelValue.summary"
       class="RecordCard__summary"
     >
       {{ modelValue.summary }}
     </div>
-    <div
+    <MarkdownRender
       v-else-if="modelValue.content"
       class="RecordCard__content"
-    >
-      {{ modelValue.content }}
-    </div>
+      :source="modelValue.content"
+    />
 
     <ul class="RecordCard__tags">
       <li v-if="modelValue.type !== 'artifact'">
@@ -128,11 +133,16 @@ import useApiClient from '@app/composables/useApiClient';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import { getIconForRecordType } from '@app/utils';
 import ChatBubble from '@app/components/ChatBubble.vue';
+import MarkdownRender from '@app/components/MarkdownRender.vue';
 
 const modelValue = defineModel<ListRecordsAPIResponse[number]>({ required: true });
 
-const { to } = defineProps<{
+const { to, expanded, preferContent } = defineProps<{
   to?: string;
+  /** Render summary/content without the 4-line clamp. */
+  expanded?: boolean;
+  /** Show the record's `content` instead of `summary` when both exist. */
+  preferContent?: boolean;
 }>();
 
 const { backendBaseUrl } = useApiClient();
@@ -250,6 +260,17 @@ const tags = computed(() => {
   -webkit-line-clamp: 4;
   line-clamp: 4;
   overflow: hidden;
+}
+
+.RecordCard--expanded :is(.RecordCard__summary, .RecordCard__content) {
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  overflow: visible;
+}
+
+.RecordCard--expanded .RecordCard__summary {
+  white-space: pre-wrap;
 }
 
 .RecordCard__section {

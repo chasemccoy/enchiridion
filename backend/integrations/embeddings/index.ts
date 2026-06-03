@@ -186,6 +186,8 @@ export interface SemanticSearchResult {
 export interface SemanticSearchInput {
   query: string;
   limit?: number;
+  /** Drop hits whose cosine similarity is below this threshold. */
+  minScore?: number;
 }
 
 export interface SimilarByEmbeddingInput {
@@ -255,6 +257,7 @@ export const findSimilarRecordsByEmbedding = async ({
 export const searchRecordsByEmbedding = async ({
   query,
   limit = 10,
+  minScore = 0,
 }: SemanticSearchInput): Promise<SemanticSearchResult[]> => {
   if (!isEmbeddingEnabled()) return [];
   const text = query.trim().slice(0, MAX_EMBED_CHARS);
@@ -263,12 +266,14 @@ export const searchRecordsByEmbedding = async ({
   const [vector] = await embedTexts([text]);
   if (!vector) return [];
 
-  const hits = db.all(
-    sql`SELECT record_id AS recordId, distance
-        FROM ${sql.identifier(VEC_TABLE)}
-        WHERE embedding MATCH ${toBlob(vector)} AND k = ${bn(limit)}
-        ORDER BY distance`,
-  ) as { recordId: number; distance: number }[];
+  const hits = (
+    db.all(
+      sql`SELECT record_id AS recordId, distance
+          FROM ${sql.identifier(VEC_TABLE)}
+          WHERE embedding MATCH ${toBlob(vector)} AND k = ${bn(limit)}
+          ORDER BY distance`,
+    ) as { recordId: number; distance: number }[]
+  ).filter((hit) => 1 - hit.distance >= minScore);
 
   if (hits.length === 0) return [];
 
