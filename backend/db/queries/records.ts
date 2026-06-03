@@ -57,7 +57,16 @@ const creationOrDescriptionSlugs = [...creationPredicateSlugs, ...descriptionPre
 export const listRecords = async (input: ListRecordsInput = {}) => {
   const { filters, limit, offset, orderBy } = ListRecordsInputSchema.parse(input);
 
-  const { type, title, text, url: domain, hasParent, isCurated, hasMedia } = filters || {};
+  const {
+    type,
+    title,
+    text,
+    url: domain,
+    hasParent,
+    hideUntitledChildren,
+    isCurated,
+    hasMedia,
+  } = filters || {};
 
   const rows = await db.query.records.findMany({
     columns: {
@@ -161,6 +170,20 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
               },
             }
           : {}),
+      // Exclude untitled records that have a containment parent (highlights,
+      // quotes, etc. shown inline on the parent's page). Drizzle's NOT inverts
+      // the conjunction, so this keeps records where EITHER title is non-null
+      // OR there's no containment outgoing link.
+      ...(hideUntitledChildren === true
+        ? {
+            NOT: {
+              title: { isNull: true },
+              outgoingLinks: {
+                predicate: { in: containmentPredicateSlugs },
+              },
+            },
+          }
+        : {}),
       media: hasMedia,
     },
     limit,

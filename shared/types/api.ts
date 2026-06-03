@@ -47,6 +47,12 @@ export const RecordFiltersSchema = z.object({
   text: z.string().nullable().optional(),
   url: z.string().nullable().optional(),
   hasParent: z.boolean().optional(),
+  /**
+   * Exclude records that have a parent AND have no title — i.e. nested content
+   * fragments (highlights, quotes) that are surfaced inside their parent's UI
+   * and don't deserve their own row. Titled records with parents are kept.
+   */
+  hideUntitledChildren: z.boolean().optional(),
   isCurated: z.boolean().optional(),
   hasMedia: z.boolean().optional(),
 });

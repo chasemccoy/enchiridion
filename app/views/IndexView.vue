@@ -18,7 +18,7 @@ const route = useRoute();
 const { data } = useRecords({
   limit: 1000,
   filters: {
-    hasParent: false,
+    hideUntitledChildren: true,
   },
   orderBy: [
     {

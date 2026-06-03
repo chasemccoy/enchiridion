@@ -14,7 +14,7 @@ const { data } = useRecords({
   limit: 300,
   filters: {
     type: 'artifact',
-    hasParent: false,
+    hideUntitledChildren: true,
   },
   orderBy: [
     {

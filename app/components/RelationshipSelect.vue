@@ -91,10 +91,10 @@ const searchQuery = ref('');
 const predicateQuery = ref('');
 const selectedRecord = ref<SearchResultItem>();
 
-const { data: searchResults } = useSearch(
-  searchQuery,
-  computed(() => searchQuery.value.length > 0),
-);
+// Always enabled so the popover shows recent records on open instead of
+// the empty "No data" state. The /search endpoint returns the most recent
+// records (capped at the default limit) when the query is empty.
+const { data: searchResults } = useSearch(searchQuery);
 
 const commandItems = computed(() => {
   if (!searchResults.value) return [];

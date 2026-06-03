@@ -120,15 +120,15 @@
       />
     </UFormField>
 
-    <div v-if="childrenWithContent && childrenWithContent.length > 0">
+    <div v-if="children && children.length > 0">
       <ul
         class="RecordDetail__children"
         :class="{
-          'RecordDetail__children--singleChild': childrenWithContent.length === 1,
+          'RecordDetail__children--singleChild': children.length === 1,
         }"
       >
         <li
-          v-for="child in childrenWithContent"
+          v-for="child in children"
           :key="child.id"
         >
           <RecordLink
@@ -372,11 +372,6 @@ const children = computed(() => {
   if (!incomingLinks.value) return null;
 
   return incomingLinks.value.filter((link) => isPredicateType(link.predicate, 'containment'));
-});
-
-const childrenWithContent = computed(() => {
-  if (!children.value) return null;
-  return children.value.filter((child) => child.source.content);
 });
 
 onBeforeUnmount(() => {

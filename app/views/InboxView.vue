@@ -38,7 +38,7 @@ const { data } = useRecords({
   limit: 100,
   filters: {
     isCurated: false,
-    hasParent: false,
+    hideUntitledChildren: true,
   },
   orderBy: [
     {
