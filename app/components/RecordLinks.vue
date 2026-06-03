@@ -48,13 +48,14 @@ import RecordLink from '@app/components/RecordLink.vue';
 import type { LinksForRecordAPIResponse } from '@db/queries/records';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import { capitalize } from '@shared/lib/formatting';
-import type { LinkSelect, PredicateSelect } from '@db/schema';
+import type { LinkSelect } from '@db/schema';
 import type { DbId } from '@shared/types/api';
+import type { Predicate } from '@shared/types';
 import useRecordLinks from '@app/composables/useRecordLinks';
 import type { VirtualLink } from '@app/composables/useRecordLinks';
 
 const emit = defineEmits<{
-  updatePredicate: [{ link: LinkSelect; predicate: PredicateSelect }];
+  updatePredicate: [{ link: LinkSelect; predicate: Predicate }];
   deleteLink: [{ linkId: DbId }];
 }>();
 
@@ -80,7 +81,7 @@ const { linksByPredicateName } = useRecordLinks(
   () => currentRecordId,
 );
 
-function handleUpdatePredicate(link: LinkSelect | VirtualLink, predicate: PredicateSelect) {
+function handleUpdatePredicate(link: LinkSelect | VirtualLink, predicate: Predicate) {
   emit('updatePredicate', {
     link: link as LinkSelect,
     predicate: predicate,

@@ -5,9 +5,9 @@ import { findSimilarRecords } from '@db/queries/similar-records';
 import { records } from '@db/schema';
 import { LimitSchema, OffsetSchema, OrderBySchema, RecordFiltersSchema } from '@mcp/schemas';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { recordTypeEnum } from '@shared/types';
+import { PredicateSlugSchema, recordTypeEnum } from '@shared/types';
 import { sql } from 'drizzle-orm';
-import * as z from 'zod';
+import { z } from 'zod/v4';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
 import { isEmbeddingEnabled, searchRecordsByEmbedding } from '@integrations/embeddings';
 
@@ -43,7 +43,7 @@ export function createMcpServer(): McpServer {
     },
     {
       instructions: `
-    This MCP server provides access to an SQLite database of research materials organized into records, links, and predicates. Records are the main objects in the database, and can be linked to one another via predicates. Links are the relationships between records, and predicates are the types of relationships. Records can be one of three types: artifacts, entities, or concepts.
+    This MCP server provides access to an SQLite database of research materials organized into records and links. Records are the main objects in the database, and can be linked to one another via predicates. Each link has a \`predicate\` slug (e.g. "created_by", "tagged_with", "contained_by") that identifies the type of relationship. Records can be one of three types: artifacts, entities, or concepts.
 
     As an LLM acting on behalf of a user, you can:
     - Retrieve the database schema by reading the "schema://main" resource.
@@ -205,7 +205,7 @@ export function createMcpServer(): McpServer {
       inputSchema: {
         sourceId: z.number(),
         targetId: z.number(),
-        predicateId: z.number(),
+        predicate: PredicateSlugSchema,
       },
     },
     async (args) => {

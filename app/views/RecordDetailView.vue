@@ -40,7 +40,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { Head } from '@unhead/vue/components';
 import type { GetRecordBySlugAPIResponse } from '@db/queries/records';
 import { useDebounceFn } from '@vueuse/core';
-import type { LinkInsert, LinkSelect, PredicateSelect, RecordInsert } from '@db/schema';
+import type { LinkInsert, LinkSelect, RecordInsert } from '@db/schema';
+import type { Predicate, PredicateSlug } from '@shared/types';
 import useLink from '@app/composables/useLink';
 import type { DbId } from '@shared/types/api';
 import useRelatedRecords from '@app/composables/useRelatedRecords';
@@ -154,16 +155,10 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
   deleteLinkMutation(linkId);
 }
 
-function handleUpdatePredicate({
-  link,
-  predicate,
-}: {
-  link: LinkSelect;
-  predicate: PredicateSelect;
-}) {
+function handleUpdatePredicate({ link, predicate }: { link: LinkSelect; predicate: Predicate }) {
   upsertLinkMutation({
     ...link,
-    predicateId: predicate.id,
+    predicate: predicate.slug as PredicateSlug,
   });
 }
 

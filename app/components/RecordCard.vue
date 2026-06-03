@@ -123,6 +123,7 @@ import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
 import { capitalize, computed } from 'vue';
 import { formatDate, pluralize, slugify } from '@shared/lib/formatting';
+import { isPredicateType } from '@shared/types';
 import useApiClient from '@app/composables/useApiClient';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import { getIconForRecordType } from '@app/utils';
@@ -148,13 +149,14 @@ const incomingLinks = computed(() => modelValue.value?.incomingLinks ?? null);
 const creator = computed(() => {
   if (!outgoingLinks.value) return null;
 
-  return outgoingLinks.value.find((link) => link.predicate.slug === 'created_by')?.target ?? null;
+  return outgoingLinks.value.find((link) => link.predicate === 'created_by')?.target ?? null;
 });
 
 const childrenCount = computed(() => {
   if (!incomingLinks.value) return 0;
 
-  return incomingLinks.value.filter((link) => link.predicate.type === 'containment').length;
+  return incomingLinks.value.filter((link) => isPredicateType(link.predicate, 'containment'))
+    .length;
 });
 
 const tags = computed(() => {
@@ -162,7 +164,7 @@ const tags = computed(() => {
 
   return (
     outgoingLinks.value
-      .filter((link) => link.predicate.type === 'description')
+      .filter((link) => isPredicateType(link.predicate, 'description'))
       ?.map((link) => link.target) ?? null
   );
 });

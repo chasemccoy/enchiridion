@@ -1,6 +1,9 @@
 import { db } from '@db/index';
 import { type RecordSelect } from '@db/schema';
 import type { APIResponse } from '@shared/types/api';
+import { containmentPredicateSlugs, descriptionPredicateSlugs } from '@shared/types';
+
+const familyPredicateSlugs = [...containmentPredicateSlugs, ...descriptionPredicateSlugs];
 
 export const getFamilyTree = async (recordId: RecordSelect['id']) => {
   const family = await db.query.records.findFirst({
@@ -17,11 +20,11 @@ export const getFamilyTree = async (recordId: RecordSelect['id']) => {
       outgoingLinks: {
         where: {
           predicate: {
-            OR: [{ type: 'containment' }, { type: 'description' }],
+            in: familyPredicateSlugs,
           },
         },
         columns: {
-          predicateId: true,
+          predicate: true,
         },
         with: {
           target: {
@@ -35,11 +38,11 @@ export const getFamilyTree = async (recordId: RecordSelect['id']) => {
               outgoingLinks: {
                 where: {
                   predicate: {
-                    OR: [{ type: 'containment' }, { type: 'description' }],
+                    in: familyPredicateSlugs,
                   },
                 },
                 columns: {
-                  predicateId: true,
+                  predicate: true,
                 },
                 with: {
                   target: {
@@ -55,11 +58,11 @@ export const getFamilyTree = async (recordId: RecordSelect['id']) => {
               incomingLinks: {
                 where: {
                   predicate: {
-                    OR: [{ type: 'containment' }, { type: 'description' }],
+                    in: familyPredicateSlugs,
                   },
                 },
                 columns: {
-                  predicateId: true,
+                  predicate: true,
                 },
                 with: {
                   source: {
@@ -79,11 +82,11 @@ export const getFamilyTree = async (recordId: RecordSelect['id']) => {
       incomingLinks: {
         where: {
           predicate: {
-            OR: [{ type: 'containment' }, { type: 'description' }],
+            in: familyPredicateSlugs,
           },
         },
         columns: {
-          predicateId: true,
+          predicate: true,
         },
         with: {
           source: {
@@ -97,11 +100,11 @@ export const getFamilyTree = async (recordId: RecordSelect['id']) => {
               outgoingLinks: {
                 where: {
                   predicate: {
-                    OR: [{ type: 'containment' }, { type: 'description' }],
+                    in: familyPredicateSlugs,
                   },
                 },
                 columns: {
-                  predicateId: true,
+                  predicate: true,
                 },
                 with: {
                   target: {

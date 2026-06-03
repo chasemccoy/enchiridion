@@ -29,18 +29,6 @@ export const findAllRelatedRecords = async (
     throw new Error(`Record with slug "${recordSlug}" not found`);
   }
 
-  // Get the `related_to` predicate
-  const relatedToPredicate = await db.query.predicates.findFirst({
-    where: { slug: 'related_to' },
-    columns: { id: true },
-  });
-
-  if (!relatedToPredicate) {
-    // If the predicate doesn't exist, return empty array
-    return [];
-  }
-
-  const predicateId = relatedToPredicate.id;
   const visitedRecordIds = new Set<number>([startRecord.id]);
 
   // Map from record ID to the path of links connecting it to the start record
@@ -58,7 +46,7 @@ export const findAllRelatedRecords = async (
     const outgoingLinks = await db.query.links.findMany({
       where: {
         sourceId: currentRecordId,
-        predicateId,
+        predicate: 'related_to',
       },
       with: {
         source: {
@@ -81,7 +69,7 @@ export const findAllRelatedRecords = async (
     const incomingLinks = await db.query.links.findMany({
       where: {
         targetId: currentRecordId,
-        predicateId,
+        predicate: 'related_to',
       },
       with: {
         source: {

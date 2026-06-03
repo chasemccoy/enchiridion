@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import path from 'path';
 import ui from '@nuxt/ui/vite';
 

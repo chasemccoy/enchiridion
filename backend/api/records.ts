@@ -13,6 +13,7 @@ import {
 import { findSimilarRecords } from '@db/queries/similar-records';
 import { findAllRelatedRecords } from '@db/queries/related-records';
 import { getFamilyTree } from '@db/queries/tree';
+import { PredicateSlugSchema } from '@shared/types';
 import { z } from 'zod/v4';
 
 export const recordRoutes = Router();
@@ -76,7 +77,7 @@ recordRoutes.get('/record/:id/tree', async (req, res, next) => {
 
 // Example: `/record/556/links/related_to`
 recordRoutes.get('/record/:id/links/:predicateSlug', async (req, res, next) => {
-  const paramSchema = z.object({ id: IdSchema, predicateSlug: z.string() });
+  const paramSchema = z.object({ id: IdSchema, predicateSlug: PredicateSlugSchema });
 
   try {
     const { id, predicateSlug } = paramSchema.parse(req.params);

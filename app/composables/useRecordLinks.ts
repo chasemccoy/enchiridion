@@ -1,6 +1,6 @@
 import type { LinksForRecordAPIResponse } from '@db/queries/records';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
-import type { PredicateSelect } from '@db/schema';
+import { getPredicateSafe, getInverse, isPredicateType, type PredicateSlug } from '@shared/types';
 import { computed, type MaybeRefOrGetter } from 'vue';
 import { toValue } from 'vue';
 
@@ -8,13 +8,18 @@ type OutgoingLink = NonNullable<LinksForRecordAPIResponse>['outgoingLinks'][numb
 type IncomingLink = NonNullable<LinksForRecordAPIResponse>['incomingLinks'][number];
 type Link = OutgoingLink | IncomingLink;
 
-// VirtualLink represents a recursive relation without a real database link
-// It includes all properties needed to render like a real link
+// VirtualLink represents a recursive relation without a real database link.
+// It includes all properties needed to render like a real link.
+// `predicate` is intentionally optional and unset on construction: it gates the
+// PredicateSelect dropdown in RecordLink.vue (`v-if="localPredicateSlug"`), so
+// leaving it undefined hides the gear/delete actions on virtual rows. That's
+// load-bearing — the virtual `id` collides with real link ids, so exposing
+// those actions would let the user clobber unrelated link rows.
 export type VirtualLink = Omit<
   OutgoingLink,
-  'predicate' | 'predicateId' | 'recordCreatedAt' | 'recordUpdatedAt'
+  'predicate' | 'recordCreatedAt' | 'recordUpdatedAt'
 > & {
-  predicate?: PredicateSelect;
+  predicate?: PredicateSlug;
 };
 
 export type LinkWithDirection = {
@@ -22,11 +27,11 @@ export type LinkWithDirection = {
   direction: 'incoming' | 'outgoing';
 };
 
-function getPredicateName(link: Link, direction: 'incoming' | 'outgoing'): string {
-  if (direction === 'incoming' && link.predicate.inverse?.name) {
-    return link.predicate.inverse.name;
-  }
-  return link.predicate.name;
+function getPredicateName(slug: PredicateSlug, direction: 'incoming' | 'outgoing'): string {
+  const predicate = getPredicateSafe(slug);
+  if (!predicate) return slug;
+  if (direction === 'incoming') return getInverse(slug).name;
+  return predicate.name;
 }
 
 export default function useRecordLinks(
@@ -42,9 +47,9 @@ export default function useRecordLinks(
 
     const addRealLink = (link: Link, direction: 'incoming' | 'outgoing') => {
       // Skip containment links - handled separately
-      if (link.predicate.type === 'containment') return;
+      if (isPredicateType(link.predicate, 'containment')) return;
 
-      const predicateName = getPredicateName(link, direction);
+      const predicateName = getPredicateName(link.predicate, direction);
 
       if (!grouped[predicateName]) {
         grouped[predicateName] = [];
@@ -59,14 +64,6 @@ export default function useRecordLinks(
     const currentRecordIdValue = toValue(currentRecordId);
 
     if (relatedRecordsValue && relatedRecordsValue.length > 0 && currentRecordIdValue) {
-      const relatedToPredicate = [
-        ...(linksValue.outgoingLinks ?? []),
-        ...(linksValue.incomingLinks ?? []),
-      ].find((link) => link.predicate.slug === 'related_to')?.predicate;
-
-      if (!relatedToPredicate)
-        return Object.fromEntries(Object.entries(grouped).filter(([, links]) => links.length > 0));
-
       // Get record IDs that already have real links
       const recordsWithRealLinks = new Set<number>();
       const existingRelatedLinks = grouped['related to'] ?? [];

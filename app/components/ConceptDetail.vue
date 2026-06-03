@@ -78,8 +78,9 @@
 import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import RecordLinks from '@app/components/RecordLinks.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
-import type { LinkInsert, LinkSelect, PredicateSelect } from '@db/schema';
+import type { LinkInsert, LinkSelect } from '@db/schema';
 import type { DbId } from '@shared/types/api';
+import { isPredicateType, type Predicate, type PredicateSlug } from '@shared/types';
 import TitleField from '@app/components/TitleField.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import { computed } from 'vue';
@@ -93,7 +94,7 @@ const emit = defineEmits<{
   fileDelete: [{ mediaId?: number; url?: string }];
   createLink: [{ link: LinkInsert }];
   deleteLink: [{ linkId: DbId }];
-  updatePredicate: [{ link: LinkSelect; predicate: PredicateSelect }];
+  updatePredicate: [{ link: LinkSelect; predicate: Predicate }];
 }>();
 
 const { links, relatedRecords } = defineProps<{
@@ -108,33 +109,29 @@ const linkCount = computed(() => {
   if (!links) return 0;
 
   const outgoingDescriptionLinks =
-    links.outgoingLinks?.filter((link) => link.predicate.type === 'description').length ?? 0;
+    links.outgoingLinks?.filter((link) => isPredicateType(link.predicate, 'description')).length ??
+    0;
 
   const incomingDescriptionLinks =
-    links.incomingLinks?.filter((link) => link.predicate.type === 'description').length ?? 0;
+    links.incomingLinks?.filter((link) => isPredicateType(link.predicate, 'description')).length ??
+    0;
 
   return outgoingDescriptionLinks + incomingDescriptionLinks;
 });
 
-function handleCreateLink(targetRecordId: DbId, predicateId: DbId) {
+function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
   if (!modelValue.value) return;
 
   emit('createLink', {
     link: {
       sourceId: modelValue.value.id,
       targetId: targetRecordId,
-      predicateId,
+      predicate,
     },
   });
 }
 
-function handleUpdatePredicate({
-  link,
-  predicate,
-}: {
-  link: LinkSelect;
-  predicate: PredicateSelect;
-}) {
+function handleUpdatePredicate({ link, predicate }: { link: LinkSelect; predicate: Predicate }) {
   emit('updatePredicate', { link, predicate });
 }
 

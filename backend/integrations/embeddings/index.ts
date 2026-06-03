@@ -63,16 +63,15 @@ interface NeighborRow {
  */
 export const getLinkedTitlesForEmbedding = (recordId: number): LinkedTitlesByBucket => {
   const rows = db.all(
-    sql`SELECT p.slug AS slug,
+    sql`SELECT l.predicate AS slug,
                CASE WHEN l.source_id = ${recordId} THEN l.target_id ELSE l.source_id END AS neighbor_id,
                r.title AS neighbor_title
         FROM links l
-        JOIN predicates p ON p.id = l.predicate_id
         JOIN records r
           ON r.id = CASE WHEN l.source_id = ${recordId} THEN l.target_id ELSE l.source_id END
         WHERE (l.source_id = ${recordId} OR l.target_id = ${recordId})
           AND r.title IS NOT NULL AND r.title != ''
-          AND p.slug IN (${sql.join(
+          AND l.predicate IN (${sql.join(
             [...EMBEDDING_LINK_SLUGS].map((slug) => sql`${slug}`),
             sql`, `,
           )})`,

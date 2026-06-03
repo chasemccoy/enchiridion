@@ -1,13 +1,8 @@
 import { db } from '@db/index';
 import { links, type LinkInsert, type LinkSelect } from '@db/schema';
 import type { APIResponse } from '@shared/types/api';
+import { getPredicate } from '@shared/types';
 import { eq, sql } from 'drizzle-orm';
-
-export const predicates = async () => {
-  return db.query.predicates.findMany();
-};
-
-export type GetPredicatesAPIResponse = APIResponse<typeof predicates>;
 
 export const deleteLink = async (linkId: LinkSelect['id']) => {
   return db.delete(links).where(eq(links.id, linkId)).returning();
@@ -16,29 +11,22 @@ export const deleteLink = async (linkId: LinkSelect['id']) => {
 export type DeleteLinkAPIResponse = APIResponse<typeof deleteLink>;
 
 export const upsertLink = async (link: LinkInsert) => {
-  /* 1 ─ fetch predicate + inverse */
-  const predicate = await db.query.predicates.findFirst({
-    where: { id: link.predicateId },
-    with: { inverse: true },
-  });
-
-  if (!predicate) {
-    throw new Error('Predicate not found');
-  }
+  /* 1 ─ look up predicate definition */
+  const predicate = getPredicate(link.predicate);
 
   /* 2 ─ compute canonical direction */
-  let { sourceId, targetId, predicateId } = link;
+  let { sourceId, targetId, predicate: predicateSlug } = link;
 
   if (!predicate.canonical) {
-    const inverse = predicate.inverse;
+    const inverse = getPredicate(predicate.inverseSlug as typeof predicate.slug);
 
-    if (!inverse?.canonical) {
+    if (!inverse.canonical) {
       throw new Error('Non-canonical predicate is not reversible');
     }
 
     sourceId = link.targetId;
     targetId = link.sourceId;
-    predicateId = inverse.id;
+    predicateSlug = inverse.slug as typeof predicateSlug;
   }
 
   if (sourceId === targetId) {
@@ -49,7 +37,7 @@ export const upsertLink = async (link: LinkInsert) => {
   const linkData = {
     sourceId,
     targetId,
-    predicateId,
+    predicate: predicateSlug,
     notes: link.notes ?? null,
   } satisfies Partial<LinkInsert>;
 
@@ -72,7 +60,7 @@ export const upsertLink = async (link: LinkInsert) => {
       .insert(links)
       .values(linkData)
       .onConflictDoUpdate({
-        target: [links.sourceId, links.targetId, links.predicateId],
+        target: [links.sourceId, links.targetId, links.predicate],
         set: { ...linkData, recordUpdatedAt: sql`CURRENT_TIMESTAMP` },
       })
       .returning();
