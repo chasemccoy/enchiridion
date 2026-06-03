@@ -32,13 +32,16 @@ enchiridion/
 │   └── router.ts          # Vue Router configuration
 ├── backend/               # Express.js API server
 │   ├── api/               # REST API endpoints
+│   ├── cli/ench/          # `ench` — stdio CLI for agents and scripts
 │   ├── db/                # Database schema and queries
 │   │   ├── schema/        # Drizzle ORM schemas
 │   │   ├── queries/       # Database queries
 │   │   └── migrations/    # Database migration files
 │   └── integrations/      # External service integrations
-│       ├── readwise/      # Readwise API integration
-│       └── twitter/       # Twitter API integration
+│       ├── readwise/      # Readwise sync
+│       ├── twitter/       # Tweet fetching
+│       ├── wayback/       # Wayback Machine archiving
+│       └── embeddings/    # OpenAI embeddings + sqlite-vec search
 ├── shared/                # Shared types and utilities
 │   ├── lib/               # Utility functions
 │   └── types/             # TypeScript type definitions
@@ -113,10 +116,78 @@ The application will be available at:
 
 - `pnpm sync:readwise` - Sync records from Readwise integration
 - `pnpm sync` - Sync records from all integrations
+- `pnpm embed` - Backfill OpenAI embeddings for all records
+
+### CLI (`ench`)
+
+- `pnpm cli <command>` - Run the `ench` CLI from inside the repo
+- See [the CLI section](#-cli) for what `ench` can do
+
+## 🤖 CLI
+
+`ench` is a stdio interface to your knowledge base. It's the same data the web UI sees, exposed as JSON-on-stdout commands so agents (Claude Code, scripts, shell pipelines) can read, write, search, and curate without running the HTTP server.
+
+### Install
+
+From inside the project, no install needed:
+
+```bash
+pnpm cli --help
+pnpm cli records list --type=artifact --limit=10
+```
+
+To make `ench` available on PATH everywhere:
+
+```bash
+pnpm link --global
+ench --help
+ench db status
+```
+
+The launcher resolves the project's `tsconfig.json` and SQLite file from its own real path, so `ench` works from any working directory.
+
+### What it does
+
+```bash
+# Records
+ench records get 1
+ench records list --type=artifact --curated --limit=5 --full
+ench records create '{"slug":"foo","title":"Foo","type":"concept"}'
+ench records tree 220
+ench records similar 220 --limit=5
+
+# Search
+ench search "knowledge graph"                  # hybrid (text + vector, RRF merge)
+ench search text "hypertext"
+ench search semantic "ways of thinking about links"
+
+# Links
+ench links list 1 --predicate=created_by
+ench links predicates
+
+# Inbox (unpromoted Readwise documents)
+ench inbox list --limit=10
+ench inbox promote <document-id> --curated
+
+# Sync
+ench sync                                      # all integrations + embedding backfill
+ench sync readwise
+ench sync embeddings --force
+
+# Database
+ench db status
+ench db backup --out=/tmp/ench-backup.sqlite
+
+# Wayback Machine
+ench wayback archive https://example.com
+ench wayback status https://example.com
+```
+
+All commands return `{data, meta}` JSON on stdout (or `{error: {code, message}}` on stderr + stdout with exit 1). Pass `--format=table` for human-readable output, `--raw` to drop the envelope, `--dry-run`/`-n` to preview mutations.
 
 ## 🔧 Development
 
-### Path Aliases
+### Path aliases
 
 Both frontend and backend use these path aliases:
 
@@ -134,4 +205,13 @@ Connect your Readwise account to automatically sync highlights and articles:
 
 1. Get your Readwise API token from [readwise.io/access_token](https://readwise.io/access_token)
 2. Add it to your `.env` file as `READWISE_TOKEN`
-3. Run `pnpm sync:readwise` to sync your data
+3. Run `pnpm sync:readwise` (or `ench sync readwise`) to sync your data
+
+### OpenAI embeddings
+
+Semantic search and the "similar records" feature use OpenAI text embeddings stored in [sqlite-vec](https://github.com/asg017/sqlite-vec):
+
+1. Add your API key to `.env` as `OPENAI_API_KEY`
+2. Run `pnpm embed` (or `ench sync embeddings`) to backfill vectors for existing records
+
+New records embed automatically on write; the backfill is only needed for the initial seed.

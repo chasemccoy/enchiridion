@@ -4,7 +4,6 @@ import { recordRoutes } from './records';
 import { treeRoutes } from './tree';
 import { linkRoutes } from './links';
 import { errorHandler } from './errorHandler';
-import { mcpRoutes } from './mcp';
 import cors from 'cors';
 import { searchRoutes } from 'backend/api/search';
 import { mediaRoutes } from './media';
@@ -17,13 +16,7 @@ const app = express();
 
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-app.use(
-  cors({
-    origin: '*',
-    exposedHeaders: ['Mcp-Session-Id'],
-    allowedHeaders: ['Content-Type', 'mcp-session-id'],
-  }),
-);
+app.use(cors({ origin: '*' }));
 
 app.use(errorHandler);
 app.use(recordRoutes);
@@ -32,7 +25,6 @@ app.use(linkRoutes);
 app.use(searchRoutes);
 app.use(mediaRoutes);
 app.use(twitterRoutes);
-app.use(mcpRoutes);
 app.use(integrationRoutes);
 app.use('/uploads', express.static('uploads'));
 

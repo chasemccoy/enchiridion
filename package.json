@@ -10,12 +10,14 @@
   "keywords": [],
   "author": "Chase McCoy",
   "license": "MIT",
+  "bin": {
+    "ench": "./backend/cli/ench/bin.js"
+  },
   "scripts": {
     "cli": "tsx backend/cli/ench/index.ts",
     "lint": "prettier --write . && eslint . --fix && vue-tsc --noEmit",
     "dev:app": "vite --host",
     "dev:backend": "tsx watch backend/api/index.ts",
-    "dev:mcp": "DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector tsx ./backend/mcp/index.ts",
     "health-check": "tsx scripts/health-check.ts",
     "dev": "pnpm run health-check && concurrently \"pnpm run dev:app\" \"pnpm run dev:backend\"",
     "build": "vue-tsc -b && vite build",
@@ -35,7 +37,6 @@
     "embed": "tsx scripts/embed-records.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@nuxt/ui": "^4.8.1",
     "@tanstack/vue-query": "^5.80.6",
     "@types/multer": "^2.0.0",

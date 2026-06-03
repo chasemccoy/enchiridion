@@ -28,6 +28,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `pnpm sync:readwise` - Sync records from Readwise integration
 
+### CLI (`ench`)
+
+`ench` is the stdio interface to the knowledge base — designed for agents and shell workflows that don't want to spin up the HTTP server.
+
+- `pnpm cli <command>` - Run the CLI from inside the repo (no install needed)
+- `pnpm link --global` then `ench <command>` - Install globally on PATH
+- `ench --help` - Full command reference
+
+Common commands:
+
+- `ench records get <id>` / `records list [filters]` / `records create '<json>'`
+- `ench search <query>` (hybrid) / `search text` / `search semantic` / `search similar`
+- `ench links list <id>` / `links predicates`
+- `ench sync readwise` / `sync embeddings [--force]`
+- `ench db status` / `db backup [--out=path]`
+
+Output is JSON by default (`{data, meta}` envelope; errors as `{error: {code, message}}` with exit 1). Use `--format=table` for human-readable output. See [backend/cli/ench/](backend/cli/ench/) for the implementation.
+
 ## Architecture Overview
 
 ### Project Structure
@@ -37,7 +55,10 @@ This is a full-stack TypeScript application with a Vue 3 frontend and Express ba
 **Key directories:**
 
 - `app/` - Vue 3 frontend with PrimeVue UI components
-- `backend/` - Express API server and database layer
+- `backend/api/` - Express API server (REST routes)
+- `backend/db/` - Drizzle schema, queries, migrations
+- `backend/cli/ench/` - `ench` CLI: stdio interface for agents/shell
+- `backend/integrations/` - Readwise, Twitter, Wayback, embeddings
 - `shared/` - Shared types and utilities between frontend/backend
 
 ### Frontend Architecture
