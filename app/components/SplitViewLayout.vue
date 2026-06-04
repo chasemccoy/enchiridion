@@ -4,7 +4,10 @@
     class="SplitViewLayout"
     :class="{ 'SplitViewLayout--empty': isEmpty }"
   >
-    <div class="SplitViewLayout_list">
+    <div
+      ref="listRef"
+      class="SplitViewLayout_list"
+    >
       <div
         v-if="modelValue"
         class="SplitViewLayout_groups"
@@ -48,7 +51,15 @@
 <script setup lang="ts">
 import RecordCard from '@app/components/RecordCard.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import { useTemplateRef, watch, computed } from 'vue';
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onBeforeUnmount,
+  onMounted,
+  useTemplateRef,
+  watch,
+} from 'vue';
 import { useRoute } from 'vue-router';
 
 const modelValue = defineModel<ListRecordsAPIResponse>();
@@ -59,7 +70,36 @@ const { isEmpty, recordCardProps } = defineProps<{
 }>();
 
 const elRef = useTemplateRef('elRef');
+const listRef = useTemplateRef<HTMLDivElement>('listRef');
 const route = useRoute();
+
+// Scroll preservation across KeepAlive cycles. The browser doesn't preserve
+// scroll on internal scrollable containers when they're detached/reattached
+// (which is what KeepAlive does). We can't read scrollTop in onDeactivated
+// either — by then the element is already detached and reports 0 — so we
+// track the latest scroll position continuously via a passive listener.
+let savedScrollTop = 0;
+function handleScroll() {
+  if (listRef.value) savedScrollTop = listRef.value.scrollTop;
+}
+onMounted(() => {
+  listRef.value?.addEventListener('scroll', handleScroll, { passive: true });
+});
+onBeforeUnmount(() => {
+  listRef.value?.removeEventListener('scroll', handleScroll);
+});
+onActivated(() => {
+  // Wait a frame so layout has settled before restoring; with
+  // content-visibility: auto the scrollHeight expands as offscreen items
+  // resolve, so an immediate set can get clamped. After restoring, run
+  // scrollToSelectedRecord in case the route changed while we were cached
+  // (e.g. a deep link to a different /record/X) — it's a no-op when the
+  // selected card is already in view.
+  nextTick(() => {
+    if (listRef.value) listRef.value.scrollTop = savedScrollTop;
+    scrollToSelectedRecord();
+  });
+});
 
 // Group records by month and year, including their original indices
 const groupedRecords = computed(() => {
@@ -200,11 +240,11 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
     margin-top: 6px;
   }
 
-  /* Vertical-list mode (detail open): let the browser skip rendering offscreen
-     cards. The intrinsic-size estimate reserves scroll height so jump-to-anchor
-     and scrollbars stay correct. Disabled in column mode below because CSS
-     columns need every item present to balance. */
-  .SplitViewLayout:not(.SplitViewLayout--empty) & > li {
+  /* Let the browser skip rendering offscreen cards. The intrinsic-size estimate
+     reserves scroll height so jump-to-anchor and scrollbars stay correct.
+     Critical for the home page, which can mount 500+ records — without this,
+     style/layout for the full set blocks paint after every navigation. */
+  & > li {
     content-visibility: auto;
     contain-intrinsic-size: 0 220px;
   }

@@ -28,7 +28,7 @@
 import SplitViewLayout from '@app/components/SplitViewLayout.vue';
 import useRecords from '@app/composables/useRecords';
 import { RouteName } from '@app/router';
-import { computed, nextTick, watch } from 'vue';
+import { computed, onActivated, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
@@ -58,32 +58,23 @@ const { data } = useRecords({
   ],
 });
 
-// Auto-select the first record only when the user arrives on the bare /inbox
-// path. If they came in via a deep link like /inbox/record/foo we leave their
-// selection alone (`route.name` resolves to `inbox` only when no child route
-// matched).
-const cancelWatch = watch(
-  data,
-  () => {
-    if (!data.value) return;
-    if (route.name !== RouteName.inbox) {
-      // Defer the unsubscribe: with `immediate: true` the first callback
-      // fires synchronously during the watch() call, before `cancelWatch` is
-      // assigned, so a direct call would hit the TDZ.
-      nextTick(() => cancelWatch());
-      return;
-    }
+// Auto-select the first record only when the user is sitting on the bare
+// /inbox path (route.name === 'inbox'). If they're on /inbox/record/foo we
+// leave their selection alone.
+//
+// Runs from two sources because KeepAlive keeps this component mounted across
+// navigations: once when data loads (watch), and again every time the user
+// re-activates the view by clicking Inbox in the nav (onActivated). Both
+// paths share the same guard, so it's safe to fire either way.
+function selectFirstIfBare() {
+  if (route.name !== RouteName.inbox) return;
+  const firstRecord = data.value?.[0];
+  if (!firstRecord) return;
+  router.push(`/inbox/record/${firstRecord.slug}`);
+}
 
-    const firstRecord = data.value[0];
-    if (!firstRecord) return;
-
-    router.push(`/inbox/record/${firstRecord.slug}`);
-    nextTick(() => cancelWatch());
-  },
-  {
-    immediate: true,
-  },
-);
+watch(data, selectFirstIfBare, { immediate: true });
+onActivated(selectFirstIfBare);
 </script>
 
 <style scoped>

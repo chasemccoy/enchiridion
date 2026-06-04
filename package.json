@@ -37,12 +37,14 @@
     "embed": "tsx scripts/embed-records.ts"
   },
   "dependencies": {
+    "@iconify/vue": "^5.0.1",
     "@nuxt/ui": "^4.8.1",
     "@tanstack/vue-query": "^5.80.6",
     "@types/multer": "^2.0.0",
     "@unhead/vue": "^2.0.10",
     "@vueuse/core": "^13.3.0",
     "better-sqlite3": "^12.10.0",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dompurify": "^3.4.7",
     "drizzle-orm": "1.0.0-rc.4-5d5b77c",
@@ -61,7 +63,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
+    "@iconify-json/lucide": "^1.2.111",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.2",
     "@types/markdown-it": "^14.1.2",

@@ -1,14 +1,13 @@
+import AddRecordView from '@app/views/AddRecordView.vue';
+import ArtifactsView from '@app/views/ArtifactsView.vue';
+import ConceptsView from '@app/views/ConceptsView.vue';
+import EntitiesView from '@app/views/EntitiesView.vue';
+import InboxView from '@app/views/InboxView.vue';
 import IndexView from '@app/views/IndexView.vue';
 import RecordDetailView from '@app/views/RecordDetailView.vue';
+import RecordTableView from '@app/views/RecordTableView.vue';
+import SearchView from '@app/views/SearchView.vue';
 import { createWebHistory, createRouter } from 'vue-router';
-
-const AddRecordView = () => import('@app/views/AddRecordView.vue');
-const ArtifactsView = () => import('@app/views/ArtifactsView.vue');
-const ConceptsView = () => import('@app/views/ConceptsView.vue');
-const EntitiesView = () => import('@app/views/EntitiesView.vue');
-const InboxView = () => import('@app/views/InboxView.vue');
-const RecordTableView = () => import('@app/views/RecordTableView.vue');
-const SearchView = () => import('@app/views/SearchView.vue');
 
 export enum RouteName {
   index = 'index',

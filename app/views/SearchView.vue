@@ -400,6 +400,7 @@ watch(
   gap: 8px;
   padding-block: 8px;
   border-bottom: 0.5px solid var(--ui-border);
+  background-color: var(--ui-bg);
   font-size: 12px;
   color: var(--ui-text-muted);
 }

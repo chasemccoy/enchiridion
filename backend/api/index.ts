@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
 import { recordRoutes } from './records';
 import { treeRoutes } from './tree';
 import { linkRoutes } from './links';
@@ -14,6 +15,7 @@ const PORT = process.env.BACKEND_PORT;
 
 const app = express();
 
+app.use(compression());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(cors({ origin: '*' }));

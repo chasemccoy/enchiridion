@@ -13,7 +13,11 @@
       />
 
       <div class="App__content">
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <KeepAlive :max="6">
+            <component :is="Component" />
+          </KeepAlive>
+        </RouterView>
       </div>
     </div>
 
@@ -47,23 +51,65 @@ const route = useRoute();
 const searchQuery = ref('');
 const shouldSearch = computed(() => searchQuery.value !== '');
 
-const navItems = [
+// Smooth-scroll whichever container is scrolling on the current view back to
+// the top. Different views use different scroll containers: Home/Inbox scroll
+// the inner `.SplitViewLayout_list`, Records scrolls the outer `.App__content`.
+// We try the inner one first so we don't accidentally scroll a parent on
+// views that have their own internal scroller.
+function scrollActiveViewToTop() {
+  const candidates = ['.SplitViewLayout_list', '.App__content'];
+  for (const selector of candidates) {
+    const el = document.querySelector(selector) as HTMLElement | null;
+    if (el && el.scrollHeight > el.clientHeight) {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+  }
+}
+
+// Resolve a nav item's `to` so clicking it while you're already on that page
+// is a true no-op for the router — same `fullPath` in, same `fullPath` out.
+// Without this, navigating to e.g. `/search` from `/search?q=foo` is a real
+// navigation (path matches, query differs) and the query gets dropped, which
+// resets the search. Same applies to `/records#concept` and friends.
+function navTo(basePath: string) {
+  return route.path === basePath ? route.fullPath : basePath;
+}
+
+const navItems = computed(() => [
   [
     {
-      to: '/',
+      to: navTo('/'),
       icon: 'i-lucide-home',
+      onSelect: () => {
+        if (route.path === '/') scrollActiveViewToTop();
+      },
     },
     {
-      to: '/inbox',
+      to: navTo('/inbox'),
       icon: 'i-lucide-inbox',
     },
     {
-      to: '/records',
+      to: navTo('/records'),
       icon: 'i-lucide-table-properties',
+      onSelect: () => {
+        if (route.path === '/records') scrollActiveViewToTop();
+      },
     },
     {
-      to: '/search',
+      to: navTo('/search'),
       icon: 'i-lucide-search',
+      onSelect: () => {
+        if (route.path !== '/search') return;
+        scrollActiveViewToTop();
+        // Drop focus into the search box so the user can start typing right
+        // away. UInput renders a real <input> inside `.SearchView__input`.
+        const input = document.querySelector<HTMLInputElement>('.SearchView__input input');
+        // preventScroll keeps focus() from snapping the viewport to the input,
+        // which would override the smooth scroll-to-top above.
+        input?.focus({ preventScroll: true });
+        input?.select();
+      },
     },
   ],
   [
@@ -80,7 +126,7 @@ const navItems = [
       },
     },
   ],
-];
+]);
 
 const isSearchModalOpen = ref(false);
 const isAddRecordDrawerOpen = ref(false);
