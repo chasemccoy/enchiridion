@@ -29,6 +29,12 @@
       </span>
     </div>
 
+    <ParentRefChip
+      v-else-if="parent && showParent"
+      class="RecordLink__parent"
+      :parent="parent"
+    />
+
     <div
       v-if="summary"
       class="RecordLink__summary"
@@ -91,6 +97,7 @@
 <script setup lang="ts">
 import ChatBubble from '@app/components/ChatBubble.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
+import ParentRefChip from '@app/components/ParentRefChip.vue';
 import PredicateSelect from '@app/components/PredicateSelect.vue';
 import useRecord from '@app/composables/useRecord';
 import { isPredicateType, type Predicate, type PredicateSlug } from '@shared/types';
@@ -111,11 +118,23 @@ const {
   linkDirection = 'outgoing',
   truncate = true,
   includeChildren = false,
+  showParent = true,
 } = defineProps<{
   predicate?: PredicateSlug;
   linkDirection?: 'incoming' | 'outgoing';
   truncate?: boolean;
   includeChildren?: boolean;
+  /**
+   * Show a parent reference chip on untitled records. Defaults to true. Pass
+   * false when the surrounding context already establishes the parent — e.g.
+   * the children list on a record detail page, where every row's parent IS
+   * the record being viewed.
+   *
+   * (Named to match `RecordCard.showParent` for cross-component consistency,
+   * though the defaults differ: RecordCard is opt-in because most pages don't
+   * want it, RecordLink is opt-out because most pages do.)
+   */
+  showParent?: boolean;
 }>();
 
 const localPredicateSlug = ref<PredicateSlug | null>(predicate ?? null);
@@ -163,6 +182,17 @@ const tags = computed(() => {
     .map((link) => link.target);
 });
 
+// The canonical containment outgoings (contained_by, quotes) point at the
+// record's parent. Surfaced as a small chip only when the link has no title
+// of its own — titled links already self-identify, so the parent reference
+// would be noise.
+const parentPredicates: PredicateSlug[] = ['contained_by', 'quotes'];
+const parent = computed(() => {
+  return (
+    outgoingLinks.value?.find((link) => parentPredicates.includes(link.predicate))?.target ?? null
+  );
+});
+
 const children = computed(() => {
   if (!includeChildren || !incomingLinks.value) return null;
 
@@ -199,6 +229,13 @@ function handleDeleteLink() {
   flex-wrap: wrap;
   padding-right: 24px;
   align-items: baseline;
+}
+
+.RecordLink__parent {
+  /* Don't let the chip stretch across the RecordLink grid row. */
+  justify-self: start;
+  margin-top: 2px;
+  margin-bottom: 6px;
 }
 
 .RecordLink__title,

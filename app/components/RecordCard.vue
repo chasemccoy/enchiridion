@@ -8,23 +8,10 @@
       v-if="modelValue.title || (showParent && parent)"
       class="RecordCard__title"
     >
-      <span
+      <ParentRefChip
         v-if="showParent && parent"
-        class="RecordCard__parent"
-      >
-        <span class="RecordCard__parentIconWrap">
-          <UIcon
-            name="i-lucide-corner-down-right"
-            class="RecordCard__parentIcon"
-          />
-        </span>
-        <span class="RecordCard__parentText">
-          <RouterLink
-            class="RecordCard__parentTitle"
-            :to="`/${parent.slug}`"
-          >{{ parent.title ?? parent.slug }}</RouterLink><template v-if="parentCreator"><span class="RecordCard__parentCreator"> by <RouterLink :to="`/${parentCreator.slug}`">{{ parentCreator.title }}</RouterLink></span></template>
-        </span>
-      </span>
+        :parent="parent"
+      />
 
       <RouterLink
         v-if="modelValue.title"
@@ -153,8 +140,8 @@ import { capitalize, computed } from 'vue';
 import { formatDate, pluralize, slugify } from '@shared/lib/formatting';
 import { isPredicateType, type PredicateSlug } from '@shared/types';
 import useApiClient from '@app/composables/useApiClient';
-import useRecord from '@app/composables/useRecord';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
+import ParentRefChip from '@app/components/ParentRefChip.vue';
 import { getIconForRecordType } from '@app/utils';
 import ChatBubble from '@app/components/ChatBubble.vue';
 import MarkdownRender from '@app/components/MarkdownRender.vue';
@@ -208,22 +195,6 @@ const parent = computed(() => {
 // source context.
 const showParentRef = computed(() => Boolean(showParent && parent.value));
 
-// Fetch the parent's full record (only when we're actually going to show the
-// parent chip) so we can surface its creator alongside the title. Cached by
-// TanStack Query so navigating to the parent later doesn't re-fetch.
-const { getRecord: getParentRecord } = useRecord();
-const parentId = computed(() => parent.value?.id ?? null);
-const { data: parentRecord } = getParentRecord(
-  parentId,
-  () => showParent && parentId.value != null,
-);
-const parentCreator = computed(() => {
-  return (
-    parentRecord.value?.outgoingLinks?.find((link) => link.predicate === 'created_by')?.target ??
-    null
-  );
-});
-
 const childrenCount = computed(() => {
   if (!incomingLinks.value) return 0;
 
@@ -264,67 +235,6 @@ const tags = computed(() => {
 
   &:has(.RouterLink--isActive) {
     box-shadow: inset 0 0 0 2px var(--ui-primary);
-  }
-}
-
-.RecordCard__parent {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 6px 12px 6px 8px;
-  border-radius: var(--radius-md);
-  background-color: var(--ui-bg-elevated);
-  color: var(--ui-text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.2;
-  max-width: 100%;
-}
-
-/* Wrapper height matches the text's line-height (1.2em) so the icon stays
- * vertically centred on the FIRST line of text — not centred against the
- * whole text block when the title/creator wraps to multiple lines. */
-.RecordCard__parentIconWrap {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  height: 1.2em;
-}
-
-.RecordCard__parentIcon {
-  width: 12px;
-  height: 12px;
-  color: var(--ui-text-dimmed);
-}
-
-/* Inline text block: title and creator flow as one paragraph so when the
- * creator wraps it sits under the title — not under the icon. */
-.RecordCard__parentText {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.RecordCard__parentTitle {
-  color: var(--ui-text-muted);
-
-  &:hover {
-    color: var(--ui-text);
-    text-decoration: underline;
-  }
-}
-
-.RecordCard__parentCreator {
-  color: var(--ui-text-dimmed);
-  font-weight: 400;
-
-  & a {
-    color: var(--ui-text-muted);
-    font-weight: 500;
-
-    &:hover {
-      color: var(--ui-text);
-      text-decoration: underline;
-    }
   }
 }
 

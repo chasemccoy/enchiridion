@@ -136,6 +136,7 @@
             linkDirection="incoming"
             :modelValue="child.sourceId"
             :truncate="false"
+            :showParent="false"
             @updatePredicate="(predicate) => handleUpdatePredicate({ link: child, predicate })"
             @deleteLink="() => handleDeleteLink({ linkId: child.id })"
           />
