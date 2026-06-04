@@ -27,9 +27,11 @@
 <script setup lang="ts">
 import SplitViewLayout from '@app/components/SplitViewLayout.vue';
 import useRecords from '@app/composables/useRecords';
+import { RouteName } from '@app/router';
 import { computed, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
+const route = useRoute();
 const router = useRouter();
 
 const isEmpty = computed(() => !data.value || data.value.length === 0);
@@ -56,13 +58,23 @@ const { data } = useRecords({
   ],
 });
 
+// Auto-select the first record only when the user arrives on the bare /inbox
+// path. If they came in via a deep link like /inbox/record/foo we leave their
+// selection alone — `route.name` resolves to `inbox` only when no child route
+// matched.
 const cancelWatch = watch(
   data,
   () => {
     if (!data.value) return;
+    if (route.name !== RouteName.inbox) {
+      // Defer the unsubscribe — with `immediate: true` the first callback
+      // fires synchronously during the watch() call, before `cancelWatch` is
+      // assigned, so a direct call would hit the TDZ.
+      nextTick(() => cancelWatch());
+      return;
+    }
 
     const firstRecord = data.value[0];
-
     if (!firstRecord) return;
 
     router.push(`/inbox/record/${firstRecord.slug}`);

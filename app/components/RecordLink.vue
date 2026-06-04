@@ -215,12 +215,9 @@ function handleDeleteLink() {
 .RecordLink__title,
 .RecordLink__creator a {
   font-weight: 500;
-  text-decoration: underline;
-  text-decoration-color: var(--ui-border-accented);
-  transition: text-decoration-color 0.15s ease-in-out;
 
   &:hover {
-    text-decoration-color: currentColor;
+    text-decoration: underline;
   }
 }
 

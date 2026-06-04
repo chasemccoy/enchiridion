@@ -5,24 +5,27 @@
   >
     <div class="ConceptDetail__header">
       <div class="ConceptDetail__titleBar">
-        <div
-          v-if="linkCount > 0"
-          class="ConceptDetail__linkCount"
-        >
-          {{ pluralize(linkCount, 'record', 'records') }}
-        </div>
-
         <TitleField
           v-model="modelValue.title"
           class="ConceptDetail__title"
+          :class="{ 'ConceptDetail__title--capitalize': isSingleWord }"
           :isFlush="false"
         />
 
-        <div class="ConceptDetail__actions">
-          <RelationshipSelect
-            :sourceRecordId="modelValue.id"
-            @createLink="handleCreateLink"
-          />
+        <div class="ConceptDetail__headerMeta">
+          <div
+            v-if="linkCount > 0"
+            class="ConceptDetail__linkCount"
+          >
+            {{ pluralize(linkCount, 'record', 'records') }}
+          </div>
+
+          <div class="ConceptDetail__actions">
+            <RelationshipSelect
+              :sourceRecordId="modelValue.id"
+              @createLink="handleCreateLink"
+            />
+          </div>
         </div>
       </div>
 
@@ -80,9 +83,10 @@ import RecordLinks from '@app/components/RecordLinks.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
 import type { LinkInsert, LinkSelect } from '@db/schema';
 import type { DbId } from '@shared/types/api';
-import { isPredicateType, type Predicate, type PredicateSlug } from '@shared/types';
+import { type Predicate, type PredicateSlug } from '@shared/types';
 import TitleField from '@app/components/TitleField.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
+import useRecordLinks from '@app/composables/useRecordLinks';
 import { computed } from 'vue';
 import { nullableStringField } from '@app/utils';
 import { pluralize } from '@shared/lib/formatting';
@@ -105,19 +109,27 @@ const { links, relatedRecords } = defineProps<{
 const summary = nullableStringField(modelValue, 'summary');
 const notes = nullableStringField(modelValue, 'notes');
 
-const linkCount = computed(() => {
-  if (!links) return 0;
-
-  const outgoingDescriptionLinks =
-    links.outgoingLinks?.filter((link) => isPredicateType(link.predicate, 'description')).length ??
-    0;
-
-  const incomingDescriptionLinks =
-    links.incomingLinks?.filter((link) => isPredicateType(link.predicate, 'description')).length ??
-    0;
-
-  return outgoingDescriptionLinks + incomingDescriptionLinks;
+// Single-word concept titles read better capitalised ("Blogging" vs "blogging");
+// multi-word titles are left as the user typed them so phrases like "communal
+// computing" don't get the awkward Title Case treatment.
+const isSingleWord = computed(() => {
+  const title = modelValue.value?.title?.trim();
+  return !!title && !/\s/.test(title);
 });
+
+// Use the same composable that RecordLinks renders from, so the header's
+// "X records" count always equals the number of rows shown below — including
+// related_to/reference/etc. links and virtual related-record entries, and
+// excluding containment links (which aren't surfaced here).
+const { linksByPredicateName } = useRecordLinks(
+  () => links,
+  () => relatedRecords,
+  () => modelValue.value?.id,
+);
+
+const linkCount = computed(() =>
+  Object.values(linksByPredicateName.value).reduce((sum, group) => sum + group.length, 0),
+);
 
 function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
   if (!modelValue.value) return;
@@ -151,52 +163,48 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 .ConceptDetail__header {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
   gap: 1rem;
 }
 
 .ConceptDetail__titleBar {
-  display: grid;
-  align-items: baseline;
-  grid-template-columns: 1fr 60% 1fr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
   width: 100%;
 }
 
 .ConceptDetail__title {
-  text-align: center;
   text-wrap: balance;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ConceptDetail__headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 0 0 auto;
 }
 
 .ConceptDetail__linkCount {
-  justify-self: start;
   font-size: 0.875rem;
   color: var(--ui-text-dimmed);
 }
 
 .ConceptDetail__actions {
   display: flex;
-  justify-content: center;
-  justify-self: end;
-}
-
-.ConceptDetail__linkCount,
-.ConceptDetail__actions {
-  position: relative;
-  top: -2px;
-}
-
-.ConceptDetail__linkCount {
-  top: -4px;
 }
 
 :deep(.ConceptDetail__title .TitleField__input) {
-  text-align: center;
-  text-transform: capitalize;
   font-family: var(--font-serif);
-  font-weight: bold;
+  font-weight: 400;
   font-size: 2rem;
   line-height: 1.2;
+}
+
+.ConceptDetail__title--capitalize :deep(.TitleField__input) {
+  text-transform: capitalize;
 }
 
 .ConceptDetail__metadata {
