@@ -194,11 +194,13 @@ export const status: CommandHandler = async (_args, options) => {
         db.all(sql`SELECT COUNT(*) AS c FROM ${sql.identifier(VEC_META_TABLE)}`) as { c: number }[]
       )[0]?.c ?? 0,
     ),
-    db.all(
-      sql`SELECT integration_type AS integration, MAX(run_end_time) AS lastRun
-          FROM integration_runs WHERE status = 'success'
-          GROUP BY integration_type`,
-    ) as Promise<{ integration: string; lastRun: string | null }[]>,
+    Promise.resolve(
+      db.all(
+        sql`SELECT integration_type AS integration, MAX(run_end_time) AS lastRun
+            FROM integration_runs WHERE status = 'success'
+            GROUP BY integration_type`,
+      ) as { integration: string; lastRun: string | null }[],
+    ),
   ]);
 
   const byType = Object.fromEntries(recordCounts.map((row) => [row.type, row.count]));

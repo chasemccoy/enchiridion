@@ -13,15 +13,26 @@ export interface ParsedArgs {
 
 export type RawCLIOptions = Record<string, string | boolean | number | undefined>;
 
+/**
+ * A value safe to ship through the CLI's JSON envelope.
+ *
+ * The object case uses lowercase `object` instead of `{[k: string]: ResultValue}`
+ * on purpose: TypeScript's index-signature check is strict and would reject any
+ * typed interface (`RecordSelect`, `SimilarRecord`, …) that doesn't explicitly
+ * declare `[k: string]: …` — even though those interfaces are perfectly
+ * JSON-serialisable. `object` accepts any non-primitive without that ceremony,
+ * which gives us a meaningful constraint (no functions, no symbols, no naked
+ * `unknown`) without forcing every domain type to grow an index signature.
+ */
 export type ResultValue =
-  | undefined
   | string
   | number
   | boolean
   | null
+  | undefined
   | Date
-  | ResultValue[]
-  | { [key: string]: ResultValue };
+  | readonly ResultValue[]
+  | object;
 
 export interface ResultMeta {
   count?: number;

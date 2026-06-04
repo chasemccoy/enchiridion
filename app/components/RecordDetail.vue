@@ -282,7 +282,7 @@
           :key="entry.record.id"
         >
           <RecordLink
-            class="RecordDetail__recordLink shadow-xs"
+            class="RecordDetail__recordLink shadow-xxs"
             :modelValue="entry.record.id"
           />
         </li>
@@ -533,6 +533,19 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .RecordDetail__links {
   margin-top: 16px;
+}
+
+/* Match the elevated-card look used by RecordLinks for tag/related/format panels. */
+.RecordDetail__linksSection {
+  margin-top: 16px;
+  border-radius: var(--radius-xl);
+  padding: 2px;
+  break-inside: avoid;
+  background-color: var(--ui-bg-elevated);
+}
+
+.RecordDetail__linksSectionTitle {
+  padding: 4px 12px 6px;
 }
 
 .RecordDetail__recordLink {

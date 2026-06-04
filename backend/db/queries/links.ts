@@ -1,7 +1,7 @@
 import { db } from '@db/index';
 import { links, type LinkInsert, type LinkSelect } from '@db/schema';
 import type { APIResponse } from '@shared/types/api';
-import { getPredicate } from '@shared/types';
+import { getPredicate, type PredicateSlug } from '@shared/types';
 import { eq, sql } from 'drizzle-orm';
 
 export const deleteLink = async (linkId: LinkSelect['id']) => {
@@ -18,7 +18,7 @@ export const upsertLink = async (link: LinkInsert) => {
   let { sourceId, targetId, predicate: predicateSlug } = link;
 
   if (!predicate.canonical) {
-    const inverse = getPredicate(predicate.inverseSlug as typeof predicate.slug);
+    const inverse = getPredicate(predicate.inverseSlug as PredicateSlug);
 
     if (!inverse.canonical) {
       throw new Error('Non-canonical predicate is not reversible');

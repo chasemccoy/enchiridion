@@ -151,7 +151,7 @@ export async function parseJsonInput<T extends ResultValue>(
     throw createError('VALIDATION_ERROR', 'No JSON input provided');
   }
 
-  let parsed: ResultValue;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(jsonStr);
   } catch {

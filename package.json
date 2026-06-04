@@ -15,7 +15,7 @@
   },
   "scripts": {
     "cli": "tsx backend/cli/ench/index.ts",
-    "lint": "prettier --write . && eslint . --fix && vue-tsc --noEmit",
+    "lint": "prettier --write . && eslint . --fix && vue-tsc -b",
     "dev:app": "vite --host",
     "dev:backend": "tsx watch backend/api/index.ts",
     "health-check": "tsx scripts/health-check.ts",

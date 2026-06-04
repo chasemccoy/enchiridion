@@ -6,7 +6,7 @@
 import { formatErrorResult } from './errors';
 import type { OutputFormat, ResultMeta, ResultValue, SuccessResult } from './types';
 
-type RecordValue = { [key: string]: ResultValue };
+type RecordValue = Record<string, ResultValue>;
 
 function isRecordValue(value: ResultValue): value is RecordValue {
   return (
