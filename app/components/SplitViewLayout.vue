@@ -200,6 +200,15 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
     margin-top: 6px;
   }
 
+  /* Vertical-list mode (detail open): let the browser skip rendering offscreen
+     cards. The intrinsic-size estimate reserves scroll height so jump-to-anchor
+     and scrollbars stay correct. Disabled in column mode below because CSS
+     columns need every item present to balance. */
+  .SplitViewLayout:not(.SplitViewLayout--empty) & > li {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 220px;
+  }
+
   .SplitViewLayout--empty & {
     columns: 30ch 3;
 

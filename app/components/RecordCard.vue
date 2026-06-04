@@ -250,6 +250,7 @@ const tags = computed(() => {
   border-radius: var(--radius-lg);
   padding: 12px;
   gap: 6px;
+  contain: content;
 
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
@@ -262,8 +263,7 @@ const tags = computed(() => {
   }
 
   &:has(.RouterLink--isActive) {
-    outline: 2px solid var(--ui-primary);
-    outline-offset: 2px;
+    box-shadow: inset 0 0 0 2px var(--ui-primary);
   }
 }
 

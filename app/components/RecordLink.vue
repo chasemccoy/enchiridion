@@ -190,6 +190,7 @@ function handleDeleteLink() {
   border-radius: var(--radius-lg);
   background-color: var(--ui-bg);
   border: 0.5px solid var(--ui-border);
+  contain: content;
 }
 
 .RecordLink__header {
