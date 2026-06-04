@@ -118,7 +118,7 @@ const isSingleWord = computed(() => {
 });
 
 // Use the same composable that RecordLinks renders from, so the header's
-// "X records" count always equals the number of rows shown below — including
+// "X records" count always equals the number of rows shown below, including
 // related_to/reference/etc. links and virtual related-record entries, and
 // excluding containment links (which aren't surfaced here).
 const { linksByPredicateName } = useRecordLinks(

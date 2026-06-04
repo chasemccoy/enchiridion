@@ -126,9 +126,9 @@ const {
   includeChildren?: boolean;
   /**
    * Show a parent reference chip on untitled records. Defaults to true. Pass
-   * false when the surrounding context already establishes the parent — e.g.
+   * false when the surrounding context already establishes the parent (e.g.
    * the children list on a record detail page, where every row's parent IS
-   * the record being viewed.
+   * the record being viewed).
    *
    * (Named to match `RecordCard.showParent` for cross-component consistency,
    * though the defaults differ: RecordCard is opt-in because most pages don't
@@ -184,7 +184,7 @@ const tags = computed(() => {
 
 // The canonical containment outgoings (contained_by, quotes) point at the
 // record's parent. Surfaced as a small chip only when the link has no title
-// of its own — titled links already self-identify, so the parent reference
+// of its own. Titled links already self-identify, so the parent reference
 // would be noise.
 const parentPredicates: PredicateSlug[] = ['contained_by', 'quotes'];
 const parent = computed(() => {

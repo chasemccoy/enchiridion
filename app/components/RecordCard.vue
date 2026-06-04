@@ -157,7 +157,7 @@ const { to, expanded, preferContent, showParent } = defineProps<{
   /**
    * Show a small inset reference to the record's parent (contained_by / quotes
    * target) above the title. Used on the search page so a hit that's nested
-   * inside a larger work — a highlight from a book, a quote from an article —
+   * inside a larger work (a highlight from a book, a quote from an article)
    * carries that context with it.
    */
   showParent?: boolean;
@@ -181,7 +181,7 @@ const creator = computed(() => {
 });
 
 // The canonical containment outgoings (contained_by, quotes) point at the
-// record's parent. Whichever shows up first wins — records rarely have more
+// record's parent. Whichever shows up first wins; records rarely have more
 // than one containment parent.
 const parentPredicates: PredicateSlug[] = ['contained_by', 'quotes'];
 const parent = computed(() => {
@@ -190,7 +190,7 @@ const parent = computed(() => {
     outgoingLinks.value.find((link) => parentPredicates.includes(link.predicate))?.target ?? null
   );
 });
-// True when we're actually going to render the parent chip — used to suppress
+// True when we're actually going to render the parent chip. Used to suppress
 // the record's own "at <url>" byline since the chip already carries the
 // source context.
 const showParentRef = computed(() => Boolean(showParent && parent.value));

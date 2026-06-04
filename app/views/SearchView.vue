@@ -58,16 +58,18 @@
 
       <div class="SearchView__divider" />
 
-      <UCheckbox
-        v-model="curatedOnly"
-        label="Curated only"
-        size="xs"
-      />
-      <UCheckbox
-        v-model="hasMediaOnly"
-        label="Has media"
-        size="xs"
-      />
+      <div class="SearchView__checkboxes">
+        <UCheckbox
+          v-model="curatedOnly"
+          label="Curated only"
+          size="xs"
+        />
+        <UCheckbox
+          v-model="hasMediaOnly"
+          label="Has media"
+          size="xs"
+        />
+      </div>
 
       <div class="SearchView__sort">
         <span class="SearchView__label">Sort:</span>
@@ -103,6 +105,39 @@
         name="i-lucide-loader-2"
         class="SearchView__spinner"
       />
+    </div>
+
+    <div
+      v-else-if="!hasQuery"
+      class="SearchView__empty"
+    >
+      <UIcon
+        name="i-lucide-telescope"
+        class="SearchView__emptyIcon"
+      />
+      <h2 class="SearchView__emptyHeadline">Search the knowledge base</h2>
+      <p class="SearchView__emptyHint">
+        <template v-if="mode === 'semantic'">
+          Semantic mode finds records by meaning. Paraphrases, synonyms, and
+          related concepts all count.
+        </template>
+        <template v-else>
+          Full-text mode matches exact words and phrases across titles, content,
+          summaries, and notes.
+        </template>
+      </p>
+      <div class="SearchView__emptySuggestions">
+        <UButton
+          v-for="suggestion in suggestions"
+          :key="suggestion"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          @click="qInput = suggestion"
+        >
+          {{ suggestion }}
+        </UButton>
+      </div>
     </div>
 
     <ul
@@ -149,6 +184,16 @@ const sortOptions: { id: SortKey; label: string }[] = [
   { id: 'oldest', label: 'Oldest' },
   { id: 'title', label: 'Title A–Z' },
 ];
+
+// Hand-picked example queries shown in the empty state. They double as a hint
+// about what semantic vs. full-text mode is good at: abstract phrasings for
+// semantic, concrete keywords for full-text.
+const semanticSuggestions = [
+  'ways of thinking about links',
+  'tools for personal knowledge',
+  'the texture of the web',
+];
+const keywordSuggestions = ['hypertext', 'typography', 'rss'];
 
 const isSearchMode = (value: unknown): value is SearchMode =>
   value === 'keyword' || value === 'semantic';
@@ -227,6 +272,10 @@ const hasQuery = computed(() => q.value.trim().length > 0);
 const keywordEnabled = computed(() => hasQuery.value && mode.value === 'keyword');
 const semanticEnabled = computed(() => hasQuery.value && mode.value === 'semantic');
 
+const suggestions = computed(() =>
+  mode.value === 'semantic' ? semanticSuggestions : keywordSuggestions,
+);
+
 const {
   data: keywordData,
   isFetching: keywordFetching,
@@ -302,12 +351,17 @@ watch(
 
 <style scoped>
 .SearchView {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 24px 32px 96px;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+  /* Fill the viewport at minimum so the page never collapses to just the
+   * header/toolbar (empty state, no-results, single-row results). 100dvh
+   * over 100vh so the dynamic mobile browser chrome doesn't cut off the bottom. */
+  min-height: 100dvh;
 }
 
 .SearchView__header {
@@ -346,7 +400,6 @@ watch(
   gap: 8px;
   padding-block: 8px;
   border-bottom: 0.5px solid var(--ui-border);
-  background-color: var(--ui-bg);
   font-size: 12px;
   color: var(--ui-text-muted);
 }
@@ -369,6 +422,12 @@ watch(
   color: var(--ui-text-dimmed);
 }
 
+.SearchView__checkboxes {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .SearchView__sort {
   display: inline-flex;
   align-items: center;
@@ -387,6 +446,56 @@ watch(
   padding: 64px 0;
   color: var(--ui-text-dimmed);
 }
+
+.SearchView__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--ui-text-muted);
+  max-width: 540px;
+  width: 100%;
+  margin: 0 auto;
+  /* Stretch to absorb whatever space is left after header/toolbar so the
+   * content visually centres in the remaining viewport. */
+  flex: 1;
+}
+
+.SearchView__emptyIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--ui-text-dimmed);
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.SearchView__emptyHeadline {
+  font-family: var(--font-serif, 'Georgia', serif);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--ui-text);
+  font-weight: 400;
+}
+
+.SearchView__emptyHint {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ui-text-muted);
+  text-wrap: balance;
+}
+
+.SearchView__emptySuggestions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 
 .SearchView__spinner {
   width: 24px;

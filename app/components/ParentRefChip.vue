@@ -24,7 +24,7 @@
  *   - `RecordCard` on the search page, where every card with a parent shows
  *     it (so a highlight hit knows which book/article it came from).
  *   - `RecordLink` on record-detail pages, but only when the link itself has
- *     no title — titled links don't need the extra context.
+ *     no title. Titled links don't need the extra context.
  *
  * The chip lazily fetches the parent record so it can show the parent's
  * creator alongside the title. TanStack Query caches per parent id, so

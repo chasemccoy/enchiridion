@@ -60,14 +60,14 @@ const { data } = useRecords({
 
 // Auto-select the first record only when the user arrives on the bare /inbox
 // path. If they came in via a deep link like /inbox/record/foo we leave their
-// selection alone — `route.name` resolves to `inbox` only when no child route
-// matched.
+// selection alone (`route.name` resolves to `inbox` only when no child route
+// matched).
 const cancelWatch = watch(
   data,
   () => {
     if (!data.value) return;
     if (route.name !== RouteName.inbox) {
-      // Defer the unsubscribe — with `immediate: true` the first callback
+      // Defer the unsubscribe: with `immediate: true` the first callback
       // fires synchronously during the watch() call, before `cancelWatch` is
       // assigned, so a direct call would hit the TDZ.
       nextTick(() => cancelWatch());
