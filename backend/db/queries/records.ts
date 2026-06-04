@@ -52,7 +52,15 @@ export const getRecordBySlug = (slug: RecordSelect['slug']) => {
 
 export type GetRecordBySlugAPIResponse = APIResponse<typeof getRecordBySlug>;
 
-const creationOrDescriptionSlugs = [...creationPredicateSlugs, ...descriptionPredicateSlugs];
+// Predicates whose outgoing edges we surface inline on each record card.
+// Creation = "by <author>", description = tags/format, containment = parent
+// (search results show the parent inline so a hit knows which book/article it
+// came from).
+const inlineOutgoingPredicateSlugs = [
+  ...creationPredicateSlugs,
+  ...descriptionPredicateSlugs,
+  ...containmentPredicateSlugs,
+];
 
 export const listRecords = async (input: ListRecordsInput = {}) => {
   const { filters, limit, offset, orderBy } = ListRecordsInputSchema.parse(input);
@@ -94,7 +102,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
         },
         where: {
           predicate: {
-            in: creationOrDescriptionSlugs,
+            in: inlineOutgoingPredicateSlugs,
           },
         },
         with: {

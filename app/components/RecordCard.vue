@@ -5,15 +5,36 @@
     :class="{ 'RecordCard--expanded': expanded }"
   >
     <h1
-      v-if="modelValue.title"
+      v-if="modelValue.title || (showParent && parent)"
       class="RecordCard__title"
     >
-      <RouterLink :to="href">
+      <span
+        v-if="showParent && parent"
+        class="RecordCard__parent"
+      >
+        <span class="RecordCard__parentIconWrap">
+          <UIcon
+            name="i-lucide-corner-down-right"
+            class="RecordCard__parentIcon"
+          />
+        </span>
+        <span class="RecordCard__parentText">
+          <RouterLink
+            class="RecordCard__parentTitle"
+            :to="`/${parent.slug}`"
+          >{{ parent.title ?? parent.slug }}</RouterLink><template v-if="parentCreator"><span class="RecordCard__parentCreator"> by <RouterLink :to="`/${parentCreator.slug}`">{{ parentCreator.title }}</RouterLink></span></template>
+        </span>
+      </span>
+
+      <RouterLink
+        v-if="modelValue.title"
+        :to="href"
+      >
         {{ modelValue.title }}
       </RouterLink>
 
       <span
-        v-if="creator || modelValue.url"
+        v-if="creator || (modelValue.url && !showParentRef)"
         class="RecordCard__byline"
       >
         <span
@@ -33,7 +54,7 @@
         </span>
 
         <LinkWithFavicon
-          v-if="modelValue.url"
+          v-if="modelValue.url && !showParentRef"
           prefix="at"
           :modelValue="modelValue.url"
         />
@@ -128,8 +149,9 @@ import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
 import { capitalize, computed } from 'vue';
 import { formatDate, pluralize, slugify } from '@shared/lib/formatting';
-import { isPredicateType } from '@shared/types';
+import { isPredicateType, type PredicateSlug } from '@shared/types';
 import useApiClient from '@app/composables/useApiClient';
+import useRecord from '@app/composables/useRecord';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import { getIconForRecordType } from '@app/utils';
 import ChatBubble from '@app/components/ChatBubble.vue';
@@ -137,12 +159,19 @@ import MarkdownRender from '@app/components/MarkdownRender.vue';
 
 const modelValue = defineModel<ListRecordsAPIResponse[number]>({ required: true });
 
-const { to, expanded, preferContent } = defineProps<{
+const { to, expanded, preferContent, showParent } = defineProps<{
   to?: string;
   /** Render summary/content without the 4-line clamp. */
   expanded?: boolean;
   /** Show the record's `content` instead of `summary` when both exist. */
   preferContent?: boolean;
+  /**
+   * Show a small inset reference to the record's parent (contained_by / quotes
+   * target) above the title. Used on the search page so a hit that's nested
+   * inside a larger work — a highlight from a book, a quote from an article —
+   * carries that context with it.
+   */
+  showParent?: boolean;
 }>();
 
 const { backendBaseUrl } = useApiClient();
@@ -160,6 +189,37 @@ const creator = computed(() => {
   if (!outgoingLinks.value) return null;
 
   return outgoingLinks.value.find((link) => link.predicate === 'created_by')?.target ?? null;
+});
+
+// The canonical containment outgoings (contained_by, quotes) point at the
+// record's parent. Whichever shows up first wins — records rarely have more
+// than one containment parent.
+const parentPredicates: PredicateSlug[] = ['contained_by', 'quotes'];
+const parent = computed(() => {
+  if (!outgoingLinks.value) return null;
+  return (
+    outgoingLinks.value.find((link) => parentPredicates.includes(link.predicate))?.target ?? null
+  );
+});
+// True when we're actually going to render the parent chip — used to suppress
+// the record's own "at <url>" byline since the chip already carries the
+// source context.
+const showParentRef = computed(() => Boolean(showParent && parent.value));
+
+// Fetch the parent's full record (only when we're actually going to show the
+// parent chip) so we can surface its creator alongside the title. Cached by
+// TanStack Query so navigating to the parent later doesn't re-fetch.
+const { getRecord: getParentRecord } = useRecord();
+const parentId = computed(() => parent.value?.id ?? null);
+const { data: parentRecord } = getParentRecord(
+  parentId,
+  () => showParent && parentId.value != null,
+);
+const parentCreator = computed(() => {
+  return (
+    parentRecord.value?.outgoingLinks?.find((link) => link.predicate === 'created_by')?.target ??
+    null
+  );
 });
 
 const childrenCount = computed(() => {
@@ -202,6 +262,67 @@ const tags = computed(() => {
   &:has(.RouterLink--isActive) {
     outline: 2px solid var(--ui-primary);
     outline-offset: 2px;
+  }
+}
+
+.RecordCard__parent {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border-radius: var(--radius-md);
+  background-color: var(--ui-bg-elevated);
+  color: var(--ui-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+/* Wrapper height matches the text's line-height (1.2em) so the icon stays
+ * vertically centred on the FIRST line of text — not centred against the
+ * whole text block when the title/creator wraps to multiple lines. */
+.RecordCard__parentIconWrap {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 1.2em;
+}
+
+.RecordCard__parentIcon {
+  width: 12px;
+  height: 12px;
+  color: var(--ui-text-dimmed);
+}
+
+/* Inline text block: title and creator flow as one paragraph so when the
+ * creator wraps it sits under the title — not under the icon. */
+.RecordCard__parentText {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.RecordCard__parentTitle {
+  color: var(--ui-text-muted);
+
+  &:hover {
+    color: var(--ui-text);
+    text-decoration: underline;
+  }
+}
+
+.RecordCard__parentCreator {
+  color: var(--ui-text-dimmed);
+  font-weight: 400;
+
+  & a {
+    color: var(--ui-text-muted);
+    font-weight: 500;
+
+    &:hover {
+      color: var(--ui-text);
+      text-decoration: underline;
+    }
   }
 }
 

@@ -1,15 +1,19 @@
 import { db } from '@db/index';
 import { isEmbeddingEnabled, searchRecordsByEmbedding } from '@integrations/embeddings';
 import {
+  containmentPredicateSlugs,
   creationPredicateSlugs,
   descriptionPredicateSlugs,
   type PredicateSlug,
 } from '@shared/types';
 import type { APIResponse } from '@shared/types/api';
 
-const creationOrDescriptionSlugs: PredicateSlug[] = [
+// Mirrors `inlineOutgoingPredicateSlugs` in queries/records.ts so semantic-
+// search hits expose the same outgoing-link shape as `listRecords`.
+const inlineOutgoingPredicateSlugs: PredicateSlug[] = [
   ...creationPredicateSlugs,
   ...descriptionPredicateSlugs,
+  ...containmentPredicateSlugs,
 ];
 
 export interface SemanticSearchInput {
@@ -61,7 +65,7 @@ export const semanticSearchListRecords = async ({
         },
         where: {
           predicate: {
-            in: creationOrDescriptionSlugs,
+            in: inlineOutgoingPredicateSlugs,
           },
         },
         with: {

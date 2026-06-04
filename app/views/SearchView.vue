@@ -118,6 +118,7 @@
           v-model="sortedResults[idx]!"
           expanded
           preferContent
+          showParent
         />
       </li>
     </ul>
