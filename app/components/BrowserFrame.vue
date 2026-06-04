@@ -39,9 +39,19 @@ const displayUrl = computed(() => {
   }
 });
 
+// Sites known to refuse framing (X-Frame-Options / CSP frame-ancestors). Match
+// is a hostname substring so subdomains like `gist.github.com` or `m.twitter.com`
+// get caught too. Add more as you encounter them.
+const BLOCKED_HOSTS = ['readwise', 'github', 'twitter', 'notion', 'medium'];
+
 const isSupportedUrl = computed(() => {
-  const blocklist = ['readwise.io', 'readwise.com'];
-  return !blocklist.some((str) => props.url.includes(str));
+  let host: string;
+  try {
+    host = new URL(props.url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return !BLOCKED_HOSTS.some((blocked) => host.includes(blocked));
 });
 </script>
 
@@ -88,7 +98,11 @@ const isSupportedUrl = computed(() => {
 .BrowserFrame__urlBar {
   display: flex;
   align-items: center;
-  background-color: white;
+  /* `--ui-bg` is the page surface — lighter than the surrounding `--ui-bg-
+   * elevated` chrome in light mode (white on gray) and darker than it in dark
+   * mode (deep gray on slightly-lighter chrome), so we keep the recessed
+   * look in both themes. */
+  background-color: var(--ui-bg);
   border-radius: 6px;
   padding: 6px 8px;
   min-width: 0;
@@ -97,6 +111,7 @@ const isSupportedUrl = computed(() => {
 
 .BrowserFrame__url {
   font-size: 0.8rem;
+  color: var(--ui-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
