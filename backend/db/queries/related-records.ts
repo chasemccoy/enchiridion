@@ -19,7 +19,6 @@ export interface RelatedRecordWithPath {
 export const findAllRelatedRecords = async (
   recordSlug: RecordSelect['slug'],
 ): Promise<RelatedRecordWithPath[]> => {
-  // Get the starting record
   const startRecord = await db.query.records.findFirst({
     where: { slug: recordSlug },
     columns: { id: true },
@@ -29,108 +28,41 @@ export const findAllRelatedRecords = async (
     throw new Error(`Record with slug "${recordSlug}" not found`);
   }
 
+  // Pull every `related_to` link in one shot. The links_predicate_idx makes
+  // this fast even with many links, and it lets the BFS run entirely in memory
+  // instead of hitting the DB twice per node visited.
+  const allRelatedLinks = await db.query.links.findMany({
+    where: { predicate: 'related_to' },
+  });
+
+  // Build an adjacency map keyed by record id. Each entry records the link that
+  // connects the two records, in whichever direction the link is oriented.
+  const adjacency = new Map<number, Array<{ link: LinkSelect; otherId: number }>>();
+  for (const link of allRelatedLinks) {
+    if (!adjacency.has(link.sourceId)) adjacency.set(link.sourceId, []);
+    if (!adjacency.has(link.targetId)) adjacency.set(link.targetId, []);
+    adjacency.get(link.sourceId)!.push({ link, otherId: link.targetId });
+    adjacency.get(link.targetId)!.push({ link, otherId: link.sourceId });
+  }
+
   const visitedRecordIds = new Set<number>([startRecord.id]);
-
-  // Map from record ID to the path of links connecting it to the start record
   const recordPaths = new Map<number, LinkSelect[]>();
-
-  // Queue stores [recordId, pathToRecord]
   const queue: Array<[number, LinkSelect[]]> = [[startRecord.id, []]];
 
-  // Breadth-first traversal of the related_to graph
   while (queue.length > 0) {
     const [currentRecordId, currentPath] = queue.shift()!;
+    const neighbors = adjacency.get(currentRecordId);
+    if (!neighbors) continue;
 
-    // Find all records related to the current record via `related_to` predicate
-    // Check both outgoing links (current -> related) and incoming links (related -> current)
-    const outgoingLinks = await db.query.links.findMany({
-      where: {
-        sourceId: currentRecordId,
-        predicate: 'related_to',
-      },
-      with: {
-        source: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-        target: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-      },
-    });
-
-    const incomingLinks = await db.query.links.findMany({
-      where: {
-        targetId: currentRecordId,
-        predicate: 'related_to',
-      },
-      with: {
-        source: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-        target: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-      },
-    });
-
-    // Process outgoing links
-    for (const link of outgoingLinks) {
-      const relatedId = link.targetId;
-
-      // Skip if we've already visited this record
-      if (visitedRecordIds.has(relatedId)) {
-        continue;
-      }
-
-      // Mark as visited
-      visitedRecordIds.add(relatedId);
-
-      // Create new path by appending this link
+    for (const { link, otherId } of neighbors) {
+      if (visitedRecordIds.has(otherId)) continue;
+      visitedRecordIds.add(otherId);
       const newPath = [...currentPath, link];
-      recordPaths.set(relatedId, newPath);
-
-      // Add to queue to continue traversal
-      queue.push([relatedId, newPath]);
-    }
-
-    // Process incoming links
-    for (const link of incomingLinks) {
-      const relatedId = link.sourceId;
-
-      // Skip if we've already visited this record
-      if (visitedRecordIds.has(relatedId)) {
-        continue;
-      }
-
-      // Mark as visited
-      visitedRecordIds.add(relatedId);
-
-      // Create new path by appending this link
-      const newPath = [...currentPath, link];
-      recordPaths.set(relatedId, newPath);
-
-      // Add to queue to continue traversal
-      queue.push([relatedId, newPath]);
+      recordPaths.set(otherId, newPath);
+      queue.push([otherId, newPath]);
     }
   }
 
-  // Fetch all related records
   if (recordPaths.size === 0) {
     return [];
   }
@@ -144,7 +76,6 @@ export const findAllRelatedRecords = async (
     },
   });
 
-  // Combine records with their paths
   return records.map((record) => ({
     record,
     path: recordPaths.get(record.id) ?? [],

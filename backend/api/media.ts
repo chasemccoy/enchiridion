@@ -223,9 +223,7 @@ mediaRoutes.delete('/media/record/:id', async (req, res, next) => {
     const { id } = IdParamSchema.parse(req.params);
     const media = await deleteMediaForRecord(id);
 
-    for (const m of media) {
-      await deleteMediaFile(m.url);
-    }
+    await Promise.all(media.map((m) => deleteMediaFile(m.url)));
 
     res.json(media);
   } catch (error) {

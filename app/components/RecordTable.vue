@@ -19,6 +19,10 @@
         v-if="row.original.media?.[0]"
         class="RecordTable__media"
         :src="`${backendBaseUrl}${row.original.media[0].url}`"
+        width="120"
+        height="120"
+        loading="lazy"
+        decoding="async"
       />
       <div class="RecordTable__titleCellContent">
         <div
@@ -92,15 +96,38 @@ const props = defineProps<{
 const router = useRouter();
 const { backendBaseUrl } = useApiClient();
 
-const creatorCache = new Map<
-  number,
-  ListRecordsAPIResponse[number]['outgoingLinks'][number]['target'] | null
->();
+type RecordRow = ListRecordsAPIResponse[number];
+type LinkTarget = RecordRow['outgoingLinks'][number]['target'];
 
-const tagsCache = new Map<
-  number,
-  ListRecordsAPIResponse[number]['outgoingLinks'][number]['target'][] | null
->();
+// Build per-record creator/tag lookups once per data change. The previous
+// implementation cached lazily on first cell access but recomputed on every
+// modelValue change only by accident — and templates call these helpers
+// multiple times per row, so the map lookup wins on both correctness and cost.
+const bylineByRecordId = computed(() => {
+  const map = new Map<number, { creator: LinkTarget | null; tags: LinkTarget[] }>();
+  const records = modelValue.value;
+  if (!records) return map;
+
+  for (const record of records) {
+    const outgoingLinks = record.outgoingLinks;
+    if (!outgoingLinks) {
+      map.set(record.id, { creator: null, tags: [] });
+      continue;
+    }
+
+    let creator: LinkTarget | null = null;
+    const tags: LinkTarget[] = [];
+    for (const link of outgoingLinks) {
+      if (!creator && link.predicate === 'created_by') {
+        creator = link.target;
+      } else if (isPredicateType(link.predicate, 'description')) {
+        tags.push(link.target);
+      }
+    }
+    map.set(record.id, { creator, tags });
+  }
+  return map;
+});
 
 const globalFilterOptions = {
   getColumnCanGlobalFilter: (column: TableColumn<ListRecordsAPIResponse[number]>) => {
@@ -203,47 +230,12 @@ const columns = [
   },
 ];
 
-function getCreator(row: TableRow<ListRecordsAPIResponse[number]>) {
-  const recordId = row.original.id;
-
-  if (creatorCache.has(recordId)) {
-    return creatorCache.get(recordId);
-  }
-
-  const outgoingLinks = row.original.outgoingLinks;
-
-  if (!outgoingLinks) {
-    creatorCache.set(recordId, null);
-    return null;
-  }
-
-  const creator = outgoingLinks.find((link) => link.predicate === 'created_by')?.target ?? null;
-
-  creatorCache.set(recordId, creator);
-  return creator;
+function getCreator(row: TableRow<RecordRow>): LinkTarget | null {
+  return bylineByRecordId.value.get(row.original.id)?.creator ?? null;
 }
 
-function getTags(row: TableRow<ListRecordsAPIResponse[number]>) {
-  const recordId = row.original.id;
-
-  if (tagsCache.has(recordId)) {
-    return tagsCache.get(recordId);
-  }
-
-  const outgoingLinks = row.original.outgoingLinks;
-
-  if (!outgoingLinks) {
-    tagsCache.set(recordId, null);
-    return null;
-  }
-
-  const tags =
-    outgoingLinks
-      .filter((link) => isPredicateType(link.predicate, 'description'))
-      ?.map((link) => link.target) ?? null;
-
-  tagsCache.set(recordId, tags);
-  return tags;
+function getTags(row: TableRow<RecordRow>): LinkTarget[] {
+  return bylineByRecordId.value.get(row.original.id)?.tags ?? [];
 }
 
 function handleRowSelect(_event: Event, row: TableRow<ListRecordsAPIResponse[number]>) {

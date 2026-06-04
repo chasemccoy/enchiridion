@@ -12,6 +12,10 @@
         v-if="faviconUrl"
         alt=""
         :src="faviconUrl"
+        width="16"
+        height="16"
+        loading="lazy"
+        decoding="async"
       />
       <a
         target="_blank"

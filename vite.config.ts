@@ -68,4 +68,18 @@ export default defineConfig({
   define: {
     'import.meta.env.BACKEND_PORT': BACKEND_PORT,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@nuxt/ui') || id.includes('reka-ui')) return 'vendor-ui';
+          if (id.includes('@tanstack')) return 'vendor-query';
+          if (id.includes('markdown-it') || id.includes('dompurify')) return 'vendor-markdown';
+          if (id.includes('/vue-router/') || id.includes('/vue/') || id.includes('@vueuse'))
+            return 'vendor-vue';
+        },
+      },
+    },
+  },
 });
