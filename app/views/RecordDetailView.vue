@@ -46,6 +46,7 @@ import useLink from '@app/composables/useLink';
 import type { DbId } from '@shared/types/api';
 import useRelatedRecords from '@app/composables/useRelatedRecords';
 import ConceptDetail from '@app/components/ConceptDetail.vue';
+import { RouteName } from '@app/router';
 
 const router = useRouter();
 const route = useRoute();
@@ -170,7 +171,14 @@ function handleDeleteRecord(id: DbId) {
   deleteRecordMutation(id, {
     onSuccess: (record) => {
       const parentRoute = route.matched[route.matched.length - 2];
-      if (route.matched.length > 1 && parentRoute) {
+      // Inbox owns its own post-delete navigation (advance to the next record
+      // in the list). Other routes don't have that logic, so fall back to
+      // popping up to the parent.
+      if (
+        route.matched.length > 1 &&
+        parentRoute &&
+        parentRoute.name !== RouteName.inbox
+      ) {
         router.push(parentRoute.path);
       }
 

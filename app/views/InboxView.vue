@@ -73,7 +73,29 @@ function selectFirstIfBare() {
   router.push(`/inbox/record/${firstRecord.slug}`);
 }
 
-watch(data, selectFirstIfBare, { immediate: true });
+// When the currently-selected record drops out of the inbox list (curated or
+// deleted), advance to the record that now occupies the same slot. Falls back
+// to the last record if we were at the tail, or to /inbox when the list is
+// empty.
+watch(data, (next, prev) => {
+  selectFirstIfBare();
+
+  const currentSlug = route.params.slug as string | undefined;
+  if (!currentSlug || !prev || !next) return;
+  if (next.some((record) => record.slug === currentSlug)) return;
+
+  const prevIndex = prev.findIndex((record) => record.slug === currentSlug);
+  if (prevIndex < 0) return;
+
+  if (next.length === 0) {
+    router.push('/inbox');
+    return;
+  }
+
+  const nextRecord = next[Math.min(prevIndex, next.length - 1)];
+  if (nextRecord) router.push(`/inbox/record/${nextRecord.slug}`);
+}, { immediate: true });
+
 onActivated(selectFirstIfBare);
 </script>
 

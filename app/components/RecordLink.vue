@@ -35,10 +35,15 @@
       :parent="parent"
     />
 
+    <MarkdownRender
+      v-if="summary && !truncate"
+      class="RecordLink__summary RecordLink__summary--markdown"
+      :source="summary"
+    />
+
     <div
-      v-if="summary"
-      class="RecordLink__summary"
-      :class="{ 'RecordLink__summary--truncated': truncate }"
+      v-else-if="summary"
+      class="RecordLink__summary RecordLink__summary--truncated"
     >
       {{ summary }}
     </div>
@@ -97,6 +102,7 @@
 <script setup lang="ts">
 import ChatBubble from '@app/components/ChatBubble.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
+import MarkdownRender from '@app/components/MarkdownRender.vue';
 import ParentRefChip from '@app/components/ParentRefChip.vue';
 import PredicateSelect from '@app/components/PredicateSelect.vue';
 import useRecord from '@app/composables/useRecord';
@@ -288,6 +294,10 @@ function handleDeleteLink() {
   line-height: 1.15rem;
   color: var(--ui-text-muted);
   white-space: preserve wrap;
+}
+
+.RecordLink__summary--markdown {
+  white-space: normal;
 }
 
 .RecordLink:has(.RecordLink__title) .RecordLink__summary {
