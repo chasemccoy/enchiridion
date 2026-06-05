@@ -19,19 +19,20 @@
 
       <div class="EditableContent__actions">
         <UButton
-          color="primary"
-          size="xs"
-          label="Save"
-          icon="i-lucide-check"
-          @click="handleSave"
-        />
-        <UButton
           color="neutral"
-          variant="subtle"
+          variant="ghost"
           size="xs"
           label="Cancel"
           icon="i-lucide-x"
           @click="handleCancel"
+        />
+        <UButton
+          color="primary"
+          variant="ghost"
+          size="xs"
+          label="Save"
+          icon="i-lucide-check"
+          @click="handleSave"
         />
       </div>
     </template>
@@ -100,7 +101,7 @@ function handleCancel() {
 .EditableContent {
   position: relative;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .EditableContent__view {
@@ -165,8 +166,9 @@ function handleCancel() {
 
 .EditableContent__actions {
   display: flex;
-  gap: 6px;
+  gap: 2px;
   align-items: center;
+  justify-content: flex-end;
   padding-inline: 14px;
 }
 </style>

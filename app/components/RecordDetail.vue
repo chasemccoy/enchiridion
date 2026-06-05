@@ -297,7 +297,7 @@ import RecordLink from '@app/components/RecordLink.vue';
 import RecordLinks from '@app/components/RecordLinks.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
 import { capitalize, formatDate } from '@shared/lib/formatting';
-import { computed, onBeforeUnmount } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import type { LinkInsert, LinkSelect } from '@db/schema';
 import { isPredicateType, type Predicate, type PredicateSlug } from '@shared/types';
 import { getIconForRecordSource, getIconForRecordType, nullableStringField } from '@app/utils';
@@ -365,6 +365,10 @@ const children = computed(() => {
   if (!incomingLinks.value) return null;
 
   return incomingLinks.value.filter((link) => isPredicateType(link.predicate, 'containment'));
+});
+
+onMounted(() => {
+  document.addEventListener('paste', handlePaste);
 });
 
 onBeforeUnmount(() => {
