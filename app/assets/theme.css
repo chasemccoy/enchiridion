@@ -17,6 +17,11 @@
   --combinedFieldMinBadgeWidth: 88px;
 
   --ui-primary: var(--ui-color-primary-700);
+
+  /* Background color of the page. Sticky toolbars use this so they blend into
+   * the page bg instead of showing through as a different color. Light mode
+   * paints the body as --ui-bg-muted; dark mode falls back to --ui-bg. */
+  --page-bg: var(--ui-bg-muted);
 }
 
 * {
@@ -43,6 +48,8 @@ html.dark {
   --ui-border-muted: var(--ui-color-neutral-700);
   --ui-border-accented: var(--ui-color-neutral-800);
   --ui-border-inverted: var(--color-white);
+
+  --page-bg: var(--ui-bg);
 }
 
 html:not(.dark),
