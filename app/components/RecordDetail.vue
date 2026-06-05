@@ -2,7 +2,16 @@
   <div
     v-if="modelValue"
     class="RecordDetail"
+    @dragenter.prevent="handleDragEnter"
+    @dragover.prevent="handleDragOver"
+    @dragleave.prevent="handleDragLeave"
+    @drop.prevent="handleDrop"
   >
+    <div
+      v-if="isDraggingFile"
+      class="RecordDetail__dropOverlay"
+    />
+
     <div class="RecordDetail__badges">
       <UBadge
         v-if="modelValue.isCurated !== true"
@@ -297,7 +306,7 @@ import RecordLink from '@app/components/RecordLink.vue';
 import RecordLinks from '@app/components/RecordLinks.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
 import { capitalize, formatDate } from '@shared/lib/formatting';
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { LinkInsert, LinkSelect } from '@db/schema';
 import { isPredicateType, type Predicate, type PredicateSlug } from '@shared/types';
 import { getIconForRecordSource, getIconForRecordType, nullableStringField } from '@app/utils';
@@ -379,6 +388,41 @@ function handlePaste(event: ClipboardEvent) {
   emit('paste', event);
 }
 
+const isDraggingFile = ref(false);
+let dragDepth = 0;
+
+function dragHasFiles(event: DragEvent): boolean {
+  const types = event.dataTransfer?.types;
+  return !!types && Array.from(types).includes('Files');
+}
+
+function handleDragEnter(event: DragEvent) {
+  if (!dragHasFiles(event)) return;
+  dragDepth++;
+  isDraggingFile.value = true;
+}
+
+function handleDragOver(event: DragEvent) {
+  if (!dragHasFiles(event)) return;
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+}
+
+function handleDragLeave(event: DragEvent) {
+  if (!dragHasFiles(event)) return;
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) isDraggingFile.value = false;
+}
+
+function handleDrop(event: DragEvent) {
+  dragDepth = 0;
+  isDraggingFile.value = false;
+  const files = event.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+  for (const file of Array.from(files)) {
+    emit('fileUpload', file);
+  }
+}
+
 function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
   if (!modelValue.value) return;
 
@@ -402,10 +446,21 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 <style scoped>
 .RecordDetail {
+  position: relative;
   display: grid;
   gap: 1rem;
   max-width: 800px;
   margin: 0 auto;
+}
+
+.RecordDetail__dropOverlay {
+  position: absolute;
+  inset: -16px;
+  z-index: 10;
+  background-color: color-mix(in oklab, var(--ui-primary) 14%, transparent);
+  border: 2px dashed var(--ui-primary);
+  border-radius: var(--radius-xl);
+  pointer-events: none;
 }
 
 .RecordDetail__badges {
