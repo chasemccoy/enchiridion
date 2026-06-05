@@ -105,20 +105,11 @@
       </span>
     </div>
 
-    <UFormField
-      aria-label="Content"
-      size="xs"
+    <EditableContent
+      v-model="content"
       class="RecordDetail__content"
-    >
-      <UTextarea
-        v-model.trim="content"
-        size="xl"
-        placeholder="Write something about this record"
-        variant="none"
-        :rows="1"
-        autoresize
-      />
-    </UFormField>
+      placeholder="Write something about this record"
+    />
 
     <div v-if="children && children.length > 0">
       <ul
@@ -313,6 +304,7 @@ import { getIconForRecordSource, getIconForRecordType, nullableStringField } fro
 import type { DbId } from '@shared/types/api';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import TitleField from '@app/components/TitleField.vue';
+import EditableContent from '@app/components/EditableContent.vue';
 import CombinedFields from '@app/components/CombinedFields.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';

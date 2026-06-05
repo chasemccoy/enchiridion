@@ -6,7 +6,7 @@
   <template v-if="record">
     <ConceptDetail
       v-if="record.type === 'concept'"
-      :modelValue="record"
+      v-model="record"
       :links="links"
       :relatedRecords="relatedRecords"
       @fileDelete="handleMediaDelete"
@@ -16,7 +16,7 @@
     />
     <RecordDetail
       v-else
-      :modelValue="record"
+      v-model="record"
       :links="links"
       :relatedRecords="relatedRecords"
       :similarRecords="similarRecords"

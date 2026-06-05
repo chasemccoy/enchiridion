@@ -9,7 +9,6 @@
           v-model="modelValue.title"
           class="ConceptDetail__title"
           :class="{ 'ConceptDetail__title--capitalize': isSingleWord }"
-          :isFlush="false"
         />
 
         <div class="ConceptDetail__headerMeta">
@@ -64,6 +63,12 @@
       </div>
     </div>
 
+    <EditableContent
+      v-model="content"
+      class="ConceptDetail__content"
+      placeholder="Write something about this concept"
+    />
+
     <RecordLinks
       :links="links"
       :relatedRecords="relatedRecords"
@@ -85,6 +90,7 @@ import type { LinkInsert, LinkSelect } from '@db/schema';
 import type { DbId } from '@shared/types/api';
 import { type Predicate, type PredicateSlug } from '@shared/types';
 import TitleField from '@app/components/TitleField.vue';
+import EditableContent from '@app/components/EditableContent.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import useRecordLinks from '@app/composables/useRecordLinks';
 import { computed } from 'vue';
@@ -106,6 +112,7 @@ const { links, relatedRecords } = defineProps<{
   relatedRecords?: FindAllRelatedRecordsAPIResponse;
 }>();
 
+const content = nullableStringField(modelValue, 'content');
 const summary = nullableStringField(modelValue, 'summary');
 const notes = nullableStringField(modelValue, 'notes');
 
@@ -205,6 +212,11 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .ConceptDetail__title--capitalize :deep(.TitleField__input) {
   text-transform: capitalize;
+}
+
+.ConceptDetail__content {
+  margin-block: -0.5rem;
+  margin-inline: -12px;
 }
 
 .ConceptDetail__metadata {

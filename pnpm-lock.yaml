@@ -53,6 +53,9 @@ importers:
       openai:
         specifier: ^6.39.1
         version: 6.39.1(zod@4.1.13)
+      overtype:
+        specifier: ^2.3.10
+        version: 2.3.10
       sharp:
         specifier: ^0.34.2
         version: 0.34.2
@@ -2909,6 +2912,9 @@ packages:
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
+  markdown-actions@1.1.2:
+    resolution: {integrity: sha512-U7rmgTvUP3neh3XaVblikslRWWhfpzF2SiI1A6z3az7IpYuAiVvdqtZrFCArV22TSj2Ht+r0ResohlsJ8/ntbw==}
+
   markdown-it@14.2.0:
     resolution: {integrity: sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ==}
     hasBin: true
@@ -3148,6 +3154,9 @@ packages:
   os-homedir@1.0.2:
     resolution: {integrity: sha512-B5JU3cabzk8c67mRRd3ECmROafjYMXbuzlwtqdM8IbS8ktlTix8aFGb2bAGKrSRIlnfKwovGUUr72JUPyOb6kQ==}
     engines: {node: '>=0.10.0'}
+
+  overtype@2.3.10:
+    resolution: {integrity: sha512-NqhkV5uZpQx38s+tY4IOSzOvqCP+GLe+LNNM5C8HenxeRnRfUJdlmXcITqL+fWYJ+3e0D9zNbI8yL8tP+Enrbw==}
 
   p-finally@2.0.1:
     resolution: {integrity: sha512-vpm09aKwq6H9phqRQzecoDpD8TmVyGw70qmWlyq5onxY7tqyTTFVvxMykxQSQKILBSFlbXpypIw2T1Ml7+DDtw==}
@@ -6641,6 +6650,8 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  markdown-actions@1.1.2: {}
+
   markdown-it@14.2.0:
     dependencies:
       argparse: 2.0.1
@@ -6851,6 +6862,11 @@ snapshots:
   orderedmap@2.1.1: {}
 
   os-homedir@1.0.2: {}
+
+  overtype@2.3.10:
+    dependencies:
+      '@floating-ui/dom': 1.7.6
+      markdown-actions: 1.1.2
 
   p-finally@2.0.1: {}
 

@@ -35,11 +35,16 @@ const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
   & :deep(ol),
   & :deep(blockquote),
   & :deep(pre),
-  & :deep(table) {
+  & :deep(table),
+  & :deep(h1),
+  & :deep(h2),
+  & :deep(h3),
+  & :deep(h4),
+  & :deep(hr) {
     margin: 0;
   }
 
-  & :deep(p + p),
+  & :deep(* + p),
   & :deep(* + ul),
   & :deep(* + ol),
   & :deep(* + blockquote),
@@ -48,7 +53,8 @@ const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
   & :deep(* + h1),
   & :deep(* + h2),
   & :deep(* + h3),
-  & :deep(* + h4) {
+  & :deep(* + h4),
+  & :deep(* + hr) {
     margin-top: 0.6em;
   }
 
@@ -73,11 +79,33 @@ const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
 
   & :deep(ul),
   & :deep(ol) {
-    padding-left: 1.25em;
+    padding-left: 1.5em;
   }
 
+  & :deep(ul) {
+    list-style: disc outside;
+  }
+
+  & :deep(ol) {
+    list-style: decimal outside;
+  }
+
+  & :deep(li) {
+    padding-left: 0.25em;
+  }
+
+  & :deep(li::marker) {
+    color: var(--ui-text-muted);
+  }
+
+  & :deep(li),
   & :deep(li + li) {
     margin-top: 0.25em;
+  }
+
+  & :deep(ul li:first-child),
+  & :deep(ol li:first-child) {
+    margin-top: 0;
   }
 
   & :deep(a) {
@@ -121,8 +149,7 @@ const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
 
   & :deep(hr) {
     border: 0;
-    border-top: 0.5px solid var(--ui-border);
-    margin: 0.75em 0;
+    border-top: 1px solid var(--ui-border-muted);
   }
 
   & :deep(img) {
