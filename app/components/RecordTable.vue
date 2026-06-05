@@ -18,11 +18,11 @@
       <img
         v-if="row.original.media?.[0]"
         class="RecordTable__media"
-        :src="`${backendBaseUrl}${row.original.media[0].url}`"
         width="120"
         height="120"
         loading="lazy"
         decoding="async"
+        :src="`${backendBaseUrl}${row.original.media[0].url}`"
       />
       <div class="RecordTable__titleCellContent">
         <div

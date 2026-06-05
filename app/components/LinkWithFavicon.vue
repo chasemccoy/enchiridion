@@ -11,11 +11,11 @@
       <img
         v-if="faviconUrl"
         alt=""
-        :src="faviconUrl"
         width="16"
         height="16"
         loading="lazy"
         decoding="async"
+        :src="faviconUrl"
       />
       <a
         target="_blank"

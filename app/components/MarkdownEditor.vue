@@ -9,6 +9,13 @@
 import OverType from 'overtype';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+const modelValue = defineModel<string>({ default: '' });
+
+const { autofocus = false, placeholder } = defineProps<{
+  autofocus?: boolean;
+  placeholder?: string;
+}>();
+
 const enchiridionTheme = {
   name: 'enchiridion',
   colors: {
@@ -54,13 +61,6 @@ const enchiridionTheme = {
     hr: 'var(--ui-text-muted)',
   },
 };
-
-const { autofocus = false, placeholder } = defineProps<{
-  autofocus?: boolean;
-  placeholder?: string;
-}>();
-
-const modelValue = defineModel<string>({ default: '' });
 
 const containerRef = ref<HTMLDivElement | null>(null);
 let editor: ReturnType<typeof createEditor> | null = null;

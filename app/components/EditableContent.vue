@@ -12,8 +12,8 @@
       >
         <MarkdownEditor
           v-model="draft"
-          autofocus
           :placeholder="placeholder"
+          autofocus
         />
       </div>
 
@@ -71,11 +71,11 @@ import MarkdownEditor from '@app/components/MarkdownEditor.vue';
 import MarkdownRender from '@app/components/MarkdownRender.vue';
 import { ref } from 'vue';
 
+const modelValue = defineModel<string | null | undefined>();
+
 const { placeholder = 'Write something about this record' } = defineProps<{
   placeholder?: string;
 }>();
-
-const modelValue = defineModel<string | null | undefined>();
 
 const isEditing = ref(false);
 const draft = ref('');

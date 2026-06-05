@@ -174,11 +174,7 @@ function handleDeleteRecord(id: DbId) {
       // Inbox owns its own post-delete navigation (advance to the next record
       // in the list). Other routes don't have that logic, so fall back to
       // popping up to the parent.
-      if (
-        route.matched.length > 1 &&
-        parentRoute &&
-        parentRoute.name !== RouteName.inbox
-      ) {
+      if (route.matched.length > 1 && parentRoute && parentRoute.name !== RouteName.inbox) {
         router.push(parentRoute.path);
       }
 

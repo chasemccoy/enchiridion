@@ -13,11 +13,11 @@
       >
         <img
           v-if="attachment.type === 'image'"
+          loading="lazy"
+          decoding="async"
           :src="getSrcForAttachmentUrl(attachment.url)"
           :width="attachment.width ?? undefined"
           :height="attachment.height ?? undefined"
-          loading="lazy"
-          decoding="async"
         />
         <video
           v-else-if="attachment.type === 'video'"
@@ -87,11 +87,11 @@
             <img
               v-if="currentAttachment.type === 'image'"
               class="Lightbox__image"
+              decoding="async"
               :src="getSrcForAttachmentUrl(currentAttachment.url)"
               :alt="currentAttachment.altText || ''"
               :width="currentAttachment.width ?? undefined"
               :height="currentAttachment.height ?? undefined"
-              decoding="async"
             />
             <video
               v-else-if="currentAttachment.type === 'video'"

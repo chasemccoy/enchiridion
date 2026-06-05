@@ -51,10 +51,10 @@
     <img
       v-if="modelValue.media?.length > 0 && modelValue.media[0]?.type === 'image'"
       class="RecordCard__image"
-      :src="`${backendBaseUrl}${modelValue.media[0]?.url}`"
-      :alt="modelValue.media[0].altText ?? ''"
       loading="lazy"
       decoding="async"
+      :src="`${backendBaseUrl}${modelValue.media[0]?.url}`"
+      :alt="modelValue.media[0].altText ?? ''"
     />
 
     <AttachmentGallery

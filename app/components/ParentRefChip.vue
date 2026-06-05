@@ -10,8 +10,12 @@
       <RouterLink
         class="ParentRefChip__title"
         :to="`/${parent.slug}`"
-      >{{ parent.title ?? parent.slug }}</RouterLink><template v-if="parentCreator"
-        ><span class="ParentRefChip__creator"> by <RouterLink :to="`/${parentCreator.slug}`">{{ parentCreator.title }}</RouterLink></span></template>
+        >{{ parent.title ?? parent.slug }}</RouterLink
+      ><template v-if="parentCreator"
+        ><span class="ParentRefChip__creator">
+          by <RouterLink :to="`/${parentCreator.slug}`">{{ parentCreator.title }}</RouterLink></span
+        ></template
+      >
     </span>
   </span>
 </template>

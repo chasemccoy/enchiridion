@@ -117,12 +117,12 @@
       <h2 class="SearchView__emptyHeadline">Search the knowledge base</h2>
       <p class="SearchView__emptyHint">
         <template v-if="mode === 'semantic'">
-          Semantic mode finds records by meaning. Paraphrases, synonyms, and
-          related concepts all count.
+          Semantic mode finds records by meaning. Paraphrases, synonyms, and related concepts all
+          count.
         </template>
         <template v-else>
-          Full-text mode matches exact words and phrases across titles, content,
-          summaries, and notes.
+          Full-text mode matches exact words and phrases across titles, content, summaries, and
+          notes.
         </template>
       </p>
       <div class="SearchView__emptySuggestions">
@@ -495,7 +495,6 @@ watch(
   gap: 8px;
   margin-top: 12px;
 }
-
 
 .SearchView__spinner {
   width: 24px;
