@@ -4,6 +4,7 @@ import ConceptsView from '@app/views/ConceptsView.vue';
 import EntitiesView from '@app/views/EntitiesView.vue';
 import InboxView from '@app/views/InboxView.vue';
 import IndexView from '@app/views/IndexView.vue';
+import RambleView from '@app/views/RambleView.vue';
 import RecordDetailView from '@app/views/RecordDetailView.vue';
 import RecordTableView from '@app/views/RecordTableView.vue';
 import SearchView from '@app/views/SearchView.vue';
