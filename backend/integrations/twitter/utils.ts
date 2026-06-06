@@ -67,13 +67,14 @@ function getEntities(tweet: TweetBase): Entity[] {
   const textMap = Array.from(tweet.text);
   const result: EntityWithType[] = [{ indices: tweet.display_text_range, type: 'text' }];
 
-  addEntities(result, 'hashtag', tweet.entities.hashtags);
-  addEntities(result, 'mention', tweet.entities.user_mentions);
-  addEntities(result, 'url', tweet.entities.urls);
-  addEntities(result, 'symbol', tweet.entities.symbols);
-  if (tweet.entities.media) {
-    addEntities(result, 'media', tweet.entities.media);
-  }
+  // The syndication response increasingly omits empty entity buckets (we've
+  // seen tweets come back with only `hashtags` + `media`). Guard each before
+  // iterating so a missing key doesn't blow up the whole fetch.
+  if (tweet.entities.hashtags) addEntities(result, 'hashtag', tweet.entities.hashtags);
+  if (tweet.entities.user_mentions) addEntities(result, 'mention', tweet.entities.user_mentions);
+  if (tweet.entities.urls) addEntities(result, 'url', tweet.entities.urls);
+  if (tweet.entities.symbols) addEntities(result, 'symbol', tweet.entities.symbols);
+  if (tweet.entities.media) addEntities(result, 'media', tweet.entities.media);
   fixRange(tweet, result);
 
   return result.map((entity) => {
