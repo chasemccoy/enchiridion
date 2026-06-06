@@ -13,7 +13,6 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
       "@db/*": ["./backend/db/*"],
       "@api/*": ["./backend/api/*"],

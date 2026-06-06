@@ -188,3 +188,14 @@ html:not(.dark) body {
 .raised-edge {
   box-shadow: var(--shadow-edge);
 }
+
+/* Badge padding, tightened ~1px per axis from Nuxt UI's size defaults (md
+ * 8px/4px, sm 6px/4px). Marker classes applied per size in vite.config.ts;
+ * unlayered, so they beat Nuxt UI's layered padding utilities. */
+.badge-md {
+  padding: 3px 7px;
+}
+
+.badge-sm {
+  padding: 3px 5px;
+}

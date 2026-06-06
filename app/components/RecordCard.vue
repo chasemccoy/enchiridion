@@ -353,10 +353,14 @@ const tags = computed(() => {
   margin-bottom: -2px;
   color: var(--ui-text-dimmed);
   font-size: 0.8rem;
+
+  & > li {
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 .RecordCard__tag {
-  display: inline-block;
   color: var(--ui-text-dimmed);
 }
 

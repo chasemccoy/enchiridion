@@ -13,7 +13,6 @@
     "moduleResolution": "node16",
     "forceConsistentCasingInFileNames": true,
 
-    "baseUrl": ".",
     "paths": {
       "@db/*": ["./backend/db/*"],
       "@api/*": ["./backend/api/*"],

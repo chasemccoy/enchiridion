@@ -38,6 +38,13 @@ export default defineConfig({
               variant: 'outline',
               class: 'raised-edge text-muted bg-transparent',
             },
+            // Tighten badge padding ~1px per axis vs Nuxt UI's size defaults
+            // (md 8px/4px, sm 6px/4px). Plain marker classes styled in
+            // theme.css — Tailwind can't generate arbitrary px utilities
+            // referenced here, so a real (unlayered) CSS rule is the reliable
+            // path. Applies globally to every md/sm badge.
+            { size: 'md', class: 'badge-md' },
+            { size: 'sm', class: 'badge-sm' },
           ],
         },
         checkbox: {

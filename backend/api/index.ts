@@ -6,9 +6,9 @@ import { treeRoutes } from './tree';
 import { linkRoutes } from './links';
 import { errorHandler } from './errorHandler';
 import cors from 'cors';
-import { searchRoutes } from 'backend/api/search';
+import { searchRoutes } from './search';
 import { mediaRoutes } from './media';
-import { twitterRoutes } from 'backend/api/twitter';
+import { twitterRoutes } from './twitter';
 import { integrationRoutes } from './integrations';
 
 const PORT = process.env.BACKEND_PORT;
