@@ -18,6 +18,7 @@ export enum RouteName {
   entities = 'entities',
   search = 'search',
   add = 'add',
+  ramble = 'ramble',
 }
 
 const routes = [
@@ -72,6 +73,11 @@ const routes = [
     path: '/add',
     name: RouteName.add,
     component: AddRecordView,
+  },
+  {
+    path: '/ramble',
+    name: RouteName.ramble,
+    component: RambleView,
   },
 ];
 

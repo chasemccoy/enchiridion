@@ -10,6 +10,7 @@ import { searchRoutes } from 'backend/api/search';
 import { mediaRoutes } from './media';
 import { twitterRoutes } from 'backend/api/twitter';
 import { integrationRoutes } from './integrations';
+import { urlMetadataRoutes } from './url-metadata';
 
 const PORT = process.env.BACKEND_PORT;
 
@@ -28,6 +29,7 @@ app.use(searchRoutes);
 app.use(mediaRoutes);
 app.use(twitterRoutes);
 app.use(integrationRoutes);
+app.use(urlMetadataRoutes);
 app.use('/uploads', express.static('uploads'));
 
 app.listen(PORT, () => {

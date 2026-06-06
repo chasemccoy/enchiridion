@@ -33,6 +33,11 @@
       v-model:open="isAddRecordDrawerOpen"
       @close="isAddRecordDrawerOpen = false"
     />
+
+    <AddRambleDrawerView
+      v-model:open="isAddRambleDrawerOpen"
+      @close="isAddRambleDrawerOpen = false"
+    />
   </UApp>
 </template>
 
@@ -42,6 +47,7 @@ import useSearch from '@app/composables/useSearch';
 import { RouteName } from '@app/router';
 import { getIconForRecordType } from '@app/utils';
 import AddRecordDrawerView from '@app/views/AddRecordDrawerView.vue';
+import AddRambleDrawerView from '@app/views/AddRambleDrawerView.vue';
 import SettingsModalView from '@app/views/SettingsModalView.vue';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -125,11 +131,18 @@ const navItems = computed(() => [
         isAddRecordDrawerOpen.value = true;
       },
     },
+    {
+      icon: 'i-lucide-sparkles',
+      onSelect: () => {
+        isAddRambleDrawerOpen.value = true;
+      },
+    },
   ],
 ]);
 
 const isSearchModalOpen = ref(false);
 const isAddRecordDrawerOpen = ref(false);
+const isAddRambleDrawerOpen = ref(false);
 const isSettingsModalOpen = ref(false);
 
 defineShortcuts({
