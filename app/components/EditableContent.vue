@@ -54,14 +54,6 @@
       >
         {{ placeholder }}
       </span>
-
-      <span class="EditableContent__editHint">
-        <UIcon
-          name="i-lucide-pencil"
-          class="EditableContent__editHintIcon"
-        />
-        Edit
-      </span>
     </button>
   </div>
 </template>
@@ -112,7 +104,7 @@ function handleCancel() {
   background: transparent;
   border: none;
   border-radius: var(--radius-xl);
-  padding: 10px 14px;
+  padding: 7px 10px;
   cursor: text;
   font: inherit;
   color: inherit;
@@ -130,36 +122,8 @@ function handleCancel() {
   font-size: 0.8rem;
 }
 
-.EditableContent__editHint {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background-color: var(--ui-bg);
-  border: 1px solid var(--ui-border);
-  color: var(--ui-text-muted);
-  font-size: 0.7rem;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  pointer-events: none;
-}
-
-.EditableContent__view:hover .EditableContent__editHint,
-.EditableContent__view:focus-visible .EditableContent__editHint {
-  opacity: 1;
-}
-
-.EditableContent__editHintIcon {
-  width: 10px;
-  height: 10px;
-}
-
 .EditableContent__editor {
-  padding: 10px 14px;
+  padding: 7px 10px;
   background-color: var(--ui-bg-elevated);
   border-radius: var(--radius-xl);
 }
@@ -169,6 +133,6 @@ function handleCancel() {
   gap: 2px;
   align-items: center;
   justify-content: flex-end;
-  padding-inline: 14px;
+  padding-inline: 10px;
 }
 </style>

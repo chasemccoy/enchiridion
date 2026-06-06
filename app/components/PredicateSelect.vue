@@ -4,6 +4,7 @@
     :items="menuItems"
     :ui="{
       content: 'min-w-[200px]',
+      item: 'PredicateSelect__item',
     }"
     :content="{
       align: 'start',
@@ -110,5 +111,11 @@ const label = computed(() => {
   width: 14px;
   height: 14px;
   color: var(--ui-text-dimmed);
+}
+
+/* match the menu icons (check mark / Delete) to 14px, like the other menus */
+:global(.PredicateSelect__item svg) {
+  width: 14px;
+  height: 14px;
 }
 </style>

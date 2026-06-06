@@ -9,8 +9,10 @@
         v-model:searchTerm="searchQuery"
         placeholder="Search records..."
         class="h-100"
+        size="sm"
         :groups="groups"
         :ui="{
+          input: '[&>input]:text-xs',
           item: 'SearchModal__item',
         }"
         :fuse="{
@@ -55,8 +57,8 @@ const groups = computed(() => {
 <style scoped>
 :deep(.SearchModal__item) {
   & :deep(svg) {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 }
 </style>

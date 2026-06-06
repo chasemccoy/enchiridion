@@ -14,20 +14,11 @@
       v-model="modelValue.type"
     />
 
-    <UFormField
-      aria-label="Content"
-      size="xs"
+    <MarkdownEditor
+      v-model="content"
       class="AddRecordForm__content"
-    >
-      <UTextarea
-        v-model.trim="content"
-        size="xl"
-        placeholder="Main content of the record"
-        variant="none"
-        :rows="1"
-        autoresize
-      />
-    </UFormField>
+      placeholder="Main content of the record"
+    />
 
     <AttachmentGallery
       v-if="files && files.length > 0"
@@ -155,6 +146,7 @@ import SlugField from '@app/components/SlugField.vue';
 import { formatDate, slugify } from '@shared/lib/formatting';
 import TitleField from '@app/components/TitleField.vue';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
+import MarkdownEditor from '@app/components/MarkdownEditor.vue';
 import type {
   NewRecordData,
   PartialLinkInsert,
@@ -277,7 +269,7 @@ function handleUpdatePredicate(link: PartialLinkInsert, predicate: Predicate) {
 }
 
 .AddRecordForm__content {
-  margin-inline: -12px;
+  width: 100%;
 }
 
 .AddRecordForm__actions {

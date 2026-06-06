@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     :content="{ align: 'start', sideOffset: 8 }"
     :ui="{
-      content: 'dark min-w-[300px] max-w-[600px] max-h-[50vh] overflow-y-auto',
+      content: 'dark min-w-[300px] max-w-[540px] max-h-[50vh] overflow-y-auto',
     }"
   >
     <UButton
@@ -38,8 +38,9 @@
         v-if="currentStep === 'record'"
         v-model:searchTerm="searchQuery"
         placeholder="Search for a record to link..."
+        size="sm"
         :groups="commandItems"
-        :ui="{ input: '[&>input]:h-8 [&>input]:text-sm', item: 'RelationshipSelect__item' }"
+        :ui="{ input: '[&>input]:h-8 [&>input]:text-xs', item: 'RelationshipSelect__item' }"
         :fuse="{
           resultLimit: 100,
           matchAllWhenSearchEmpty: false,
@@ -51,8 +52,9 @@
         v-else-if="currentStep === 'predicate'"
         v-model:searchTerm="predicateQuery"
         placeholder="Select a relationship type..."
+        size="sm"
         :groups="predicateCommandItems"
-        :ui="{ input: '[&>input]:h-8 [&>input]:text-sm' }"
+        :ui="{ input: '[&>input]:h-8 [&>input]:text-xs' }"
         :fuse="{
           resultLimit: 100,
         }"
@@ -217,8 +219,8 @@ function resetForm() {
 
 :deep(.RelationshipSelect__item) {
   & :deep(svg) {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 }
 </style>
