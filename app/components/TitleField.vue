@@ -35,6 +35,7 @@ const title = nullableStringModel(modelValue);
 
 <style scoped>
 :deep(.TitleField__input) {
+  font-family: var(--font-serif);
   font-size: 1.7rem;
   padding-block: 0;
   text-wrap: pretty;

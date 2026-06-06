@@ -204,7 +204,6 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 }
 
 :deep(.ConceptDetail__title .TitleField__input) {
-  font-family: var(--font-serif);
   font-weight: 400;
   font-size: 2rem;
   line-height: 1.2;

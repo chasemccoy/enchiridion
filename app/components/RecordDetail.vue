@@ -465,7 +465,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .RecordDetail__badges {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -503,7 +503,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 }
 
 .RecordDetail__content {
-  margin-inline: -12px;
+  margin-inline: -8px;
 }
 
 .RecordDetail__children:not(.RecordDetail__children--singleChild) {

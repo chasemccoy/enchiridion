@@ -12,24 +12,98 @@
   --font-weight-medium: 500;
   --font-size-label: 14px;
 
-  --color-surface: white;
-
   --combinedFieldMinBadgeWidth: 88px;
 
-  --ui-primary: var(--ui-color-primary-700);
+  /* Blue accent (fill-accent). */
+  --ui-primary: #2a78d6;
+
+  /* Control radius. Slightly softer than Nuxt UI's 0.25rem default; pairs with
+   * the global superellipse corner-shape. Buttons (rounded-md = 1.5×) land at
+   * ~9px, badges (~6px). */
+  --ui-radius: 0.375rem;
+
+  /* Raised controls (buttons/chips) sit on the page bg itself (--page-bg, both
+   * modes) — same color as the page, lifted only by the box-shadow stack below
+   * (which flips per mode; see html.dark for the dark stack).
+   *
+   * --shadow-raised is the full border + shadow stack: the first layer is the
+   * 1px ring (border), the rest are soft drop layers. */
+  --shadow-raised:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 1px 2px -1px rgba(0, 0, 0, 0.08),
+    0px 2px 4px 0px rgba(0, 0, 0, 0.04);
+  --shadow-raised-hover:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 2px 4px -1px rgba(0, 0, 0, 0.1),
+    0px 4px 8px 0px rgba(0, 0, 0, 0.05);
+  /* The "gradient border" only — the border layers of the raised stack with no
+   * drop shadow. Used for chips/badges that want the subtle beveled edge without
+   * lifting off the surface. (Light is a plain 1px ring; the top-highlight
+   * gradient mostly shows in dark — see html.dark.) */
+  --shadow-edge: 0px 0px 0px 1px rgba(0, 0, 0, 0.08);
+
+  /* Warm-gray ("ivory → slate") neutral ramp. Overrides the values Nuxt UI
+   * generates from the `stone` alias (vite.config.ts). One ramp serves both
+   * modes — Nuxt UI re-points the semantic --ui-* tokens per mode, so only these
+   * hexes change. The dark surface stack (#0d0d0d → #383835) maps 1:1 onto
+   * shades 950/900/800/700. Revert: delete this block to fall back to stone. */
+  --ui-color-neutral-50: #f9f9f7;
+  --ui-color-neutral-100: #f1f0ea;
+  --ui-color-neutral-200: #e6e4dd;
+  --ui-color-neutral-300: #d5d2c9;
+  --ui-color-neutral-400: #b1aea4;
+  --ui-color-neutral-500: #898781;
+  --ui-color-neutral-600: #6a6862;
+  --ui-color-neutral-700: #383835;
+  --ui-color-neutral-800: #2c2c2a;
+  --ui-color-neutral-900: #1a1a19;
+  --ui-color-neutral-950: #0d0d0d;
 
   /* Background color of the page. Sticky toolbars use this so they blend into
    * the page bg instead of showing through as a different color. Light mode
    * paints the body as --ui-bg-muted; dark mode falls back to --ui-bg. */
   --page-bg: var(--ui-bg-muted);
+
+  /* Surfaces. The page canvas (--ui-bg-muted, painted on <body>) is the warm
+   * near-white #fcfcfb; cards/panels (--ui-bg) lift to crisp white above it.
+   * Raised controls (buttons/chips) sit on the page bg itself (--page-bg) + the
+   * box-shadow stack above. */
+  --ui-bg: #ffffff;
+  --ui-bg-muted: #fcfcfb;
+
+  /* Elevated surface (editor hover, container panels + their offset frame, hover
+   * fills). Nudged lighter and less warm than neutral-100 (#f1f0ea) — it read a
+   * touch dark/saturated against the near-white page. */
+  --ui-bg-elevated: #f5f4f2;
+
+  /* Soft, low-alpha borders — dividers as rgba(11,11,11,0.10) rather than a
+   * solid neutral line, for airier separation. Accented is a touch stronger so
+   * inputs/controls stay legible. */
+  --ui-border: rgba(11, 11, 11, 0.1);
+  --ui-border-muted: rgba(11, 11, 11, 0.06);
+  --ui-border-accented: rgba(11, 11, 11, 0.18);
+
+  /* Primary text is near-black #0b0b0b. */
+  --ui-text-highlighted: #0b0b0b;
+
+  /* Status colors — light-mode fills (success/info/warning/error accents). */
+  --ui-success: #009300;
+  --ui-info: #2a78d6;
+  --ui-warning: #fab219;
+  --ui-error: #d03b3b;
 }
 
 * {
   corner-shape: superellipse(1.333);
 }
 
-html.dark {
+/* html.dark = whole-app dark mode; bare .dark = elements forced dark in a light
+ * app (popovers/menus with a `dark` class). Covering both makes those forced-dark
+ * popovers use our tuned dark tokens instead of Nuxt UI's defaults. */
+html.dark,
+.dark {
   --color-white: var(--ui-color-neutral-300);
+
+  /* Dark accent — lighter blue for the dark canvas. */
+  --ui-primary: #6da7ec;
 
   --ui-text-dimmed: var(--ui-color-neutral-600);
   --ui-text-muted: var(--ui-color-neutral-500);
@@ -38,18 +112,46 @@ html.dark {
   --ui-text-highlighted: var(--color-white);
   --ui-text-inverted: var(--ui-color-neutral-900);
 
-  --ui-bg: var(--ui-color-neutral-950);
-  --ui-bg-muted: var(--ui-color-neutral-800);
-  --ui-bg-elevated: var(--ui-color-neutral-900);
-  --ui-bg-accented: var(--ui-color-neutral-700);
+  /* Dark surfaces lifted one step lighter — the page starts at #1a1a19 (instead
+   * of the #0d0d0d canvas), with everything else shifted up one shade to keep the
+   * elevation relationships. Revert: shift each back down a shade
+   * (950/900/800/700) for the darker version. */
+  --ui-bg: var(--ui-color-neutral-900);
+  --ui-bg-muted: var(--ui-color-neutral-700);
+  --ui-bg-elevated: var(--ui-color-neutral-800);
+  --ui-bg-accented: var(--ui-color-neutral-600);
   --ui-bg-inverted: var(--color-white);
 
-  --ui-border: var(--ui-color-neutral-800);
-  --ui-border-muted: var(--ui-color-neutral-700);
-  --ui-border-accented: var(--ui-color-neutral-800);
+  /* Soft, low-alpha borders (white over the dark warm-gray stack). */
+  --ui-border: rgba(255, 255, 255, 0.1);
+  --ui-border-muted: rgba(255, 255, 255, 0.06);
+  --ui-border-accented: rgba(255, 255, 255, 0.16);
   --ui-border-inverted: var(--color-white);
 
   --page-bg: var(--ui-bg);
+
+  /* Dark raised buttons match the page bg (--page-bg) and lift with this exact
+   * stack: a top white edge highlight, a white hairline ring over a page-colored
+   * ring (var(--page-bg) = #1a1a19), and two black drop layers. */
+  --shadow-raised:
+    0px -1px 0px 0px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(255, 255, 255, 0.06),
+    0px 0px 0px 1px var(--page-bg), 0px 1px 2px 0px rgba(0, 0, 0, 0.32),
+    0px 2px 4px 0px rgba(0, 0, 0, 0.32);
+  --shadow-raised-hover:
+    0px -1px 0px 0px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(255, 255, 255, 0.06),
+    0px 0px 0px 1px var(--page-bg), 0px 1px 4px 0px rgba(0, 0, 0, 0.48),
+    0px 2px 8px 0px rgba(0, 0, 0, 0.48);
+  /* Gradient border only — the top white edge highlight + white ring from the
+   * raised stack, no drop shadow (and no page-colored mask, since there's no
+   * drop to mask). The top highlight is what reads as a subtle beveled edge. */
+  --shadow-edge:
+    0px -1px 0px 0px rgba(255, 255, 255, 0.06), 0px 0px 0px 1px rgba(255, 255, 255, 0.06);
+
+  /* Status colors — dark-mode variants (brighter for the dark canvas). */
+  --ui-success: #0ca30c;
+  --ui-info: #6da7ec;
+  --ui-warning: #db9300;
+  --ui-error: #ec7e7e;
 }
 
 html:not(.dark),
@@ -59,4 +161,30 @@ html:not(.dark) body {
 
 *[aria-current='page'] {
   scroll-margin-top: 32px;
+}
+
+/* "Raised" neutral controls. A marker class set on outline/subtle/soft neutral
+ * buttons (vite.config.ts) — the page bg itself (--page-bg, both modes) plus the
+ * --shadow-raised stack, whose leading layer(s) form the border ring and the rest
+ * are soft drop layers. Unlayered, so it overrides Nuxt UI's layered bg/ring
+ * utilities. The shadow flips per mode (dark adds a top white highlight + white/
+ * page rings, since drop shadows barely register on the near-black page). */
+.raised {
+  background-color: var(--page-bg);
+  box-shadow: var(--shadow-raised);
+}
+
+.raised:hover {
+  box-shadow: var(--shadow-raised-hover);
+}
+
+.raised:active {
+  box-shadow: var(--shadow-raised);
+}
+
+/* Edge-only chips/badges (no drop shadow). Marker class set on outline neutral
+ * badges (vite.config.ts). Unlayered so the box-shadow overrides Nuxt UI's ring
+ * utility. */
+.raised-edge {
+  box-shadow: var(--shadow-edge);
 }

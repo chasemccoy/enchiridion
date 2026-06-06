@@ -221,7 +221,7 @@ const tags = computed(() => {
   border-radius: var(--radius-lg);
   padding: 12px;
   gap: 6px;
-  contain: content;
+  contain: layout style;
 
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
@@ -371,7 +371,8 @@ const tags = computed(() => {
 }
 
 .RecordCard__childrenCount {
-  background-color: var(--ui-bg-elevated);
+  background-color: var(--ui-bg);
+  box-shadow: var(--shadow-edge);
   padding: 1px 6px;
   border-radius: 9999px;
   font-size: 0.625rem;

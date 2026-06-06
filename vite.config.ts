@@ -8,6 +8,8 @@ import ui from '@nuxt/ui/vite';
 const FRONTEND_PORT = z.coerce.number().parse(process.env.FRONTEND_PORT);
 const BACKEND_PORT = z.coerce.number().parse(process.env.BACKEND_PORT);
 
+const RAISED_CONTROL = 'raised';
+
 // https://vite.dev/config/
 export default defineConfig({
   root: path.resolve(__dirname, 'app'),
@@ -16,12 +18,31 @@ export default defineConfig({
     ui({
       ui: {
         colors: {
-          primary: 'emerald',
+          primary: 'blue',
           neutral: 'stone',
+        },
+        button: {
+          compoundVariants: [
+            { color: 'neutral', variant: 'outline', class: RAISED_CONTROL },
+            { color: 'neutral', variant: 'subtle', class: RAISED_CONTROL },
+            { color: 'neutral', variant: 'soft', class: RAISED_CONTROL },
+          ],
         },
         badge: {
           slots: {
             base: 'Badge',
+          },
+          compoundVariants: [
+            {
+              color: 'neutral',
+              variant: 'outline',
+              class: 'raised-edge text-muted bg-transparent',
+            },
+          ],
+        },
+        checkbox: {
+          slots: {
+            base: 'rounded-xs',
           },
         },
         formField: {

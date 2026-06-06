@@ -240,14 +240,6 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
     margin-top: 6px;
   }
 
-  /* Let the browser skip rendering offscreen cards. The intrinsic-size estimate
-     reserves scroll height so jump-to-anchor and scrollbars stay correct.
-     Critical for the home page, which can mount 500+ records — without this,
-     style/layout for the full set blocks paint after every navigation. */
-  & > li {
-    content-visibility: auto;
-    contain-intrinsic-size: 0 220px;
-  }
 
   .SplitViewLayout--empty & {
     columns: 30ch 3;

@@ -133,7 +133,8 @@ function handleDeleteLink(linkId: DbId) {
   }
 }
 
-.RecordLinks__recordLink {
+.RecordLinks__list .RecordLinks__recordLink {
   break-inside: avoid;
+  border-radius: calc(var(--radius-xl) - 2px);
 }
 </style>
