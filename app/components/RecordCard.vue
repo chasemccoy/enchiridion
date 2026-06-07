@@ -225,6 +225,8 @@ const tags = computed(() => {
   padding: 12px;
   gap: 6px;
   contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
 
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
@@ -247,7 +249,7 @@ const tags = computed(() => {
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: 4px;
-  row-gap: 10px;
+  row-gap: 8px;
   font-size: 1rem;
   line-height: 1.3;
 
@@ -273,8 +275,8 @@ const tags = computed(() => {
 
 :deep(.RecordCard__bylineButton) {
   max-width: 250px;
-  margin-left: 1px;
   padding: 0 4px;
+  line-height: inherit;
 
   &:hover {
     text-decoration: underline;

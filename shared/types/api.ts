@@ -74,6 +74,12 @@ export const RecordFiltersSchema = z.object({
   hasTitle: z.boolean().optional(),
   /** Filter by presence in the sqlite-vec embeddings table. */
   hasEmbedding: z.boolean().optional(),
+  /**
+   * Restrict to a specific set of record ids. Lets a caller batch-load the full
+   * data for many records in one query (e.g. a concept page loading every linked
+   * record's card data up front) instead of N per-record fetches.
+   */
+  ids: z.array(IdSchema).optional(),
 });
 
 export const LimitSchema = z.number().int().positive();

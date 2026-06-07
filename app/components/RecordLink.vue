@@ -104,11 +104,15 @@ import MarkdownRender from '@app/components/MarkdownRender.vue';
 import ParentRefChip from '@app/components/ParentRefChip.vue';
 import PredicateSelect from '@app/components/PredicateSelect.vue';
 import useRecord from '@app/composables/useRecord';
+import type { ListRecordsAPIResponse } from '@db/queries/records';
 import { isPredicateType, type Predicate, type PredicateSlug } from '@shared/types';
 import type { DbId } from '@shared/types/api';
 import slugify from 'slugify';
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
+
+/** Card data a parent can pass in to spare this row its own /record/:id fetch. */
+type PreloadedRecord = ListRecordsAPIResponse[number];
 
 const modelValue = defineModel<DbId>({ required: true });
 
@@ -124,6 +128,7 @@ const {
   includeChildren = false,
   showParent = true,
   layout = 'card',
+  preloaded,
 } = defineProps<{
   predicate?: PredicateSlug;
   linkDirection?: 'incoming' | 'outgoing';
@@ -141,15 +146,41 @@ const {
    * want it, RecordLink is opt-out because most pages do.)
    */
   showParent?: boolean;
+  /**
+   * Pre-loaded record data, batched by the parent (e.g. a concept page loading
+   * every linked record in one query). When provided, this row renders from it
+   * instead of firing its own `/record/:id` fetch. Children still lazy-load,
+   * but only when the preloaded data shows this record actually has containment
+   * links — so most rows fetch nothing at all.
+   */
+  preloaded?: PreloadedRecord;
 }>();
 
 const localPredicateSlug = ref<PredicateSlug | null>(predicate ?? null);
 
 const { getRecord, getRecordLinks } = useRecord();
 
-const { data: record, isLoading } = getRecord(modelValue);
+const { data: fetchedRecord, isLoading: fetchLoading } = getRecord(modelValue, () => !preloaded);
+// Unify to one shape. The fetched (getRecord) result carries a *fuller* target
+// on its outgoing links and no incomingLinks, but RecordLink only reads columns
+// + outgoingLinks{target:{id,title,slug}} + media off `record` (incoming comes
+// from `links` below), so treating it as the preloaded shape is runtime-safe.
+const record = computed<PreloadedRecord | undefined>(
+  () => preloaded ?? (fetchedRecord.value as unknown as PreloadedRecord | undefined),
+);
+const isLoading = computed(() => !preloaded && fetchLoading.value);
 
-const { data: links } = getRecordLinks(modelValue, () => includeChildren);
+// Children need incoming-link *source* content, which the preloaded (list-shape)
+// data omits — but the preloaded incoming *predicates* tell us whether any
+// containment children exist. Fetch the full links only then; records with no
+// children (the common case) fetch nothing.
+const hasContainmentChildren = computed(() =>
+  (preloaded?.incomingLinks ?? []).some((link) => isPredicateType(link.predicate, 'containment')),
+);
+const shouldFetchLinks = computed(
+  () => includeChildren && (!preloaded || hasContainmentChildren.value),
+);
+const { data: links } = getRecordLinks(modelValue, () => shouldFetchLinks.value);
 
 const outgoingLinks = computed(() => record.value?.outgoingLinks ?? null);
 const incomingLinks = computed(() => links.value?.incomingLinks ?? null);
@@ -227,6 +258,8 @@ function handleDeleteLink() {
   background-color: var(--ui-bg);
   border: 0.5px solid var(--ui-border);
   contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 60px;
 }
 
 .RecordLink__header {
@@ -259,6 +292,7 @@ function handleDeleteLink() {
 .RecordLink__title,
 .RecordLink__creator a {
   font-weight: 500;
+  line-height: inherit;
 
   &:hover {
     text-decoration: underline;
@@ -302,10 +336,6 @@ function handleDeleteLink() {
 
 .RecordLink__summary--markdown :deep(:last-child) {
   margin-bottom: 0;
-}
-
-.RecordLink:has(.RecordLink__title) .RecordLink__summary {
-  margin-top: 2px;
 }
 
 .RecordLink:has(.RecordLink__title):has(.RecordLink__meta) .RecordLink__summary {

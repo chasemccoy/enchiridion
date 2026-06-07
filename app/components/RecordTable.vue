@@ -324,6 +324,7 @@ function handleRowSelect(_event: Event, row: TableRow<ListRecordsAPIResponse[num
 
 :deep(.RecordTable__cellButton) {
   padding: 0;
+  line-height: inherit;
 
   &:hover {
     text-decoration: underline;

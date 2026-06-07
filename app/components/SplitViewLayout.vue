@@ -42,6 +42,16 @@
             </li>
           </ul>
         </div>
+
+        <!-- Render an initial chunk, then grow as this sentinel scrolls into
+          view. Keeps the first paint and filter toggles cheap (mounting ~80
+          cards, not all ~500) without any windowing math. -->
+        <div
+          v-if="hasMoreToRender"
+          ref="sentinel"
+          class="SplitViewLayout_sentinel"
+          aria-hidden="true"
+        />
       </div>
     </div>
 
@@ -70,12 +80,14 @@
 <script setup lang="ts">
 import RecordCard from '@app/components/RecordCard.vue';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
+import { useIntersectionObserver } from '@vueuse/core';
 import {
   computed,
   nextTick,
   onActivated,
   onBeforeUnmount,
   onMounted,
+  ref,
   useTemplateRef,
   watch,
 } from 'vue';
@@ -119,6 +131,36 @@ function goBackToList() {
   if (listRoutePath.value) router.push(listRoutePath.value);
 }
 
+// --- Lazy rendering ----------------------------------------------------------
+const CHUNK = 80;
+const renderLimit = ref(CHUNK);
+const totalCount = computed(() => modelValue.value?.length ?? 0);
+const hasMoreToRender = computed(() => renderLimit.value < totalCount.value);
+
+const sentinel = useTemplateRef<HTMLDivElement>('sentinel');
+useIntersectionObserver(
+  sentinel,
+  ([entry]) => {
+    if (entry?.isIntersecting) renderLimit.value += CHUNK;
+  },
+  { rootMargin: '600px' },
+);
+
+// When the list shrinks (a filter narrowed it), reset the window so re-widening
+// the filter starts cheap again instead of re-rendering a previously-grown count.
+watch(totalCount, (next, prev) => {
+  if (next < prev) renderLimit.value = CHUNK;
+});
+
+// Keep a selected record (deep link / nav) inside the rendered window so
+// scrollToSelectedRecord can find it even when it's far down the list.
+function ensureSelectedRendered() {
+  const slug = route.params.slug;
+  if (!slug || !modelValue.value) return;
+  const idx = modelValue.value.findIndex((record) => record.slug === slug);
+  if (idx >= renderLimit.value) renderLimit.value = idx + CHUNK;
+}
+
 // Scroll preservation across KeepAlive cycles. The browser doesn't preserve
 // scroll on internal scrollable containers when they're detached/reattached
 // (which is what KeepAlive does). We can't read scrollTop in onDeactivated
@@ -141,6 +183,7 @@ onActivated(() => {
   // scrollToSelectedRecord in case the route changed while we were cached
   // (e.g. a deep link to a different /record/X) — it's a no-op when the
   // selected card is already in view.
+  ensureSelectedRendered();
   nextTick(() => {
     if (listRef.value) listRef.value.scrollTop = savedScrollTop;
     scrollToSelectedRecord();
@@ -158,18 +201,23 @@ const groupedRecords = computed(() => {
 
   type RecordWithIndex = { record: ListRecordsAPIResponse[number]; index: number };
 
+  // Only the first `renderLimit` records are rendered; the rest reveal as the
+  // sentinel scrolls into view. Slicing from 0 keeps each record's original
+  // index (used for the v-model binding below).
+  const windowed = modelValue.value.slice(0, renderLimit.value);
+
   // Flat (ungrouped) mode: one bucket under an empty key, header hidden in the
   // template. Keeps every record — including those without a recordCreatedAt,
   // which the month-grouping path below skips.
   if (!grouped) {
     return {
-      '': modelValue.value.map((record, index) => ({ record, index })),
+      '': windowed.map((record, index) => ({ record, index })),
     } as Record<string, RecordWithIndex[]>;
   }
 
   const groups: Record<string, RecordWithIndex[]> = {};
 
-  modelValue.value.forEach((record, index) => {
+  windowed.forEach((record, index) => {
     if (!record.recordCreatedAt) return;
 
     const date = new Date(record.recordCreatedAt + 'Z');
@@ -188,10 +236,14 @@ const groupedRecords = computed(() => {
   return groups;
 });
 
+// Fires on selection change AND when the data/filter changes (modelValue), so a
+// deep-linked or far-down record gets pulled into the render window before we
+// try to scroll to it.
 watch(
-  route,
+  [() => route.params.slug, modelValue],
   () => {
-    scrollToSelectedRecord();
+    ensureSelectedRendered();
+    nextTick(scrollToSelectedRecord);
   },
   { flush: 'post', immediate: true },
 );
@@ -251,6 +303,10 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 
 .SplitViewLayout:has(.SplitViewLayout_detail) .SplitViewLayout_list {
   padding-right: 1.2rem;
+}
+
+.SplitViewLayout_sentinel {
+  height: 1px;
 }
 
 .SplitViewLayout_groups {

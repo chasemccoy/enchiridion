@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building & Quality Checks
 
 - `pnpm build` - Build the Vue frontend for production
-- `pnpm lint` - Format, lint, and type-check all code (includes Prettier, ESLint, and vue-tsc)
-- `pnpm format` - Format code with Prettier only
+- `pnpm preview` - Preview the production build locally
+- `pnpm lint` - Format, lint, and type-check all code (Prettier `--write`, ESLint `--fix`, and vue-tsc). This is also how you format-only — there is no separate `format` script.
 
 ### Database Operations
 
@@ -23,10 +23,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm db:seed` - Seed the database with initial data
 - `pnpm db:generate` - Generate migration files
 - `pnpm db:migrate` - Run database migrations
+- `pnpm db:backup` - Back up the SQLite database
+- `pnpm db:reset` - Clean, push schema, and re-seed (also `db:clean`, `db:check`)
 
 ### Integrations
 
-- `pnpm sync:readwise` - Sync records from Readwise integration
+- `pnpm sync:readwise` (or `pnpm sync`) - Sync records from Readwise integration
+- `pnpm embed` - Generate embeddings for records (requires `OPENAI_API_KEY`)
 
 ### CLI (`ench`)
 
@@ -54,20 +57,20 @@ This is a full-stack TypeScript application with a Vue 3 frontend and Express ba
 
 **Key directories:**
 
-- `app/` - Vue 3 frontend with PrimeVue UI components
+- `app/` - Vue 3 frontend with Nuxt UI components
 - `backend/api/` - Express API server (REST routes)
 - `backend/db/` - Drizzle schema, queries, migrations
 - `backend/cli/ench/` - `ench` CLI: stdio interface for agents/shell
-- `backend/integrations/` - Readwise, Twitter, Wayback, embeddings
+- `backend/integrations/` - Readwise, Twitter, Wayback, embeddings, chrome-extension, utils
 - `shared/` - Shared types and utilities between frontend/backend
 
 ### Frontend Architecture
 
 - **Framework**: Vue 3 with Composition API
 - **Routing**: Vue Router with typed routes
-- **UI**: PrimeVue components with Nuxt UI
+- **UI**: Nuxt UI (v4) components
 - **State**: TanStack Query for server state, composables for client logic
-- **Styling**: Tailwind CSS with custom theme
+- **Styling**: Tailwind CSS (v4) with custom theme
 
 ### Backend Architecture
 
@@ -90,12 +93,15 @@ Both frontend and backend use these path aliases:
 - `@app/*` → `./app/*`
 - `@shared/*` → `./shared/*`
 - `@db/*` → `./backend/db/*`
+- `@api/*` → `./backend/api/*`
 - `@integrations/*` → `./backend/integrations/*`
 
 ### Environment Configuration
 
-Required environment variables (see `.env`):
+Required environment variables (see `.env.example`). The ports are parsed at startup and will throw if unset — they are required, not defaulted:
 
-- `BACKEND_PORT` - Express server port (default: 4321)
-- `FRONTEND_PORT` - Vite dev server port (default: 3456)
+- `BACKEND_PORT` - Express server port (e.g. 4321)
+- `FRONTEND_PORT` - Vite dev server port (e.g. 3456)
+- `DATABASE_NAME` - SQLite database filename
 - `READWISE_TOKEN` - API token for Readwise integration
+- `OPENAI_API_KEY` - Required for embeddings / semantic search

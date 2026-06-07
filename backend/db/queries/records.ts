@@ -76,6 +76,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
     isCurated,
     hasMedia,
     hasTitle,
+    ids,
   } = filters || {};
 
   const rows = await db.query.records.findMany({
@@ -124,6 +125,10 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
     where: {
       type,
       source,
+      // `ids: undefined` = no id filter (normal list); `ids: []` = match nothing
+      // (a caller asked for an empty set, e.g. a record with no links — don't
+      // fall through to returning every record).
+      ...(ids !== undefined ? { id: { in: ids } } : {}),
       title:
         title === null || hasTitle === false
           ? {

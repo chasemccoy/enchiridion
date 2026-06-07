@@ -123,33 +123,37 @@
     </header>
 
     <div class="IndexV2View__content">
-      <SplitViewLayout
-        v-if="view === 'cards'"
-        v-model="filteredRecordsModel"
-        :isEmpty="!route.params.slug"
-        :recordCardProps="cardPropsFor"
-        :grouped="!hasQuery && sortKey !== 'title'"
-      >
-        <RouterView />
-      </SplitViewLayout>
+      <!-- KeepAlive caches whichever pane is inactive so switching Cards↔Table
+        never re-instantiates ~500 components (the switch was 0.6–0.9s of Vue
+        mount + GC churn). The inactive pane is also paused, so a search doesn't
+        re-render the hidden view on every keystroke. Both children must be
+        components for KeepAlive to cache them — hence IndexV2TablePane. -->
+      <KeepAlive>
+        <SplitViewLayout
+          v-if="view === 'cards'"
+          key="cards"
+          v-model="filteredRecordsModel"
+          :isEmpty="!route.params.slug"
+          :recordCardProps="cardPropsFor"
+          :grouped="!hasQuery && sortKey !== 'title'"
+        >
+          <RouterView />
+        </SplitViewLayout>
 
-      <div
-        v-else
-        class="IndexV2View__tableWrap"
-      >
-        <RecordTable
-          v-if="filteredRecords"
+        <IndexV2TablePane
+          v-else
+          key="table"
           v-model="filteredRecordsModel"
           :hideColumns="tableHiddenColumns"
           :rowTo="(slug) => `/v2/${slug}`"
         />
-      </div>
+      </KeepAlive>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import RecordTable from '@app/components/RecordTable.vue';
+import IndexV2TablePane from '@app/components/IndexV2TablePane.vue';
 import SplitViewLayout from '@app/components/SplitViewLayout.vue';
 import useQueryState from '@app/composables/useQueryState';
 import useRecords from '@app/composables/useRecords';
@@ -246,8 +250,23 @@ function clearSearch() {
 }
 
 function setView(value: ViewMode) {
-  if (value === view.value) return;
+  // Pressing the already-active view toggle scrolls that pane to the top
+  // (mirrors the bottom-nav "tap active tab to scroll up" behavior).
+  if (value === view.value) {
+    scrollActiveViewToTop();
+    return;
+  }
   updateQuery({ view: value === 'cards' ? undefined : value });
+}
+
+// Each pane has its own virtualized scroll container: the cards list scrolls
+// `.SplitViewLayout_list`, the table scrolls its own root `.RecordTable--virtual`.
+// The inactive pane is detached by <KeepAlive>, so a scoped query resolves to
+// whichever is currently showing.
+function scrollActiveViewToTop() {
+  const selector = view.value === 'cards' ? '.SplitViewLayout_list' : '.RecordTable--virtual';
+  const scroller = document.querySelector<HTMLElement>(`.IndexV2View__content ${selector}`);
+  scroller?.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function toggleType(value: RecordType) {
@@ -495,13 +514,6 @@ const tableHiddenColumns = computed(() => {
   background: linear-gradient(to bottom, var(--page-bg), transparent);
   pointer-events: none;
   z-index: 2;
-}
-
-.IndexV2View__tableWrap {
-  height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 0 16px var(--nav-clearance);
 }
 
 /* Phones: the search field fills the toolbar row when open (32vw collapses it to

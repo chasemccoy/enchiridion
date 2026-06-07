@@ -26,10 +26,12 @@
           :key="linkData.link.id"
         >
           <RecordLink
+            v-if="preloadedFor(linkData)"
             class="RecordLinks__recordLink shadow-xxs"
             :modelValue="
               linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId
             "
+            :preloaded="preloadedFor(linkData)"
             :truncate="truncate"
             :predicate="linkData.link.predicate"
             :linkDirection="linkData.direction"
@@ -81,10 +83,12 @@
             :key="linkData.link.id"
           >
             <RecordLink
+              v-if="preloadedFor(linkData)"
               layout="row"
               :modelValue="
                 linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId
               "
+              :preloaded="preloadedFor(linkData)"
               :truncate="truncate"
               :predicate="linkData.link.predicate"
               :linkDirection="linkData.direction"
@@ -105,14 +109,15 @@
 <script setup lang="ts">
 import RecordLink from '@app/components/RecordLink.vue';
 import RelationshipSelect from '@app/components/RelationshipSelect.vue';
-import type { LinksForRecordAPIResponse } from '@db/queries/records';
+import type { LinksForRecordAPIResponse, ListRecordsAPIResponse } from '@db/queries/records';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import { capitalize } from '@shared/lib/formatting';
 import type { LinkSelect } from '@db/schema';
 import type { DbId } from '@shared/types/api';
 import type { Predicate, PredicateSlug } from '@shared/types';
 import useRecordLinks from '@app/composables/useRecordLinks';
-import type { VirtualLink } from '@app/composables/useRecordLinks';
+import type { LinkWithDirection, VirtualLink } from '@app/composables/useRecordLinks';
+import useRecords from '@app/composables/useRecords';
 import { computed } from 'vue';
 
 const emit = defineEmits<{
@@ -154,6 +159,40 @@ const { linksByPredicateName } = useRecordLinks(
 
 const hasGroups = computed(() => Object.keys(linksByPredicateName.value).length > 0);
 const groupCount = computed(() => Object.keys(linksByPredicateName.value).length);
+
+// The linked record a row points at (target for outgoing edges, source for
+// incoming).
+function linkedRecordId(linkData: LinkWithDirection): number {
+  return linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId;
+}
+
+// Batch-load every linked record's full card data in ONE query instead of each
+// RecordLink fetching its own /record/:id. A hub concept ("article", 225 links)
+// went from ~450 requests to one. The data is then present up front, so rows
+// render (and can be measured) without per-row fetches.
+const linkedRecordIds = computed(() => {
+  const ids = new Set<number>();
+  for (const group of Object.values(linksByPredicateName.value)) {
+    for (const linkData of group) ids.add(linkedRecordId(linkData));
+  }
+  return [...ids];
+});
+
+const recordsInput = computed(() => ({
+  filters: { ids: linkedRecordIds.value },
+  limit: Math.max(1, linkedRecordIds.value.length),
+}));
+const { data: preloadedRecords } = useRecords(recordsInput);
+
+const recordsById = computed(() => {
+  const map = new Map<number, ListRecordsAPIResponse[number]>();
+  for (const record of preloadedRecords.value ?? []) map.set(record.id, record);
+  return map;
+});
+
+function preloadedFor(linkData: LinkWithDirection): ListRecordsAPIResponse[number] | undefined {
+  return recordsById.value.get(linkedRecordId(linkData));
+}
 
 function handleUpdatePredicate(link: LinkSelect | VirtualLink, predicate: Predicate) {
   emit('updatePredicate', {

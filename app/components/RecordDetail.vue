@@ -480,6 +480,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 :deep(.RecordDetail__bylineButton) {
   max-width: 250px;
   margin-inline: -2px;
+  line-height: inherit;
 
   &:hover {
     text-decoration: underline;
@@ -498,7 +499,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 }
 
 .RecordDetail__content {
-  margin-top: -8px;
+  margin-block: -8px -4px;
   margin-inline: -10px;
 }
 
@@ -557,7 +558,6 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 }
 
 .RecordDetail__links {
-  margin-top: 16px;
   gap: 4px;
 }
 
