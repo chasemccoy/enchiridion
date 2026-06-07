@@ -216,7 +216,10 @@ function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
   gap: 6px;
   padding-top: 9px;
   position: sticky;
-  top: 0px;
+  /* The detail scroller has 2rem top padding, so a top of 0 would stick the
+     label 2rem down — letting rows scroll above it. Offset that padding (less a
+     small gap) so the label sticks near the pane's top edge, above the rows. */
+  top: calc(-2rem + 8px);
 }
 
 .RecordLinks__labelText {

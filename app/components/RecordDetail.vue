@@ -574,7 +574,9 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 .RecordDetail__similarLabel {
   padding-top: 9px;
   position: sticky;
-  top: 0px;
+  /* Offset the detail scroller's 2rem top padding (less a small gap) so the
+     label sticks near the pane's top edge rather than 2rem down. */
+  top: calc(-2rem + 8px);
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--ui-text-muted);
