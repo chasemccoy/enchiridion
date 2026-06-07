@@ -70,6 +70,7 @@
     />
 
     <RecordLinks
+      variant="cards"
       :links="links"
       :relatedRecords="relatedRecords"
       :currentRecordId="modelValue?.id"
@@ -215,7 +216,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .ConceptDetail__content {
   margin-block: -0.5rem;
-  margin-inline: -12px;
+  margin-inline: -10px;
 }
 
 .ConceptDetail__metadata {

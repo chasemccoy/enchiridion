@@ -64,24 +64,44 @@
 
     <UModal
       v-model:open="isModalOpen"
-      :ui="{ content: 'max-w-5xl' }"
+      :ui="{
+        content:
+          'w-fit max-w-[96vw] p-0 bg-transparent shadow-none ring-0 rounded-none overflow-visible divide-y-0',
+        overlay: 'bg-black/80',
+      }"
     >
       <template #content>
         <div
           v-if="currentAttachment"
           class="Lightbox"
         >
-          <div class="Lightbox__header">
-            <div class="Lightbox__counter">
-              {{ currentAttachmentIndex + 1 }} of {{ modelValue.length }}
-            </div>
-            <UButton
-              icon="i-lucide-x"
-              variant="ghost"
-              color="neutral"
-              @click="closeLightbox"
-            />
-          </div>
+          <button
+            type="button"
+            class="Lightbox__btn Lightbox__close"
+            aria-label="Close"
+            @click="closeLightbox"
+          >
+            <UIcon name="i-lucide-x" />
+          </button>
+
+          <button
+            v-if="modelValue.length > 1"
+            type="button"
+            class="Lightbox__btn Lightbox__nav Lightbox__nav--prev"
+            aria-label="Previous"
+            @click="previousAttachment"
+          >
+            <UIcon name="i-lucide-chevron-left" />
+          </button>
+          <button
+            v-if="modelValue.length > 1"
+            type="button"
+            class="Lightbox__btn Lightbox__nav Lightbox__nav--next"
+            aria-label="Next"
+            @click="nextAttachment"
+          >
+            <UIcon name="i-lucide-chevron-right" />
+          </button>
 
           <div class="Lightbox__content">
             <img
@@ -108,28 +128,21 @@
           </div>
 
           <div
-            v-if="modelValue.length > 1"
-            class="Lightbox__nav"
+            v-if="modelValue.length > 1 || currentAttachment.altText"
+            class="Lightbox__caption"
           >
-            <UButton
-              icon="i-lucide-chevron-left"
-              variant="outline"
-              color="neutral"
-              @click="previousAttachment"
-            />
-            <UButton
-              icon="i-lucide-chevron-right"
-              variant="outline"
-              color="neutral"
-              @click="nextAttachment"
-            />
-          </div>
-
-          <div
-            v-if="currentAttachment.altText"
-            class="Lightbox__metadata"
-          >
-            {{ currentAttachment.altText }}
+            <span
+              v-if="modelValue.length > 1"
+              class="Lightbox__counter"
+            >
+              {{ currentAttachmentIndex + 1 }} / {{ modelValue.length }}
+            </span>
+            <span
+              v-if="currentAttachment.altText"
+              class="Lightbox__alt"
+            >
+              {{ currentAttachment.altText }}
+            </span>
           </div>
         </div>
       </template>
@@ -301,61 +314,93 @@ onUnmounted(() => {
   display: none;
 }
 
+/* The UModal content is w-fit + overflow-visible, so the panel hugs the media
+   with no surrounding dialog chrome. The controls float in the dark margin just
+   outside the image. */
 .Lightbox {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.Lightbox__header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--ui-border);
-}
-
-.Lightbox__counter {
-  font-size: 0.875rem;
-  color: var(--ui-text-dimmed);
+  gap: 12px;
 }
 
 .Lightbox__content {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  max-height: 70vh;
 }
 
 .Lightbox__image,
 .Lightbox__video {
-  max-width: 100%;
-  max-height: 70vh;
+  display: block;
+  max-width: calc(100vw - 140px);
+  max-height: 86vh;
   object-fit: contain;
   border-radius: var(--radius-lg);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45);
 }
 
 .Lightbox__pdf {
-  width: 100%;
-  height: 70vh;
+  width: 80vw;
+  height: 86vh;
   border: none;
   border-radius: var(--radius-lg);
+  background: var(--ui-bg);
+}
+
+/* Floating translucent controls so nothing competes with the image. */
+.Lightbox__btn {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.12s ease;
+}
+
+.Lightbox__btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.Lightbox__close {
+  top: 0;
+  right: -44px;
 }
 
 .Lightbox__nav {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  padding-top: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.Lightbox__metadata {
+.Lightbox__nav--prev {
+  left: -44px;
+}
+
+.Lightbox__nav--next {
+  right: -44px;
+}
+
+.Lightbox__caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
   text-align: center;
-  font-size: 0.875rem;
-  color: var(--ui-text-dimmed);
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--ui-border);
+}
+
+.Lightbox__counter {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
 }
 </style>

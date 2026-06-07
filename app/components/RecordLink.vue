@@ -7,6 +7,7 @@
     :class="{
       'RecordLink--loading': isLoading,
       'RecordLink--includeChildren': includeChildren,
+      'RecordLink--row': layout === 'row',
     }"
   >
     <div
@@ -69,14 +70,11 @@
     </ul>
 
     <ul
-      v-if="title"
+      v-if="title && (record?.url || tags?.length)"
       class="RecordLink__meta"
     >
-      <li>
-        <LinkWithFavicon
-          v-if="record?.url"
-          :modelValue="record.url"
-        />
+      <li v-if="record?.url">
+        <LinkWithFavicon :modelValue="record.url" />
       </li>
 
       <li
@@ -125,11 +123,13 @@ const {
   truncate = true,
   includeChildren = false,
   showParent = true,
+  layout = 'card',
 } = defineProps<{
   predicate?: PredicateSlug;
   linkDirection?: 'incoming' | 'outgoing';
   truncate?: boolean;
   includeChildren?: boolean;
+  layout?: 'card' | 'row';
   /**
    * Show a parent reference chip on untitled records. Defaults to true. Pass
    * false when the surrounding context already establishes the parent (e.g.
@@ -300,8 +300,16 @@ function handleDeleteLink() {
   white-space: normal;
 }
 
+.RecordLink__summary--markdown :deep(:last-child) {
+  margin-bottom: 0;
+}
+
 .RecordLink:has(.RecordLink__title) .RecordLink__summary {
-  margin: 4px 0 6px;
+  margin-top: 2px;
+}
+
+.RecordLink:has(.RecordLink__title):has(.RecordLink__meta) .RecordLink__summary {
+  margin-bottom: 4px;
 }
 
 .RecordLink__summary--truncated {
@@ -343,5 +351,30 @@ function handleDeleteLink() {
   margin-top: 4px;
   border-top: 1px solid var(--ui-border);
   padding-top: 8px;
+}
+
+.RecordLink--row {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: transparent;
+  transition: background-color 0.1s ease;
+}
+
+.RecordLink--row:hover {
+  background-color: var(--ui-bg-elevated);
+}
+
+.RecordLink--row:not(.RecordLink--includeChildren) .RecordLink__title {
+  font-size: 0.9rem;
+}
+
+.RecordLink--row .RecordLink__summary {
+  font-size: 0.78rem;
+}
+
+.RecordLink--row .RecordLink__summary--truncated {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 </style>

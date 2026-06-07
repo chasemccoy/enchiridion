@@ -1,9 +1,12 @@
 <template>
+  <!-- Cards variant: the prior grouped-panel layout — one elevated section per
+       predicate, each holding bordered RecordLink cards. Used on concept pages. -->
   <div
-    v-if="linksByPredicateName && Object.keys(linksByPredicateName).length > 0"
-    class="RecordLinks"
+    v-if="variant === 'cards'"
+    v-show="hasGroups"
+    class="RecordLinks RecordLinks--cards"
     :class="{
-      'RecordLinks--singleSection': Object.keys(linksByPredicateName).length === 1,
+      'RecordLinks--singleSection': groupCount === 1,
       'RecordLinks--isMultiColumn': isMultiColumn,
     }"
   >
@@ -41,38 +44,106 @@
       </ul>
     </div>
   </div>
+
+  <!-- Grouped variant: label-column + compact rows under a "Linked records"
+       header. Used on record pages. -->
+  <section
+    v-else-if="hasGroups || currentRecordId"
+    class="RecordLinks RecordLinks--grouped"
+  >
+    <header class="RecordLinks__head">
+      <h2 class="RecordLinks__title">Linked records</h2>
+      <RelationshipSelect
+        v-if="currentRecordId"
+        variant="ghost"
+        size="sm"
+        :sourceRecordId="currentRecordId"
+        @createLink="handleCreateLink"
+      />
+    </header>
+
+    <div
+      v-if="hasGroups"
+      class="RecordLinks__groups"
+    >
+      <div
+        v-for="(linksForType, predicateName) in linksByPredicateName"
+        :key="predicateName"
+        class="RecordLinks__group"
+      >
+        <div class="RecordLinks__label">
+          <span class="RecordLinks__labelText">{{ capitalize(String(predicateName)) }}</span>
+        </div>
+
+        <ul class="RecordLinks__rows">
+          <li
+            v-for="linkData in linksForType"
+            :key="linkData.link.id"
+          >
+            <RecordLink
+              layout="row"
+              :modelValue="
+                linkData.direction === 'outgoing' ? linkData.link.targetId : linkData.link.sourceId
+              "
+              :truncate="truncate"
+              :predicate="linkData.link.predicate"
+              :linkDirection="linkData.direction"
+              :includeChildren="includeChildren"
+              @updatePredicate="
+                (predicate) =>
+                  linkData.link ? handleUpdatePredicate(linkData.link, predicate) : undefined
+              "
+              @deleteLink="() => handleDeleteLink(linkData.link.id)"
+            />
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">
 import RecordLink from '@app/components/RecordLink.vue';
+import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import type { LinksForRecordAPIResponse } from '@db/queries/records';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import { capitalize } from '@shared/lib/formatting';
 import type { LinkSelect } from '@db/schema';
 import type { DbId } from '@shared/types/api';
-import type { Predicate } from '@shared/types';
+import type { Predicate, PredicateSlug } from '@shared/types';
 import useRecordLinks from '@app/composables/useRecordLinks';
 import type { VirtualLink } from '@app/composables/useRecordLinks';
+import { computed } from 'vue';
 
 const emit = defineEmits<{
   updatePredicate: [{ link: LinkSelect; predicate: Predicate }];
   deleteLink: [{ linkId: DbId }];
+  createLink: [targetRecordId: DbId, predicate: PredicateSlug];
 }>();
 
 const {
-  isMultiColumn = true,
   links,
   relatedRecords,
   currentRecordId,
   truncate,
   includeChildren = false,
+  variant = 'grouped',
+  isMultiColumn = true,
 } = defineProps<{
   links?: LinksForRecordAPIResponse;
   relatedRecords?: FindAllRelatedRecordsAPIResponse;
   currentRecordId?: number;
   truncate?: boolean;
-  isMultiColumn?: boolean;
   includeChildren?: boolean;
+  /**
+   * `grouped` (default) is the label-column + compact-rows layout under a
+   * "Linked records" header, used on record detail pages. `cards` is the prior
+   * layout — one elevated panel per predicate holding bordered RecordLink
+   * cards — kept for concept detail pages.
+   */
+  variant?: 'grouped' | 'cards';
+  /** Cards variant only: flow the predicate sections into CSS columns. */
+  isMultiColumn?: boolean;
 }>();
 
 const { linksByPredicateName } = useRecordLinks(
@@ -80,6 +151,9 @@ const { linksByPredicateName } = useRecordLinks(
   () => relatedRecords,
   () => currentRecordId,
 );
+
+const hasGroups = computed(() => Object.keys(linksByPredicateName.value).length > 0);
+const groupCount = computed(() => Object.keys(linksByPredicateName.value).length);
 
 function handleUpdatePredicate(link: LinkSelect | VirtualLink, predicate: Predicate) {
   emit('updatePredicate', {
@@ -91,9 +165,76 @@ function handleUpdatePredicate(link: LinkSelect | VirtualLink, predicate: Predic
 function handleDeleteLink(linkId: DbId) {
   emit('deleteLink', { linkId });
 }
+
+function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
+  emit('createLink', targetRecordId, predicate);
+}
 </script>
 
 <style scoped>
+/* Grouped variant ------------------------------------------------------- */
+.RecordLinks--grouped {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.RecordLinks__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.RecordLinks__title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.RecordLinks__groups {
+  display: grid;
+}
+
+/* Each predicate is a row: a sticky label column on the left, the matching
+   records stacked on the right. Faint rules separate the groups. */
+.RecordLinks__group {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 6px 0;
+  border-top: 0.5px solid var(--ui-border);
+}
+
+.RecordLinks__group:first-child {
+  border-top: 0;
+}
+
+.RecordLinks__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-top: 9px;
+  position: sticky;
+  top: 7px;
+}
+
+.RecordLinks__labelText {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+}
+
+.RecordLinks__rows {
+  display: grid;
+  min-width: 0;
+
+  li {
+    min-width: 0;
+  }
+}
+
+/* Cards variant --------------------------------------------------------- */
 .RecordLinks--isMultiColumn:not(.RecordLinks--singleSection) {
   columns: 300px auto;
 }

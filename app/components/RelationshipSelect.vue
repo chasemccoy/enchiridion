@@ -8,11 +8,11 @@
   >
     <UButton
       color="neutral"
-      variant="subtle"
-      icon="i-lucide-list-tree"
-      label="Add link"
       class="RelationshipSelect__button"
-      size="sm"
+      icon="i-lucide-plus"
+      label="Add link"
+      :variant="variant"
+      :size="size"
       :style="{ width: 'fit-content' }"
     />
 
@@ -69,7 +69,7 @@ import useSearch from '@app/composables/useSearch';
 import { canonicalPredicates, type PredicateSlug } from '@shared/types';
 import { capitalize } from '@shared/lib/formatting';
 import type { DbId } from '@shared/types/api';
-import type { CommandPaletteItem } from '@nuxt/ui';
+import type { ButtonProps, CommandPaletteItem } from '@nuxt/ui';
 import { computed, ref, watch } from 'vue';
 import { getIconForRecordType } from '@app/utils';
 
@@ -83,8 +83,14 @@ const emit = defineEmits<{
   createLink: [targetRecordId: DbId, predicate: PredicateSlug];
 }>();
 
-const { sourceRecordId } = defineProps<{
+const {
+  sourceRecordId,
+  variant = 'subtle',
+  size = 'sm',
+} = defineProps<{
   sourceRecordId?: DbId;
+  variant?: ButtonProps['variant'];
+  size?: ButtonProps['size'];
 }>();
 
 const isOpen = ref(false);

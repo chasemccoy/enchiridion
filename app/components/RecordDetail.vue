@@ -238,11 +238,6 @@
     </CombinedFields>
 
     <div class="RecordDetail__actions">
-      <RelationshipSelect
-        :sourceRecordId="modelValue.id"
-        @createLink="handleCreateLink"
-      />
-
       <FileUploadButton @fileUpload="(file) => emit('fileUpload', file)" />
 
       <UButton
@@ -269,6 +264,7 @@
       :currentRecordId="modelValue?.id"
       @updatePredicate="handleUpdatePredicate"
       @deleteLink="handleDeleteLink"
+      @createLink="handleCreateLink"
     />
 
     <div
@@ -301,7 +297,6 @@
 <script setup lang="ts">
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import BrowserFrame from '@app/components/BrowserFrame.vue';
-import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import RecordLink from '@app/components/RecordLink.vue';
 import RecordLinks from '@app/components/RecordLinks.vue';
 import type { GetRecordBySlugAPIResponse, LinksForRecordAPIResponse } from '@db/queries/records';
@@ -503,7 +498,8 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 }
 
 .RecordDetail__content {
-  margin-inline: -8px;
+  margin-top: -8px;
+  margin-inline: -10px;
 }
 
 .RecordDetail__children:not(.RecordDetail__children--singleChild) {
@@ -585,6 +581,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .RecordDetail__links {
   margin-top: 16px;
+  gap: 4px;
 }
 
 /* Match the elevated-card look used by RecordLinks for tag/related/format panels. */

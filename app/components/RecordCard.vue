@@ -48,14 +48,17 @@
       </span>
     </h1>
 
-    <img
+    <div
       v-if="modelValue.media?.length > 0 && modelValue.media[0]?.type === 'image'"
       class="RecordCard__image"
-      loading="lazy"
-      decoding="async"
-      :src="`${backendBaseUrl}${modelValue.media[0]?.url}`"
-      :alt="modelValue.media[0].altText ?? ''"
-    />
+    >
+      <img
+        loading="lazy"
+        decoding="async"
+        :src="`${backendBaseUrl}${modelValue.media[0]?.url}`"
+        :alt="modelValue.media[0].altText ?? ''"
+      />
+    </div>
 
     <AttachmentGallery
       v-if="false"
@@ -365,13 +368,33 @@ const tags = computed(() => {
 }
 
 .RecordCard__image {
+  position: relative;
   height: 150px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 4px;
+  margin-top: 4px;
+}
+
+.RecordCard__image img {
+  height: 100%;
   width: 100%;
   object-fit: cover;
   object-position: 50% 25%;
-  border-radius: var(--radius-md);
-  margin-bottom: 4px;
-  margin-top: 4px;
+  display: block;
+}
+
+/* Hairline overlay painted on top of the image — an inset box-shadow on the
+   <img> (or its wrapper) is covered by the image content, so draw it on a
+   pseudo-element layered above instead. */
+.RecordCard__image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--ui-border);
+  pointer-events: none;
 }
 
 .RecordCard__childrenCount {

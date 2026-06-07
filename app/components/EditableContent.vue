@@ -21,7 +21,7 @@
         <UButton
           color="neutral"
           variant="ghost"
-          size="xs"
+          size="sm"
           label="Cancel"
           icon="i-lucide-x"
           @click="handleCancel"
@@ -29,7 +29,7 @@
         <UButton
           color="primary"
           variant="ghost"
-          size="xs"
+          size="sm"
           label="Save"
           icon="i-lucide-check"
           @click="handleSave"
