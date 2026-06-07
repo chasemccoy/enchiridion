@@ -444,7 +444,7 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
   position: relative;
   display: grid;
   gap: 1rem;
-  max-width: 800px;
+  max-width: 680px;
   margin: 0 auto;
 }
 
@@ -593,5 +593,25 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .RecordDetail__recordLink {
   break-inside: avoid;
+}
+
+/* Phones: collapse the two-column grids that assume desktop width. The 116px
+ * sticky label column and the 300px child-card columns both crowd a ~390px
+ * screen, so stack them into a single readable column. */
+@media (max-width: 640px) {
+  .RecordDetail__children:not(.RecordDetail__children--singleChild) {
+    columns: 1;
+  }
+
+  .RecordDetail__similar {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .RecordDetail__similarLabel {
+    position: static;
+    top: auto;
+    padding-top: 0;
+  }
 }
 </style>

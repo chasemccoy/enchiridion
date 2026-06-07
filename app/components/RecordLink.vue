@@ -329,8 +329,17 @@ function handleDeleteLink() {
 }
 
 .RecordLink:hover .RecordLink__actions,
+.RecordLink:focus-within .RecordLink__actions,
 .RecordLink__actions:has(button[aria-expanded='true']) {
   opacity: 1;
+}
+
+/* Touch devices have no hover, so the predicate/delete control would be
+ * permanently invisible. Keep it visible there. */
+@media (hover: none) {
+  .RecordLink__actions {
+    opacity: 1;
+  }
 }
 
 .RecordLink__notes {

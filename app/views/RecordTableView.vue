@@ -103,6 +103,7 @@ const { data } = useRecords(queryOptions);
 .ConceptsView__header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 6px;
   background-color: var(--ui-bg);
@@ -113,6 +114,16 @@ const { data } = useRecords(queryOptions);
 .ConceptsView__filterInput {
   width: fit-content;
   margin-left: auto;
+}
+
+/* Phones: let the filter input claim its own full-width row instead of being
+ * pushed off the right edge by margin-left:auto. */
+@media (max-width: 480px) {
+  .ConceptsView__filterInput {
+    width: 100%;
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }
 
 :deep(.ConceptsView__typeSelect) {

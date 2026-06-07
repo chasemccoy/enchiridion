@@ -1,8 +1,8 @@
 <template>
   <UDrawer
     v-model:open="modelValue"
-    direction="right"
-    :handle="false"
+    :direction="drawerDirection"
+    :handle="isMobile"
     :ui="{
       content: 'shadow-xl',
     }"
@@ -27,7 +27,8 @@ import AddRecordForm from '@app/components/AddRecordForm.vue';
 import useApiClient from '@app/composables/useApiClient';
 import useRecord from '@app/composables/useRecord';
 import type { LinkInsert, MediaInsert, RecordInsert } from '@db/schema';
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import type { FetchTweetAPIResponse } from '@api/twitter';
 import { getImagesFromTweet } from '@app/utils';
@@ -57,6 +58,11 @@ const router = useRouter();
 const route = useRoute();
 const toast = useToast();
 const { fetch } = useApiClient();
+
+// A right-anchored side sheet is wrong on a phone (its inset gutter + 500px form
+// guarantee horizontal overflow). Below 640px, present it as a bottom sheet.
+const isMobile = useMediaQuery('(max-width: 640px)');
+const drawerDirection = computed(() => (isMobile.value ? 'bottom' : 'right'));
 
 const files = ref<PartialMediaInsert[]>([]);
 const links = ref<PartialLinkInsert[]>([]);
@@ -202,6 +208,19 @@ onMounted(async () => {
 <style scoped>
 .AddRecordDrawerView__content {
   padding: 24px;
-  min-width: 500px;
+  /* Never exceed the viewport. The desktop side sheet wants a comfortable
+   * minimum; on phones the bottom sheet fills the width and the submit button
+   * clears the home indicator. */
+  width: 100%;
+  min-width: min(500px, 100vw);
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  .AddRecordDrawerView__content {
+    min-width: 0;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
 }
 </style>

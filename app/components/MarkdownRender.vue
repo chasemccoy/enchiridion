@@ -112,11 +112,7 @@ const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
   & :deep(a) {
     color: var(--ui-primary);
     text-decoration: underline;
-    text-decoration-color: var(--ui-border-accented);
-
-    &:hover {
-      text-decoration-color: currentColor;
-    }
+    text-decoration-color: currentColor;
   }
 
   & :deep(code) {

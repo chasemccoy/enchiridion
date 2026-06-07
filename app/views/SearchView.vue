@@ -161,19 +161,20 @@
 
 <script setup lang="ts">
 import RecordCard from '@app/components/RecordCard.vue';
+import useQueryState from '@app/composables/useQueryState';
 import useSearch from '@app/composables/useSearch';
 import useSemanticSearch from '@app/composables/useSemanticSearch';
-import { getIconForRecordType } from '@app/utils';
+import { getIconForRecordType, hasMedia, isRecordType, stripScore } from '@app/utils';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import { recordTypeEnum, type RecordType } from '@shared/types';
+import type { RecordType } from '@shared/types';
 import { capitalize, computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
 type SearchMode = 'keyword' | 'semantic';
 type SortKey = 'relevance' | 'newest' | 'oldest' | 'title';
 
 const route = useRoute();
-const router = useRouter();
+const { readQuery, updateQuery } = useQueryState();
 
 const recordTypes: RecordType[] = ['artifact', 'concept', 'entity'];
 
@@ -196,16 +197,8 @@ const keywordSuggestions = ['hypertext', 'typography', 'rss'];
 
 const isSearchMode = (value: unknown): value is SearchMode =>
   value === 'keyword' || value === 'semantic';
-const isRecordType = (value: unknown): value is RecordType =>
-  typeof value === 'string' && (recordTypeEnum as readonly string[]).includes(value);
 const isSortKey = (value: unknown): value is SortKey =>
   value === 'relevance' || value === 'newest' || value === 'oldest' || value === 'title';
-
-const readQuery = <T,>(key: string, fallback: T, guard: (v: unknown) => v is T): T => {
-  const raw = route.query[key];
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return guard(value) ? value : fallback;
-};
 
 const q = computed(() => {
   const raw = route.query.q;
@@ -248,15 +241,6 @@ watch(qInput, (next) => {
 watch(q, (next) => {
   if (next !== qInput.value) qInput.value = next;
 });
-
-function updateQuery(patch: Record<string, string | undefined>) {
-  const next = { ...route.query };
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === undefined || value === '') delete next[key];
-    else next[key] = value;
-  }
-  router.replace({ query: next });
-}
 
 function setMode(value: SearchMode) {
   if (value === mode.value) return;
@@ -307,16 +291,7 @@ const rawResults = computed<ListRecordsAPIResponse>(() => {
   return (semanticData.value ?? []).map((row) => stripScore(row));
 });
 
-function stripScore<T extends { score: number }>(row: T): Omit<T, 'score'> {
-  const copy: Partial<T> = { ...row };
-  delete copy.score;
-  return copy as Omit<T, 'score'>;
-}
-
 const rawCount = computed(() => rawResults.value.length);
-
-const hasMedia = (record: ListRecordsAPIResponse[number]) =>
-  Array.isArray(record.media) && record.media.length > 0;
 
 const filteredResults = computed(() =>
   rawResults.value.filter((record) => {
@@ -353,13 +328,14 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 24px 32px 96px;
+  padding: 24px 32px var(--nav-clearance);
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   /* Fill the viewport at minimum so the page never collapses to just the
    * header/toolbar (empty state, no-results, single-row results). 100dvh
    * over 100vh so the dynamic mobile browser chrome doesn't cut off the bottom. */
+  min-height: 100vh;
   min-height: 100dvh;
 }
 
@@ -519,5 +495,22 @@ watch(
   page-break-inside: avoid;
   display: block;
   margin-bottom: 8px;
+}
+
+/* Phones: a single column (320px columns would otherwise demand >320px and
+ * overflow), tighter side padding, and the sort control flows inline instead of
+ * being pushed to a far right edge. */
+@media (max-width: 640px) {
+  .SearchView {
+    padding-inline: 16px;
+  }
+
+  .SearchView__grid {
+    columns: 1;
+  }
+
+  .SearchView__sort {
+    margin-left: 0;
+  }
 }
 </style>

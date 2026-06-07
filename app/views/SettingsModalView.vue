@@ -71,10 +71,12 @@ function handleAfterLeave() {
   display: grid;
   grid-template-rows: min-content;
   gap: 16px;
-  min-height: 400px;
+  /* Cap to the smaller of 400px and the viewport so short phones (and landscape)
+   * don't overflow; dvh tracks mobile browser chrome. */
+  min-height: min(400px, 60dvh);
   color: var(--ui-text);
   overflow-y: auto;
-  max-height: 75vh;
+  max-height: 75dvh;
 }
 
 .SettingsModalView__title {

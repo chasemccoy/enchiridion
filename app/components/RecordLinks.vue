@@ -281,4 +281,25 @@ function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
   break-inside: avoid;
   border-radius: calc(var(--radius-xl) - 2px);
 }
+
+/* Phones: stack both variants into a single column. The grouped variant's 116px
+ * sticky label column eats ~30% of a 390px screen, and the 300px CSS columns in
+ * the cards variant force tracks wider than the viewport. */
+@media (max-width: 768px) {
+  .RecordLinks--grouped .RecordLinks__group {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .RecordLinks__label {
+    position: static;
+    top: auto;
+    padding-top: 4px;
+  }
+
+  .RecordLinks--isMultiColumn:not(.RecordLinks--singleSection),
+  .RecordLinks__list {
+    columns: 1;
+  }
+}
 </style>

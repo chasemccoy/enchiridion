@@ -126,4 +126,12 @@ const isSupportedUrl = computed(() => {
   display: block;
   border-radius: var(--radius-md);
 }
+
+/* On phones the 16:9 frame can dominate the viewport (and exceed it in
+ * landscape). Cap its height so the surrounding record stays scrollable. */
+@media (max-width: 768px) {
+  .BrowserFrame__iframe {
+    max-height: 50vh;
+  }
+}
 </style>

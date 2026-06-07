@@ -2,7 +2,7 @@
   <UApp>
     <div class="App">
       <UNavigationMenu
-        v-if="route.name !== RouteName.add"
+        v-if="route.name !== RouteName.add && !isDesignLabRoute"
         color="neutral"
         class="App__nav shadow-2xl"
         :items="navItems"
@@ -47,6 +47,14 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
+
+// Match the design-lab route by a *matched* route record's path, not the raw
+// URL. The index route has a `:slug` child, so `route.path.startsWith(...)`
+// would also fire for a real record whose slug merely begins with "design-lab"
+// (e.g. /design-lab-notes), wrongly hiding the bottom nav on that record.
+const isDesignLabRoute = computed(() =>
+  route.matched.some((record) => record.path.startsWith('/design-lab')),
+);
 
 const searchQuery = ref('');
 const shouldSearch = computed(() => searchQuery.value !== '');
@@ -168,16 +176,26 @@ watch(isSearchModalOpen, () => {
 <style scoped>
 .App {
   isolation: isolate;
+  /* dvh tracks the visible viewport as mobile browser chrome shows/hides; vh is
+   * the fallback for engines without dvh. */
   max-height: 100vh;
+  max-height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(0px, 1fr);
+  /* Inset the whole app from the notch in landscape (≈0 in portrait). Done once
+   * here so every view clears the Dynamic Island without per-view padding. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 :deep(.App__nav) {
   position: fixed;
-  bottom: 24px;
+  /* Lift the pill above the home indicator on notched iPhones (inset ≈ 34px);
+   * falls back to a flat 24px where there's no inset. */
+  bottom: calc(24px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
@@ -239,9 +257,19 @@ watch(isSearchModalOpen, () => {
 
 .App__content {
   display: grid;
+  /* minmax(0, 1fr) caps the content column at the viewport width so an over-wide
+   * child (e.g. the records table) overflows its own area instead of stretching
+   * the whole column past the screen and dragging headers/toolbars off-edge. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
   overflow-y: auto;
   grid-row: 2;
+  /* Keep edge bounce inside the app shell rather than chaining to the document
+   * (which would expose the area behind the shell on iOS). */
+  overscroll-behavior: contain;
+  /* Anchored scrolls (scrollIntoView on the selected record, table sticky
+   * header) stop clear of the floating nav pill. */
+  scroll-padding-bottom: var(--nav-clearance);
 }
 </style>

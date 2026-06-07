@@ -14,6 +14,13 @@
 
   --combinedFieldMinBadgeWidth: 88px;
 
+  /* Clearance for the floating bottom nav pill (App__nav, position:fixed). Its
+   * bottom offset (24px) is itself bumped by the home-indicator safe area, and
+   * the pill is ~48px tall — so any scroll container that runs under the pill
+   * pads its bottom by this token to keep the last item tappable above both the
+   * pill and the home indicator. Resolves to ~88px on desktop (inset = 0). */
+  --nav-clearance: calc(env(safe-area-inset-bottom) + 88px);
+
   /* Blue accent (fill-accent). */
   --ui-primary: #2a78d6;
 
@@ -93,6 +100,20 @@
 
 * {
   corner-shape: superellipse(1.333);
+  /* Suppress the default grey tap flash on iOS; the app draws its own hover/
+   * active states (and the superellipse corners make the default box look
+   * wrong). */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Backstop against horizontal page overflow on phones. The app shell is a
+ * fixed-height column (.App, overflow:hidden) so the document itself should
+ * never scroll sideways; this contains any single mis-measured CSS-columns or
+ * minmax() track so it can't produce a body-level horizontal scroll (the
+ * classic "whole page slides left/right" rubber-band) before the per-component
+ * responsive rules catch it. */
+html {
+  overflow-x: hidden;
 }
 
 /* html.dark = whole-app dark mode; bare .dark = elements forced dark in a light

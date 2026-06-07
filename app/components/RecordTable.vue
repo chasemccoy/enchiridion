@@ -91,6 +91,13 @@ const globalFilter = defineModel<string>('globalFilter');
 
 const props = defineProps<{
   hideColumns?: string[];
+  /**
+   * Build the destination route for a clicked row. Defaults to the root record
+   * route (`/{slug}`); pass a builder when the table lives under a parent route
+   * (e.g. IndexV2View at `/v2`) so a row click stays in that context instead of
+   * escaping to the home index.
+   */
+  rowTo?: (slug: string) => string;
 }>();
 
 const router = useRouter();
@@ -161,6 +168,19 @@ const columns = [
     header: 'ID',
   },
   {
+    accessorKey: 'slug',
+    header: 'Slug',
+  },
+  {
+    accessorKey: 'title',
+    header: 'Record',
+    meta: {
+      class: {
+        td: 'RecordTable__titleCell',
+      },
+    },
+  },
+  {
     accessorKey: 'type',
     header: 'Type',
     cell: ({ row }: { row: TableRow<ListRecordsAPIResponse[number]> }) => {
@@ -172,19 +192,6 @@ const columns = [
         },
         () => capitalize(row.getValue('type') as string),
       );
-    },
-  },
-  {
-    accessorKey: 'slug',
-    header: 'Slug',
-  },
-  {
-    accessorKey: 'title',
-    header: 'Record',
-    meta: {
-      class: {
-        td: 'RecordTable__titleCell',
-      },
     },
   },
   {
@@ -239,14 +246,16 @@ function getTags(row: TableRow<RecordRow>): LinkTarget[] {
 }
 
 function handleRowSelect(_event: Event, row: TableRow<ListRecordsAPIResponse[number]>) {
-  router.push(`/${row.getValue('slug')}`);
+  const slug = row.getValue('slug') as string;
+  router.push(props.rowTo ? props.rowTo(slug) : `/${slug}`);
 }
 </script>
 
 <style scoped>
 :global(.RecordTable) {
   overflow: initial;
-  padding-bottom: 6rem;
+  /* Clear the floating nav pill + home indicator below the last row. */
+  padding-bottom: var(--nav-clearance);
 }
 
 .RecordTable__td {

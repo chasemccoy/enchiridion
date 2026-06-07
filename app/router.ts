@@ -3,6 +3,7 @@ import ArtifactsView from '@app/views/ArtifactsView.vue';
 import ConceptsView from '@app/views/ConceptsView.vue';
 import EntitiesView from '@app/views/EntitiesView.vue';
 import InboxView from '@app/views/InboxView.vue';
+import IndexV2View from '@app/views/IndexV2View.vue';
 import IndexView from '@app/views/IndexView.vue';
 import RecordDetailView from '@app/views/RecordDetailView.vue';
 import RecordTableView from '@app/views/RecordTableView.vue';
@@ -11,6 +12,7 @@ import { createWebHistory, createRouter } from 'vue-router';
 
 export enum RouteName {
   index = 'index',
+  indexV2 = 'indexV2',
   inbox = 'inbox',
   records = 'records',
   artifacts = 'artifacts',
@@ -44,6 +46,17 @@ const routes = [
     ],
   },
   {
+    path: '/v2',
+    name: RouteName.indexV2,
+    component: IndexV2View,
+    children: [
+      {
+        path: ':slug',
+        component: RecordDetailView,
+      },
+    ],
+  },
+  {
     path: '/records',
     name: RouteName.records,
     component: RecordTableView,
@@ -72,6 +85,11 @@ const routes = [
     path: '/add',
     name: RouteName.add,
     component: AddRecordView,
+  },
+  {
+    // Design lab — scratch playground for layout exploration. Not for prod.
+    path: '/design-lab/:slug/:n?',
+    component: () => import('@app/design-lab/LabRouter.vue'),
   },
 ];
 

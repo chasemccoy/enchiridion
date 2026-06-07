@@ -172,7 +172,9 @@ onMounted(async () => {
 <style scoped>
 .AddRecordView {
   background-color: var(--ui-bg);
-  padding: 24px;
+  /* The bottom nav is hidden on /add, so this full-page form owns its own
+   * home-indicator clearance below the submit button. */
+  padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
   max-width: 40em;
   margin: -16px;
   display: flex;

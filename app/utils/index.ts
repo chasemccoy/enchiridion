@@ -1,8 +1,26 @@
 import { computed, type WritableComputedRef } from 'vue';
 import type { EnrichedQuotedTweet, EnrichedTweet } from '@integrations/twitter/utils';
-import type { RecordType } from '@shared/types';
+import { recordTypeEnum, type RecordType } from '@shared/types';
 import type { PartialMediaInsert } from '@app/views/AddRecordView.vue';
 import { type IntegrationType } from '@db/schema';
+
+/** Type guard for a record type read from an untyped source (e.g. a URL query). */
+export const isRecordType = (value: unknown): value is RecordType =>
+  typeof value === 'string' && (recordTypeEnum as readonly string[]).includes(value);
+
+/**
+ * Drop the `score` field that semantic-search rows carry so the row matches the
+ * plain record shape RecordCard/RecordTable expect.
+ */
+export function stripScore<T extends { score: number }>(row: T): Omit<T, 'score'> {
+  const copy: Partial<T> = { ...row };
+  delete copy.score;
+  return copy as Omit<T, 'score'>;
+}
+
+/** True when a record has at least one attached media item. */
+export const hasMedia = (record: { media?: unknown }): boolean =>
+  Array.isArray(record.media) && record.media.length > 0;
 
 /**
  * Structural ref-like — matches Ref<T>, ModelRef<T>, and WritableComputedRef<T>.

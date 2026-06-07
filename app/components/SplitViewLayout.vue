@@ -2,7 +2,10 @@
   <div
     ref="elRef"
     class="SplitViewLayout"
-    :class="{ 'SplitViewLayout--empty': isEmpty }"
+    :class="{
+      'SplitViewLayout--empty': isEmpty,
+      'SplitViewLayout--detail': hasSelection,
+    }"
   >
     <div
       ref="listRef"
@@ -17,7 +20,10 @@
           :key="groupKey"
           class="SplitViewLayout_group"
         >
-          <h3 class="SplitViewLayout_groupHeader">
+          <h3
+            v-if="grouped"
+            class="SplitViewLayout_groupHeader"
+          >
             {{ groupKey }}
             <template v-if="group.length > 4">({{ group.length }})</template>
           </h3>
@@ -43,6 +49,19 @@
       v-if="!isEmpty"
       class="SplitViewLayout_detail"
     >
+      <button
+        v-if="hasSelection && listRoutePath"
+        type="button"
+        class="SplitViewLayout_back"
+        @click="goBackToList"
+      >
+        <UIcon
+          name="i-lucide-arrow-left"
+          class="SplitViewLayout_backIcon"
+        />
+        All records
+      </button>
+
       <slot />
     </div>
   </div>
@@ -60,18 +79,45 @@ import {
   useTemplateRef,
   watch,
 } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const modelValue = defineModel<ListRecordsAPIResponse>();
 
-const { isEmpty, recordCardProps } = defineProps<{
+const {
+  isEmpty,
+  recordCardProps,
+  grouped = true,
+} = defineProps<{
   isEmpty?: boolean;
   recordCardProps?: (record: ListRecordsAPIResponse[number]) => Record<string, string>;
+  /** Group records under month/year headers. When false, renders one flat list
+   * with no headers — used when the caller's sort (e.g. Title A–Z) doesn't line
+   * up with chronological month grouping. */
+  grouped?: boolean;
 }>();
 
 const elRef = useTemplateRef('elRef');
 const listRef = useTemplateRef<HTMLDivElement>('listRef');
 const route = useRoute();
+const router = useRouter();
+
+// A record detail is open when a child route is active. This (not the `isEmpty`
+// prop, which means different things per view — "no selection" for the index but
+// "the inbox is empty" for the inbox) is what drives the mobile single-column
+// collapse, so the inbox's always-present detail pane doesn't blank the list at
+// bare /inbox.
+const hasSelection = computed(() => route.matched.length > 1);
+
+// Route of the list behind the open detail (parent of the `:slug` child route:
+// `/`, `/inbox`, `/v2`) — where the mobile back button returns to.
+const listRoutePath = computed(() => {
+  const parent = route.matched[route.matched.length - 2];
+  return parent?.path ?? null;
+});
+
+function goBackToList() {
+  if (listRoutePath.value) router.push(listRoutePath.value);
+}
 
 // Scroll preservation across KeepAlive cycles. The browser doesn't preserve
 // scroll on internal scrollable containers when they're detached/reattached
@@ -101,11 +147,26 @@ onActivated(() => {
   });
 });
 
-// Group records by month and year, including their original indices
+// Group records by month and year, including their original indices. Month
+// groups appear in the order their first record shows up in `modelValue`, so the
+// group order follows whatever sort the caller applied to the list (e.g. the v2
+// index's newest/oldest toggle) rather than being pinned newest-first. Callers
+// feed date-sorted data, so a date sort makes each month contiguous and the
+// groups come out in that same date order.
 const groupedRecords = computed(() => {
   if (!modelValue.value) return {};
 
   type RecordWithIndex = { record: ListRecordsAPIResponse[number]; index: number };
+
+  // Flat (ungrouped) mode: one bucket under an empty key, header hidden in the
+  // template. Keeps every record — including those without a recordCreatedAt,
+  // which the month-grouping path below skips.
+  if (!grouped) {
+    return {
+      '': modelValue.value.map((record, index) => ({ record, index })),
+    } as Record<string, RecordWithIndex[]>;
+  }
+
   const groups: Record<string, RecordWithIndex[]> = {};
 
   modelValue.value.forEach((record, index) => {
@@ -124,24 +185,7 @@ const groupedRecords = computed(() => {
     groups[monthYear].push({ record, index });
   });
 
-  // Sort groups by date (newest first)
-  const sortedGroups: Record<string, RecordWithIndex[]> = {};
-  Object.keys(groups)
-    .sort((a, b) => {
-      // Parse the month/year strings back to dates for proper sorting
-      const dateA = new Date(a);
-      const dateB = new Date(b);
-      return dateB.getTime() - dateA.getTime();
-    })
-    .forEach((key) => {
-      const group = groups[key];
-
-      if (group) {
-        sortedGroups[key] = group;
-      }
-    });
-
-  return sortedGroups;
+  return groups;
 });
 
 watch(
@@ -166,11 +210,12 @@ function scrollToSelectedRecord() {
   const selectedRecord = elRef.value.querySelector('[aria-current="page"]');
   if (!selectedRecord) return;
 
-  if (
-    !selectedRecord.getBoundingClientRect().top ||
-    selectedRecord.getBoundingClientRect().top < 0 ||
-    selectedRecord.getBoundingClientRect().bottom > window.innerHeight
-  ) {
+  // Only scroll when the record is actually off-screen: above the top
+  // (rect.top < 0) or past the bottom (rect.bottom > viewport). A top of exactly
+  // 0 is a valid, already-visible position — the previous `!rect.top` check
+  // treated it as "needs scrolling" and caused a redundant jump.
+  const rect = selectedRecord.getBoundingClientRect();
+  if (rect.top < 0 || rect.bottom > window.innerHeight) {
     selectedRecord.scrollIntoView();
   }
 }
@@ -196,8 +241,12 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 
 .SplitViewLayout_list {
   height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 2rem;
+  overscroll-behavior: contain;
+  padding: 16px;
+  /* Last cards must clear the floating nav pill + home indicator. */
+  padding-bottom: var(--nav-clearance);
 }
 
 .SplitViewLayout:has(.SplitViewLayout_detail) .SplitViewLayout_list {
@@ -240,7 +289,6 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
     margin-top: 6px;
   }
 
-
   .SplitViewLayout--empty & {
     columns: 30ch 3;
 
@@ -251,7 +299,64 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
 }
 
 .SplitViewLayout_detail {
-  overflow: auto;
-  padding: 2rem 2rem 4rem 1rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Bottom padding clears the floating nav + home indicator so the last linked
+   * records (whose edit/delete affordances live at the row's edge) stay
+   * reachable. */
+  padding: 2rem 2rem var(--nav-clearance) 1rem;
+}
+
+/* Mobile-only "back to list" button. The grid collapses to a single column on
+ * narrow screens (master/detail), so this is the way back to the list once a
+ * record fills the screen. Hidden on desktop, where the list is always visible
+ * alongside. */
+.SplitViewLayout_back {
+  display: none;
+}
+
+.SplitViewLayout_backIcon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 768px) {
+  /* Collapse to one column. With a detail open, hide the list so the record
+   * gets the full width instead of being clipped into a sliver. */
+  .SplitViewLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .SplitViewLayout--detail .SplitViewLayout_list {
+    display: none;
+  }
+
+  /* With no record selected, suppress the detail pane entirely (the inbox keeps
+   * an empty one mounted) so it doesn't leave dead space under the list. */
+  .SplitViewLayout:not(.SplitViewLayout--detail) .SplitViewLayout_detail {
+    display: none;
+  }
+
+  .SplitViewLayout_detail {
+    padding: 0.5rem 1rem var(--nav-clearance);
+  }
+
+  .SplitViewLayout_back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 10px 6px 6px;
+    font-size: 0.85rem;
+    color: var(--ui-text-muted);
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .SplitViewLayout_back:active {
+    color: var(--ui-text);
+  }
 }
 </style>
