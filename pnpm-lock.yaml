@@ -47,6 +47,9 @@ importers:
       markdown-it:
         specifier: ^14.2.0
         version: 14.2.0
+      markdown-it-mark:
+        specifier: ^4.0.0
+        version: 4.0.0
       multer:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2828,6 +2831,9 @@ packages:
 
   markdown-actions@1.1.2:
     resolution: {integrity: sha512-U7rmgTvUP3neh3XaVblikslRWWhfpzF2SiI1A6z3az7IpYuAiVvdqtZrFCArV22TSj2Ht+r0ResohlsJ8/ntbw==}
+
+  markdown-it-mark@4.0.0:
+    resolution: {integrity: sha512-YLhzaOsU9THO/cal0lUjfMjrqSMPjjyjChYM7oyj4DnyaXEzA8gnW6cVJeyCrCVeyesrY2PlEdUYJSPFYL4Nkg==}
 
   markdown-it@14.2.0:
     resolution: {integrity: sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ==}
@@ -6442,6 +6448,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   markdown-actions@1.1.2: {}
+
+  markdown-it-mark@4.0.0: {}
 
   markdown-it@14.2.0:
     dependencies:

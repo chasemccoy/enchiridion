@@ -267,24 +267,24 @@
       @createLink="handleCreateLink"
     />
 
-    <div
+    <section
       v-if="similarRecords && similarRecords.length > 0"
-      class="RecordDetail__linksSection"
+      class="RecordDetail__similar"
     >
-      <h2 class="RecordDetail__sectionTitle RecordDetail__linksSectionTitle">Similar records</h2>
+      <h2 class="RecordDetail__similarLabel">Similar records</h2>
 
-      <ul class="RecordDetail__list">
+      <ul class="RecordDetail__similarRows">
         <li
           v-for="entry in similarRecords"
           :key="entry.record.id"
         >
           <RecordLink
-            class="RecordDetail__recordLink shadow-xxs"
+            layout="row"
             :modelValue="entry.record.id"
           />
         </li>
       </ul>
-    </div>
+    </section>
 
     <BrowserFrame
       v-if="modelValue.url && modelValue.type !== 'concept'"
@@ -516,20 +516,6 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
   gap: 8px;
 }
 
-.RecordDetail__sectionTitle {
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--ui-text-dimmed);
-  font-weight: 500;
-
-  & :deep(svg) {
-    width: 12px;
-    height: 12px;
-  }
-}
-
 .RecordDetail__badge {
   width: fit-content;
 
@@ -537,15 +523,6 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
     width: 12px;
     height: 12px;
     color: var(--ui-text-muted);
-  }
-}
-
-.RecordDetail__list {
-  column-gap: 2px;
-  columns: 300px auto;
-
-  li + li {
-    margin-top: 2px;
   }
 }
 
@@ -584,17 +561,32 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
   gap: 4px;
 }
 
-/* Match the elevated-card look used by RecordLinks for tag/related/format panels. */
-.RecordDetail__linksSection {
-  margin-top: 16px;
-  border-radius: var(--radius-xl);
-  padding: 2px;
-  break-inside: avoid;
-  background-color: var(--ui-bg-elevated);
+.RecordDetail__similar {
+  margin-top: -1rem;
+  padding: 6px 0;
+  border-top: 0.5px solid var(--ui-border);
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 8px;
+  align-items: start;
 }
 
-.RecordDetail__linksSectionTitle {
-  padding: 4px 12px 6px;
+.RecordDetail__similarLabel {
+  padding-top: 9px;
+  position: sticky;
+  top: 0px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+}
+
+.RecordDetail__similarRows {
+  display: grid;
+  min-width: 0;
+
+  li {
+    min-width: 0;
+  }
 }
 
 .RecordDetail__recordLink {

@@ -216,7 +216,7 @@ function handleCreateLink(targetRecordId: DbId, predicate: PredicateSlug) {
   gap: 6px;
   padding-top: 9px;
   position: sticky;
-  top: 7px;
+  top: 0px;
 }
 
 .RecordLinks__labelText {

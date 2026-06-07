@@ -365,6 +365,10 @@ function handleDeleteLink() {
   background-color: var(--ui-bg-elevated);
 }
 
+.RecordLink--row:hover > * {
+  --ui-bg-elevated: var(--ui-bg);
+}
+
 .RecordLink--row:not(.RecordLink--includeChildren) .RecordLink__title {
   font-size: 0.9rem;
 }

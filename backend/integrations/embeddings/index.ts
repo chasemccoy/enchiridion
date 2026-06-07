@@ -195,6 +195,8 @@ export interface SimilarByEmbeddingInput {
   limit?: number;
   /** Drop hits whose cosine similarity is below this threshold (0-1). */
   minScore?: number;
+  /** Record ids to omit from the results (e.g. records already linked to the source). */
+  excludeIds?: Iterable<number>;
 }
 
 export interface SimilarByEmbeddingResult {
@@ -212,22 +214,28 @@ export const findSimilarRecordsByEmbedding = async ({
   recordId,
   limit = 10,
   minScore = 0,
+  excludeIds,
 }: SimilarByEmbeddingInput): Promise<SimilarByEmbeddingResult[]> => {
   const source = db.get(
     sql`SELECT embedding FROM ${sql.identifier(VEC_TABLE)} WHERE record_id = ${BigInt(recordId)}`,
   ) as { embedding: Buffer } | undefined;
   if (!source) return [];
 
-  // Over-fetch by 1 so we can drop the source record itself from the results.
+  // Records to drop from the results: the source record itself plus any
+  // caller-supplied exclusions (e.g. records already linked to the source).
+  const excluded = new Set<number>(excludeIds);
+  excluded.add(recordId);
+
+  // Over-fetch so the dropped records don't shrink the result below `limit`.
   const hits = (
     db.all(
       sql`SELECT record_id AS recordId, distance
           FROM ${sql.identifier(VEC_TABLE)}
-          WHERE embedding MATCH ${source.embedding} AND k = ${BigInt(limit + 1)}
+          WHERE embedding MATCH ${source.embedding} AND k = ${BigInt(limit + excluded.size)}
           ORDER BY distance`,
     ) as { recordId: number; distance: number }[]
   )
-    .filter((hit) => hit.recordId !== recordId)
+    .filter((hit) => !excluded.has(hit.recordId))
     .map((hit) => ({ recordId: hit.recordId, score: 1 - hit.distance }))
     .filter((hit) => hit.score >= minScore)
     .slice(0, limit);

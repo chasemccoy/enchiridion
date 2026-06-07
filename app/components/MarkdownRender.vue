@@ -8,6 +8,7 @@
 <script setup lang="ts">
 import DOMPurify from 'dompurify';
 import MarkdownIt from 'markdown-it';
+import markdownItMark from 'markdown-it-mark';
 import { computed } from 'vue';
 
 const { source } = defineProps<{
@@ -19,7 +20,7 @@ const md = new MarkdownIt({
   linkify: true,
   breaks: true,
   typographer: true,
-});
+}).use(markdownItMark);
 
 const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
 </script>
@@ -124,6 +125,18 @@ const html = computed(() => DOMPurify.sanitize(md.render(source ?? '')));
     padding: 1px 4px;
     border-radius: var(--radius-sm);
     background-color: var(--ui-bg-elevated);
+  }
+
+  & :deep(mark) {
+    padding: 0.22em 0.3em;
+    border-radius: var(--radius-sm);
+    color: light-dark(#734500, #fab219);
+    background-color: light-dark(
+      color-mix(in oklab, #fab219 35%, var(--ui-bg)),
+      color-mix(in oklab, #fab219 15%, var(--ui-bg))
+    );
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
 
   & :deep(pre) {
