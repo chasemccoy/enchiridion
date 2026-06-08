@@ -157,30 +157,47 @@ import IndexV2TablePane from '@app/components/IndexV2TablePane.vue';
 import SplitViewLayout from '@app/components/SplitViewLayout.vue';
 import useQueryState from '@app/composables/useQueryState';
 import useRecords from '@app/composables/useRecords';
-import useSemanticSearch from '@app/composables/useSemanticSearch';
+import useHybridSearch from '@app/composables/useHybridSearch';
 import { getIconForRecordType, hasMedia, isRecordType, stripScore } from '@app/utils';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
 import type { RecordType } from '@shared/types';
 import { capitalize, computed, nextTick, ref, useTemplateRef, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 type ViewMode = 'cards' | 'table';
-type SortKey = 'newest' | 'oldest' | 'title';
+type SortKey = 'relevance' | 'newest' | 'oldest' | 'title';
 
 const route = useRoute();
+const router = useRouter();
 const { readQuery, updateQuery } = useQueryState();
+
+// Search query (URL `?q=`). Defined up here because the sort options and default
+// below switch on whether a search is active.
+const q = computed(() => {
+  const raw = route.query.q;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === 'string' ? value : '';
+});
+const hasQuery = computed(() => q.value.trim().length > 0);
 
 const recordTypes: RecordType[] = ['artifact', 'concept', 'entity'];
 
-const sortOptions: { id: SortKey; label: string }[] = [
+const browseSortOptions: { id: SortKey; label: string }[] = [
   { id: 'newest', label: 'Newest' },
   { id: 'oldest', label: 'Oldest' },
   { id: 'title', label: 'Title A–Z' },
 ];
+// Relevance only makes sense while searching (it preserves the semantic
+// ranking), so it appears — and leads — only then.
+const sortOptions = computed<{ id: SortKey; label: string }[]>(() =>
+  hasQuery.value
+    ? [{ id: 'relevance', label: 'Relevance' }, ...browseSortOptions]
+    : browseSortOptions,
+);
 
 const isViewMode = (value: unknown): value is ViewMode => value === 'cards' || value === 'table';
 const isSortKey = (value: unknown): value is SortKey =>
-  value === 'newest' || value === 'oldest' || value === 'title';
+  value === 'relevance' || value === 'newest' || value === 'oldest' || value === 'title';
 
 const view = computed<ViewMode>(() => readQuery('view', 'cards', isViewMode));
 const typeFilter = computed<RecordType | null>(() => {
@@ -196,21 +213,24 @@ const hasMediaOnly = computed({
   get: () => route.query.media === '1',
   set: (value: boolean) => updateQuery({ media: value ? '1' : undefined }),
 });
+// Default sort: relevance while searching, newest while browsing. Storing the
+// default omits `sort` from the URL, so the param only appears on an explicit,
+// non-default choice — and a leftover `?sort=relevance` is ignored once the
+// search clears.
+const defaultSortKey = computed<SortKey>(() => (hasQuery.value ? 'relevance' : 'newest'));
 const sortKey = computed({
-  get: (): SortKey => readQuery('sort', 'newest', isSortKey),
-  set: (value: SortKey) => updateQuery({ sort: value === 'newest' ? undefined : value }),
+  get: (): SortKey => {
+    const value = readQuery('sort', defaultSortKey.value, isSortKey);
+    return !hasQuery.value && value === 'relevance' ? 'newest' : value;
+  },
+  set: (value: SortKey) =>
+    updateQuery({ sort: value === defaultSortKey.value ? undefined : value }),
 });
 
 // --- Search (the serif logo doubles as the search input) ---------------------
-// The query lives in the URL (`?q=`) like every other piece of toolbar state, so
-// it survives reloads, deep links, and back/forward.
-const q = computed(() => {
-  const raw = route.query.q;
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return typeof value === 'string' ? value : '';
-});
-const hasQuery = computed(() => q.value.trim().length > 0);
-
+// `q` / `hasQuery` live near the top of setup (the sort options depend on them);
+// everything else for the search input lives here. The query is URL-backed
+// (`?q=`) so it survives reloads, deep links, and back/forward.
 const qInput = ref(q.value);
 
 // Keep the URL in sync as the user types, debounced so we don't spam history.
@@ -218,7 +238,15 @@ let qInputTimer: ReturnType<typeof setTimeout> | undefined;
 watch(qInput, (next) => {
   if (qInputTimer) clearTimeout(qInputTimer);
   qInputTimer = setTimeout(() => {
-    if (next !== q.value) updateQuery({ q: next || undefined });
+    if (next === q.value) return;
+    // Starting a search while a record is open: deselect it by dropping the
+    // `/v2/:slug` child route, so results fill the page instead of rendering in
+    // the narrow split-view list. Other query state is preserved.
+    if (next.trim() && route.params.slug) {
+      router.replace({ path: '/v2', query: { ...route.query, q: next } });
+    } else {
+      updateQuery({ q: next || undefined });
+    }
   }, 150);
 });
 
@@ -289,16 +317,17 @@ const { data } = useRecords({
   ],
 });
 
-// Semantic search (matches the dedicated search page's default mode). Only runs
-// when there's a query; otherwise the page shows the full record list above.
-const { data: semanticData, isFetching: searchFetching } = useSemanticSearch(q, hasQuery);
+// Hybrid search: reciprocal-rank-fusion of full-text + semantic, so exact tokens
+// (names, domains, slugs) and meaning both rank well. Only runs when there's a
+// query; otherwise the page shows the full record list above.
+const { data: hybridData, isFetching: searchFetching } = useHybridSearch(q, hasQuery);
 
 // The record set the page renders: search results when searching, otherwise the
 // full list. Filters/sort/cards/table downstream don't care which it is.
 const baseRecords = computed<ListRecordsAPIResponse | undefined>(() => {
   if (hasQuery.value) {
-    if (!semanticData.value) return undefined;
-    return semanticData.value.map((row) => stripScore(row));
+    if (!hybridData.value) return undefined;
+    return hybridData.value.map((row) => stripScore(row));
   }
   return data.value;
 });
@@ -317,12 +346,15 @@ const filteredRecords = computed<ListRecordsAPIResponse | undefined>(() => {
 
   const next = [...filtered];
   const sort = sortKey.value;
-  if (sort === 'oldest') {
+  if (sort === 'newest') {
+    next.sort((a, b) => (b.recordCreatedAt ?? '').localeCompare(a.recordCreatedAt ?? ''));
+  } else if (sort === 'oldest') {
     next.sort((a, b) => (a.recordCreatedAt ?? '').localeCompare(b.recordCreatedAt ?? ''));
   } else if (sort === 'title') {
     next.sort((a, b) => (a.title ?? '').localeCompare(b.title ?? ''));
   }
-  // 'newest' keeps the server's recordCreatedAt-desc order.
+  // 'relevance' keeps the server order: semantic ranking while searching, and
+  // the records query's recordCreatedAt-desc order otherwise.
   return next;
 });
 
@@ -338,7 +370,18 @@ const filteredRecordsModel = computed<ListRecordsAPIResponse>({
 });
 
 function cardPropsFor(record: ListRecordsAPIResponse[number]) {
-  return { to: `/v2/${record.slug}` };
+  // While searching, render results like the dedicated search page: full
+  // (un-clamped) content, content preferred over summary, and a parent chip on
+  // nested hits (highlights/quotes) so they carry their source context. Return a
+  // uniform shape (no optional keys) so it stays assignable to the card-props
+  // index signature; the flags default to falsy outside search anyway.
+  const searching = hasQuery.value;
+  return {
+    to: `/v2/${record.slug}`,
+    expanded: searching,
+    preferContent: searching,
+    showParent: searching,
+  };
 }
 
 const tableHiddenColumns = computed(() => {
@@ -500,6 +543,7 @@ const tableHiddenColumns = computed(() => {
   box-shadow:
     0 0 0 1px var(--ui-border-muted),
     0 -1px 4px rgba(0, 0, 0, 0.03);
+  transform: translateZ(0);
 }
 
 /* chrome-top: subtle top fade so scrolling content dissolves into the panel bg

@@ -7,6 +7,7 @@
  */
 
 import { z } from 'zod/v4';
+import { hybridSearchListRecords } from '@db/queries/hybrid-search';
 import { listRecords } from '@db/queries/records';
 import { semanticSearchListRecords } from '@db/queries/semantic-search';
 import { findSimilarRecords } from '@db/queries/similar-records';
@@ -40,12 +41,10 @@ const SearchSemanticOptionsSchema = z.looseObject({
   exclude: CommaSeparatedIdsSchema.optional(),
 });
 
-/** RRF constant from the original Cormack/Clarke/Buettcher paper. */
-const RRF_K = 60;
-
 /**
  * Hybrid search — combines trigram-style text matching with embedding-based
  * semantic search via reciprocal rank fusion. Default mode for `ench search`.
+ * Shares its implementation with the web `/search/hybrid` endpoint.
  * Usage: ench search <query> [--limit=N]
  */
 export const hybrid: CommandHandler = async (args, options) => {
@@ -54,32 +53,7 @@ export const hybrid: CommandHandler = async (args, options) => {
   if (!query) throw createError('VALIDATION_ERROR', 'Search query is required');
 
   const limit = parsed.limit ?? 20;
-  const overFetch = Math.max(limit * 2, 40);
-
-  const [textRows, semanticRows] = await Promise.all([
-    listRecords({ filters: { text: query }, limit: overFetch }),
-    isEmbeddingEnabled()
-      ? semanticSearchListRecords({ query, limit: overFetch })
-      : Promise.resolve([]),
-  ]);
-
-  const scores = new Map<number, number>();
-  const byId = new Map<number, (typeof textRows)[number]>();
-
-  textRows.forEach((row, rank) => {
-    byId.set(row.id, row);
-    scores.set(row.id, (scores.get(row.id) ?? 0) + 1 / (RRF_K + rank));
-  });
-  semanticRows.forEach((row, rank) => {
-    byId.set(row.id, row);
-    scores.set(row.id, (scores.get(row.id) ?? 0) + 1 / (RRF_K + rank));
-  });
-
-  const merged = [...scores.entries()]
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, limit)
-    .map(([id, score]) => ({ ...byId.get(id)!, score }));
-
+  const merged = await hybridSearchListRecords({ query, limit });
   return success(merged, { count: merged.length, limit });
 };
 

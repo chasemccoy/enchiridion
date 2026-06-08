@@ -101,7 +101,7 @@ const {
   grouped = true,
 } = defineProps<{
   isEmpty?: boolean;
-  recordCardProps?: (record: ListRecordsAPIResponse[number]) => Record<string, string>;
+  recordCardProps?: (record: ListRecordsAPIResponse[number]) => Record<string, string | boolean>;
   /** Group records under month/year headers. When false, renders one flat list
    * with no headers — used when the caller's sort (e.g. Title A–Z) doesn't line
    * up with chronological month grouping. */
