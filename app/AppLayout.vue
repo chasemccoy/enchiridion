@@ -255,6 +255,10 @@ watch(isSearchModalOpen, () => {
   background-color: var(--ui-color-neutral-700);
 }
 
+:global(.dark .App__navLink[aria-current]:before) {
+  background-color: var(--ui-color-neutral-600);
+}
+
 .App__content {
   display: grid;
   /* minmax(0, 1fr) caps the content column at the viewport width so an over-wide
