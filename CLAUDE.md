@@ -18,13 +18,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Database Operations
 
-- `pnpm db:push` - Push schema changes to SQLite database
-- `pnpm db:studio` - Open Drizzle Studio for database inspection
-- `pnpm db:seed` - Seed the database with initial data
-- `pnpm db:generate` - Generate migration files
-- `pnpm db:migrate` - Run database migrations
-- `pnpm db:backup` - Back up the SQLite database
-- `pnpm db:reset` - Clean, push schema, and re-seed (also `db:clean`, `db:check`)
+**Canonical workflow: `generate` → `migrate`. Do NOT use `db:push` on a populated database.**
+
+The sqlite-vec virtual tables (`vec_records`, created at runtime in `backend/db/index.ts`) break every drizzle-kit command that introspects the live DB — `drizzle-kit push`/`pull`/`studio` die with `no such module: vec0` because drizzle-kit's connection doesn't load the extension. `db:generate` (schema-diff, no DB) and `db:migrate` (runs through the app's vec-loaded connection via `scripts/migrate.ts`) are unaffected, so they are the supported path.
+
+To change the schema:
+
+1. Edit `backend/db/schema/*`.
+2. `pnpm db:generate` — writes a minimal migration to `backend/db/migrations/<ts>_<name>/` (diffs against the previous snapshot; e.g. a clean `ALTER TABLE … ADD COLUMN`).
+3. Review the generated `migration.sql`.
+4. `pnpm db:migrate` — applies pending migrations through the app connection and records them in `__drizzle_migrations` (matched **by migration name** in Drizzle v1).
+
+Other commands:
+
+- `pnpm db:migrate --mark-applied` - Stamp all migration files as applied **without running them** — use to adopt an existing DB into a (re)baselined history.
+- `pnpm db:generate` / `pnpm db:studio` / `pnpm db:seed`
+- `pnpm db:backup` - Diffable JSON backup of the SQLite file. Skips virtual tables and their shadow/companion tables (`vec_*`), which are regenerable via `pnpm embed`. For a quick raw snapshot before a risky change, `cp enchiridion.db enchiridion.db.bak` is instant and bulletproof.
+- `pnpm db:reset` - `db:clean && db:migrate && db:seed` (rebuilds from migrations, not push). Also `db:clean`, `db:check`.
+- `pnpm db:push` - Only safe on an **empty** DB (no vec tables yet). Avoid on a populated DB — it can't introspect past `vec_records`.
+
+Notes:
+
+- Drizzle is on the **v1 RC** line (`1.0.0-rc.4`): migrations live in per-folder `<ts>_<name>/{migration.sql,snapshot.json}` with **no `meta/_journal.json`**, and applied migrations are tracked by name.
+- SQLite can't ALTER most things in place, so non-additive changes (drop/rename column, change constraints) generate a table-recreation migration — review those `migration.sql` files carefully.
 
 ### Integrations
 
