@@ -165,7 +165,7 @@ export class SQLiteDiffable {
           .filter((file) => file.endsWith(METADATA_FILE_SUFFIX))
           .map((file) => file.replace(METADATA_FILE_SUFFIX, ''));
       } catch (error) {
-        throw new Error(`Failed to read backup directory '${inputDir}': ${error}`);
+        throw new Error(`Failed to read backup directory '${inputDir}'`, { cause: error });
       }
     }
 
@@ -359,11 +359,25 @@ export class SQLiteDiffable {
    * Get list of tables to backup
    */
   private getTableList(includeTables?: string[], excludeTables: string[] = []): string[] {
-    const stmt = this.db.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
-    );
-    const allTables = stmt.all() as Array<{ name: string }>;
-    const tableNames = allTables.map((t) => t.name);
+    const rows = this.db
+      .prepare(
+        "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      )
+      .all() as Array<{ name: string; sql: string | null }>;
+
+    // Skip virtual tables and their backing/companion tables. sqlite-vec's
+    // `vec_records` is a vec0 virtual table whose rows can't be dumped without
+    // the loaded extension (a plain backup connection throws "no such module:
+    // vec0"), and its shadow tables (`vec_records_*`, including the regenerable
+    // `vec_records_meta` hash cache) are internal state rebuilt by `pnpm embed`.
+    // Detect them generically so the backup never trips over one.
+    const virtualTableNames = rows
+      .filter((t) => /^\s*CREATE\s+VIRTUAL\s+TABLE/i.test(t.sql ?? ''))
+      .map((t) => t.name);
+    const isVirtualOrShadow = (name: string) =>
+      virtualTableNames.some((v) => name === v || name.startsWith(`${v}_`));
+
+    const tableNames = rows.map((t) => t.name).filter((name) => !isVirtualOrShadow(name));
 
     if (includeTables) {
       return includeTables.filter(
@@ -439,10 +453,11 @@ export class SQLiteDiffable {
    */
   private async saveSchemaObjects(outputDir: string): Promise<void> {
     const schemaStmt = this.db.prepare(`
-      SELECT type, name, sql 
-      FROM sqlite_master 
-      WHERE type IN ('index', 'view', 'trigger') 
+      SELECT type, name, sql
+      FROM sqlite_master
+      WHERE type IN ('index', 'view', 'trigger')
       AND name NOT LIKE 'sqlite_%'
+      AND name NOT LIKE 'vec_%'
       AND sql IS NOT NULL
       ORDER BY type, name
     `);
