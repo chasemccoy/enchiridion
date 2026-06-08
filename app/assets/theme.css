@@ -3,9 +3,24 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+@font-face {
+  font-family: 'Martina Plantijn';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/martina-plantijn/regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Martina Plantijn';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/martina-plantijn/medium.woff2') format('woff2');
+}
+
 @theme {
   --font-sans: 'Public Sans', sans-serif;
-  --font-serif: Source Serif Pro, -ui-serif, New York, Georgia, serif;
+  --font-serif: 'Martina Plantijn', Source Serif Pro, -ui-serif, New York, Georgia, serif;
 }
 
 :root {
