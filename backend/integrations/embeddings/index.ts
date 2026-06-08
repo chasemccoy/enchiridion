@@ -17,16 +17,21 @@ export { isEmbeddingEnabled } from './client';
 export * from './constants';
 
 /** Subset of a record's columns that contribute to its embedding. */
-type EmbeddableRecord = Pick<RecordSelect, 'id' | 'title' | 'summary' | 'content' | 'notes'>;
+type EmbeddableRecord = Pick<
+  RecordSelect,
+  'id' | 'title' | 'summary' | 'content' | 'notes' | 'url' | 'slug'
+>;
 
 /** Titles of records linked to the source record, grouped by bucket label. */
 export type LinkedTitlesByBucket = Record<string, string[]>;
 
 /**
- * Build the text we embed for a record from its human-meaningful fields, plus
- * the titles of records connected via the predicates in `EMBEDDING_LINK_BUCKETS`.
+ * Build the text we embed for a record from its human-meaningful fields plus its
+ * url/slug, then the titles of records connected via the predicates in
+ * `EMBEDDING_LINK_BUCKETS`.
  *
  * The link section is rendered as one line per non-empty bucket, e.g.
+ *   By: Robin Sloan
  *   Tags: typography, design
  *   Related: Web Without Walls, A Different Internet
  *
@@ -42,7 +47,15 @@ export const buildEmbedText = (
     return titles && titles.length ? [`${label}: ${titles.join(', ')}`] : [];
   });
 
-  const text = [record.title, record.summary, record.content, record.notes, ...linkLines]
+  const text = [
+    record.title,
+    record.summary,
+    record.content,
+    record.notes,
+    record.url,
+    record.slug,
+    ...linkLines,
+  ]
     .filter((part): part is string => Boolean(part && part.trim()))
     .join('\n\n')
     .trim();
@@ -325,7 +338,15 @@ export const backfillEmbeddings = async ({
   }
 
   const records = await db.query.records.findMany({
-    columns: { id: true, title: true, summary: true, content: true, notes: true },
+    columns: {
+      id: true,
+      title: true,
+      summary: true,
+      content: true,
+      notes: true,
+      url: true,
+      slug: true,
+    },
   });
 
   const metaRows = db.all(

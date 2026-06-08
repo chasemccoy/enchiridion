@@ -37,6 +37,7 @@ export const EMBEDDING_LINK_BUCKETS: ReadonlyArray<{
   label: string;
   slugs: readonly string[];
 }> = [
+  { label: 'By', slugs: ['created_by', 'creator_of'] },
   { label: 'Tags', slugs: ['tag_of', 'tagged_with'] },
   { label: 'Related', slugs: ['related_to'] },
   { label: 'Format', slugs: ['format_of', 'has_format'] },
