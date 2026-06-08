@@ -34,5 +34,5 @@
     "updated_at"
   ],
   "schema": "CREATE TABLE `readwise_documents` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`url` text NOT NULL,\n\t`source_url` text,\n\t`title` text,\n\t`author` text,\n\t`author_id` integer,\n\t`source` text,\n\t`content` text,\n\t`html_content` text,\n\t`category` text,\n\t`location` text,\n\t`tags` text,\n\t`site_name` text,\n\t`word_count` integer,\n\t`notes` text,\n\t`summary` text,\n\t`image_url` text,\n\t`parent_id` text,\n\t`reading_progress` integer,\n\t`published_date` text,\n\t`first_opened_at` text,\n\t`last_opened_at` text,\n\t`saved_at` text NOT NULL,\n\t`last_moved_at` text NOT NULL,\n\t`integration_run_id` integer NOT NULL,\n\t`record_id` integer,\n\t`deleted_at` text,\n\t`content_created_at` text,\n\t`content_updated_at` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tFOREIGN KEY (`author_id`) REFERENCES `readwise_authors`(`id`) ON UPDATE cascade ON DELETE set null,\n\tFOREIGN KEY (`parent_id`) REFERENCES `readwise_documents`(`id`) ON UPDATE cascade ON DELETE cascade,\n\tFOREIGN KEY (`integration_run_id`) REFERENCES `integration_runs`(`id`) ON UPDATE no action ON DELETE no action,\n\tFOREIGN KEY (`record_id`) REFERENCES `records`(`id`) ON UPDATE cascade ON DELETE set null\n)",
-  "rowCount": 1208
+  "rowCount": 1321
 }

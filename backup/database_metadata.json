@@ -44,7 +44,7 @@
       "compile_options": "ATOMIC_INTRINSICS=1"
     },
     {
-      "compile_options": "COMPILER=clang-15.0.0"
+      "compile_options": "COMPILER=clang-17.0.0"
     },
     {
       "compile_options": "DEFAULT_AUTOVACUUM"
@@ -120,6 +120,9 @@
     },
     {
       "compile_options": "ENABLE_MATH_FUNCTIONS"
+    },
+    {
+      "compile_options": "ENABLE_PERCENTILE"
     },
     {
       "compile_options": "ENABLE_RTREE"
@@ -236,7 +239,7 @@
   ],
   "freelist_count": [
     {
-      "freelist_count": 875
+      "freelist_count": 13
     }
   ],
   "fullfsync": [
@@ -271,7 +274,7 @@
   ],
   "page_count": [
     {
-      "page_count": 7071
+      "page_count": 10187
     }
   ],
   "page_size": [
@@ -307,7 +310,7 @@
   ],
   "schema_version": [
     {
-      "schema_version": 42
+      "schema_version": 103
     }
   ],
   "secure_delete": [
@@ -323,22 +326,6 @@
   "table_list": [
     {
       "schema": "main",
-      "name": "integration_runs",
-      "type": "table",
-      "ncol": 9,
-      "wr": 0,
-      "strict": 0
-    },
-    {
-      "schema": "main",
-      "name": "readwise_tags",
-      "type": "table",
-      "ncol": 6,
-      "wr": 0,
-      "strict": 0
-    },
-    {
-      "schema": "main",
       "name": "links",
       "type": "table",
       "ncol": 7,
@@ -347,7 +334,7 @@
     },
     {
       "schema": "main",
-      "name": "sqlite_sequence",
+      "name": "vec_records_meta",
       "type": "table",
       "ncol": 2,
       "wr": 0,
@@ -355,9 +342,25 @@
     },
     {
       "schema": "main",
-      "name": "predicates",
+      "name": "vec_records_vector_chunks00",
       "type": "table",
-      "ncol": 9,
+      "ncol": 2,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "vec_records_rowids",
+      "type": "table",
+      "ncol": 4,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "vec_records",
+      "type": "virtual",
+      "ncol": 0,
       "wr": 0,
       "strict": 0
     },
@@ -371,17 +374,17 @@
     },
     {
       "schema": "main",
-      "name": "media",
+      "name": "readwise_tags",
       "type": "table",
-      "ncol": 11,
+      "ncol": 6,
       "wr": 0,
       "strict": 0
     },
     {
       "schema": "main",
-      "name": "readwise_document_tags",
+      "name": "readwise_authors",
       "type": "table",
-      "ncol": 6,
+      "ncol": 7,
       "wr": 0,
       "strict": 0
     },
@@ -395,9 +398,57 @@
     },
     {
       "schema": "main",
-      "name": "readwise_authors",
+      "name": "vec_records_chunks",
       "type": "table",
-      "ncol": 7,
+      "ncol": 4,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "sqlite_sequence",
+      "type": "table",
+      "ncol": 2,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "vec_records_info",
+      "type": "table",
+      "ncol": 2,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "readwise_document_tags",
+      "type": "table",
+      "ncol": 6,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "integration_runs",
+      "type": "table",
+      "ncol": 9,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "media",
+      "type": "table",
+      "ncol": 11,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
+      "name": "__drizzle_migrations",
+      "type": "table",
+      "ncol": 5,
       "wr": 0,
       "strict": 0
     },
@@ -441,8 +492,8 @@
   "wal_checkpoint": [
     {
       "busy": 0,
-      "log": 333,
-      "checkpointed": 333
+      "log": 0,
+      "checkpointed": 0
     }
   ],
   "writable_schema": [

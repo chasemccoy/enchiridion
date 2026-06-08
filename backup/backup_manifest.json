@@ -1,18 +1,18 @@
 {
-  "timestamp": "2025-07-12T17:18:20.280Z",
+  "timestamp": "2026-06-08T03:37:48.974Z",
   "database_path": "./enchiridion.db",
   "tables": [
-    "links",
-    "predicates",
-    "records",
     "media",
+    "readwise_documents",
+    "integration_runs",
     "readwise_authors",
     "readwise_document_tags",
-    "readwise_documents",
     "readwise_tags",
-    "integration_runs"
+    "records",
+    "links",
+    "__drizzle_migrations"
   ],
-  "total_rows": 3811,
+  "total_rows": 4498,
   "pragma_info_included": true,
   "schema_objects_included": true
 }
