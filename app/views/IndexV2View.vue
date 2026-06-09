@@ -37,6 +37,7 @@
             size="xs"
             color="neutral"
             variant="ghost"
+            class="IndexV2View__searchClear"
             aria-label="Clear search"
             @click="clearSearch"
           />
@@ -423,7 +424,6 @@ const tableHiddenColumns = computed(() => {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  margin-right: 8px;
 }
 
 .IndexV2View__logo {
@@ -475,6 +475,10 @@ const tableHiddenColumns = computed(() => {
     padding-inline: 0;
     background-color: transparent;
   }
+}
+
+:deep(.IndexV2View__searchClear svg) {
+  color: var(--ui-text-muted);
 }
 
 .IndexV2View__group {
