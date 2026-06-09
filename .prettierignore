@@ -4,3 +4,7 @@ package-lock.json
 yarn.lock
 **/*.gen.ts
 **/migrations/*
+
+# Generated DB backup snapshot — written by `pnpm db:backup`, not hand-edited,
+# so keep Prettier from reformatting it (e.g. adding trailing newlines).
+backup/
