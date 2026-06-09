@@ -15,6 +15,7 @@ export const records = sqliteTable(
     title: text(),
     url: text(),
     isCurated: int({ mode: 'boolean' }).notNull().default(false),
+    isPinned: int({ mode: 'boolean' }).notNull().default(false),
     summary: text(),
     content: text(),
     notes: text(),
@@ -29,6 +30,7 @@ export const records = sqliteTable(
     index('records_record_created_at_idx').on(table.recordCreatedAt),
     index('records_record_updated_at_idx').on(table.recordUpdatedAt),
     index('records_is_curated_idx').on(table.isCurated),
+    index('records_is_pinned_idx').on(table.isPinned),
   ],
 );
 

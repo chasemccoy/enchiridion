@@ -46,6 +46,7 @@ const OrderByFieldSchema = z.enum([
   'id',
   'slug',
   'type',
+  'isPinned',
 ]);
 
 function parseCommaSeparated<T>(value: string | undefined, schema: z.ZodType<T>): T[] | undefined {
@@ -80,6 +81,7 @@ const RecordsListOptionsSchema = z.looseObject({
   type: z.string().optional(),
   source: z.string().optional(),
   curated: z.boolean().optional(),
+  pinned: z.boolean().optional(),
   embedding: z.boolean().optional(),
   media: z.boolean().optional(),
   parent: z.boolean().optional(),
@@ -145,6 +147,7 @@ export const list: CommandHandler = async (_args, options) => {
       type: types && types.length > 1 ? { in: types } : (types?.[0] ?? undefined),
       source: sources && sources.length > 1 ? { in: sources } : (sources?.[0] ?? undefined),
       isCurated: parsed.curated,
+      isPinned: parsed.pinned,
       hasParent: parsed.parent,
       hasMedia: parsed.media,
       hasTitle: parsed['has-title'],

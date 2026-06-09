@@ -14,7 +14,7 @@
 
     <div class="RecordDetail__badges">
       <UBadge
-        v-if="modelValue.isCurated !== true"
+        v-if="modelValue.isCurated !== true && modelValue.type !== 'note'"
         color="neutral"
         variant="outline"
         class="RecordDetail__badge"
@@ -153,6 +153,7 @@
 
     <CombinedFields>
       <UFormField
+        v-if="modelValue.type !== 'note'"
         aria-label="Summary"
         size="xs"
       >
@@ -166,7 +167,7 @@
         />
       </UFormField>
 
-      <UFieldGroup>
+      <UFieldGroup v-if="modelValue.type !== 'note'">
         <UBadge
           color="neutral"
           variant="outline"
@@ -249,7 +250,18 @@
         @click="emit('deleteRecord', modelValue.id)"
       />
 
+      <UButton
+        v-if="modelValue.type === 'note'"
+        variant="subtle"
+        size="sm"
+        :icon="modelValue.isPinned ? 'i-lucide-pin' : 'i-lucide-pin-off'"
+        :color="modelValue.isPinned ? 'primary' : 'neutral'"
+        :label="modelValue.isPinned ? 'Pinned' : 'Pin'"
+        @click="modelValue.isPinned = !modelValue.isPinned"
+      />
+
       <USwitch
+        v-else
         v-model="modelValue.isCurated"
         label="Curated"
         size="lg"
@@ -287,7 +299,7 @@
     </section>
 
     <BrowserFrame
-      v-if="modelValue.url && modelValue.type !== 'concept'"
+      v-if="modelValue.url && modelValue.type !== 'concept' && modelValue.type !== 'note'"
       :key="modelValue.url"
       :url="modelValue.url"
     />

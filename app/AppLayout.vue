@@ -105,6 +105,13 @@ const navItems = computed(() => [
       },
     },
     {
+      to: navTo('/notes'),
+      icon: 'i-lucide-notebook',
+      onSelect: () => {
+        if (route.path === '/notes') scrollActiveViewToTop();
+      },
+    },
+    {
       to: navTo('/search'),
       icon: 'i-lucide-search',
       onSelect: () => {

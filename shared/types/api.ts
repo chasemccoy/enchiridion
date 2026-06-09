@@ -32,6 +32,7 @@ const OrderByFieldSchema = z.enum([
   'id',
   'slug',
   'type',
+  'isPinned',
 ]);
 
 const OrderDirectionSchema = z.enum(['asc', 'desc']);
@@ -47,6 +48,9 @@ export const RecordFiltersSchema = z.object({
       RecordTypeSchema.optional(),
       z.object({
         in: z.array(RecordTypeSchema),
+      }),
+      z.object({
+        notIn: z.array(RecordTypeSchema),
       }),
     ])
     .optional(),
@@ -69,6 +73,7 @@ export const RecordFiltersSchema = z.object({
    */
   hideUntitledChildren: z.boolean().optional(),
   isCurated: z.boolean().optional(),
+  isPinned: z.boolean().optional(),
   hasMedia: z.boolean().optional(),
   /** Filter by title presence. true = title is non-null, false = title is null. */
   hasTitle: z.boolean().optional(),

@@ -103,8 +103,10 @@ function handleSubmit(data: NewRecordData) {
 
       emit('close');
       record.value = emptyRecord;
+      const isNote = r.type === 'note';
+      const viewPath = isNote ? `/notes/${r.slug}` : `/${r.slug}`;
       toast.add({
-        title: `Record “${newRecord.slug}” was created`,
+        title: `${isNote ? 'Note' : 'Record'} “${r.slug}” was created`,
         color: 'success',
         icon: 'i-lucide-check-circle',
         actions: [
@@ -113,7 +115,7 @@ function handleSubmit(data: NewRecordData) {
             color: 'neutral',
             variant: 'outline',
             onClick: () => {
-              router.push(`/${newRecord.slug}`);
+              router.push(viewPath);
             },
           },
         ],
@@ -176,8 +178,8 @@ onMounted(async () => {
   }
 
   if (query.type && typeof query.type === 'string') {
-    if (['entity', 'concept', 'artifact'].includes(query.type)) {
-      populatedRecord.type = query.type as 'entity' | 'concept' | 'artifact';
+    if (['entity', 'concept', 'artifact', 'note'].includes(query.type)) {
+      populatedRecord.type = query.type as 'entity' | 'concept' | 'artifact' | 'note';
     }
   }
 

@@ -55,6 +55,7 @@ export const semanticSearchListRecords = async ({
       contentCreatedAt: true,
       notes: true,
       isCurated: true,
+      isPinned: true,
       source: true,
     },
     with: {

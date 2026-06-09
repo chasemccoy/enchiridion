@@ -72,8 +72,9 @@ let commands: Record<string, Record<string, CommandHandler>> | null = null;
 
 async function loadCommands() {
   if (commands) return commands;
-  const [records, search, links, media, sync, db, wayback, inbox] = await Promise.all([
+  const [records, notes, search, links, media, sync, db, wayback, inbox] = await Promise.all([
     import('./commands/records'),
+    import('./commands/notes'),
     import('./commands/search'),
     import('./commands/links'),
     import('./commands/media'),
@@ -82,7 +83,7 @@ async function loadCommands() {
     import('./commands/wayback'),
     import('./commands/inbox'),
   ]);
-  commands = { records, search, links, media, sync, db, wayback, inbox };
+  commands = { records, notes, search, links, media, sync, db, wayback, inbox };
   return commands;
 }
 
@@ -114,6 +115,13 @@ Commands:
   records children <id>                Direct children of a record
   records parent <id>                  Direct parent of a record
   records similar <id...> [--limit=N]  Records similar by embedding
+
+  notes list [--pinned] [--full]       List notes (pinned first, then newest)
+  notes create <json>                  Create a note (type forced, slug auto)
+  notes get <id...> [--links]          Fetch note(s) by ID
+  notes update <id> <json>             Update a note
+  notes pin <id> / notes unpin <id>    Toggle a note's pinned flag
+  notes delete <id...>                 Delete note(s)
 
   search <query>                       Hybrid (text + semantic, RRF merge)
   search text <query>                  Trigram substring search
@@ -152,6 +160,7 @@ Records List Filters:
   --type=<types>          artifact|entity|concept (comma-separated)
   --source=<source>       manual|readwise|twitter (comma-separated)
   --curated[=BOOL]        Filter by isCurated
+  --pinned[=BOOL]         Filter by isPinned
   --parent[=BOOL]         Has containment parent
   --media[=BOOL]          Has media attached
   --has-title[=BOOL]      title is non-null

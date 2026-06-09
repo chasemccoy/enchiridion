@@ -76,6 +76,8 @@ export function getIconForRecordType(type: RecordType) {
       return 'i-lucide-brain';
     case 'entity':
       return 'i-lucide-users';
+    case 'note':
+      return 'i-lucide-notebook';
   }
 }
 

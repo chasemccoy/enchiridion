@@ -5,6 +5,7 @@ import EntitiesView from '@app/views/EntitiesView.vue';
 import InboxView from '@app/views/InboxView.vue';
 import IndexV2View from '@app/views/IndexV2View.vue';
 import IndexView from '@app/views/IndexView.vue';
+import NotesListView from '@app/views/NotesListView.vue';
 import RecordDetailView from '@app/views/RecordDetailView.vue';
 import RecordTableView from '@app/views/RecordTableView.vue';
 import SearchView from '@app/views/SearchView.vue';
@@ -15,6 +16,7 @@ export enum RouteName {
   indexV2 = 'indexV2',
   inbox = 'inbox',
   records = 'records',
+  notes = 'notes',
   artifacts = 'artifacts',
   concepts = 'concepts',
   entities = 'entities',
@@ -60,6 +62,17 @@ const routes = [
     path: '/records',
     name: RouteName.records,
     component: RecordTableView,
+  },
+  {
+    path: '/notes',
+    name: RouteName.notes,
+    component: NotesListView,
+    children: [
+      {
+        path: ':slug',
+        component: RecordDetailView,
+      },
+    ],
   },
   {
     path: '/artifacts',

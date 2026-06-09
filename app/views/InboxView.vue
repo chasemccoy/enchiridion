@@ -41,6 +41,8 @@ const { data } = useRecords({
   filters: {
     isCurated: false,
     hideUntitledChildren: true,
+    // Notes have no curation pipeline and live on /notes — keep them out of the inbox.
+    type: { notIn: ['note'] },
   },
   orderBy: [
     {

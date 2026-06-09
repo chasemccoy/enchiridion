@@ -13,10 +13,12 @@ import {
   containmentPredicateSlugs,
   creationPredicateSlugs,
   descriptionPredicateSlugs,
+  OWNER_RECORD_SLUG,
   type PredicateSlug,
 } from '@shared/types';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
 import { embedRecord, removeRecordEmbeddings } from '@integrations/embeddings';
+import { upsertLink } from '@db/queries/links';
 
 export const getRecord = (recordId: RecordSelect['id']) => {
   return db.query.records.findFirst({
@@ -74,6 +76,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
     hasParent,
     hideUntitledChildren,
     isCurated,
+    isPinned,
     hasMedia,
     hasTitle,
     ids,
@@ -93,6 +96,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
       contentCreatedAt: true,
       notes: true,
       isCurated: true,
+      isPinned: true,
       source: true,
     },
     with: {
@@ -169,6 +173,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
               }
             : undefined,
       isCurated,
+      isPinned,
       ...(hasParent === true
         ? {
             outgoingLinks: {
@@ -246,6 +251,23 @@ export const upsertRecord = async (record: RecordInsert, options: { embed?: bool
   // Archive URL to Wayback Machine for new records
   if (isNewRecord && modifiedRecord.url) {
     archiveUrlToWayback(modifiedRecord.url);
+  }
+
+  // Auto-link a newly-created note to the owner record via `created_by`, so
+  // notes join the graph from creation. Idempotent (upsertLink dedupes on the
+  // source/target/predicate triple) and guarded on the owner existing.
+  if (isNewRecord && modifiedRecord.type === 'note') {
+    const owner = await db.query.records.findFirst({
+      where: { slug: OWNER_RECORD_SLUG },
+      columns: { id: true },
+    });
+    if (owner && owner.id !== modifiedRecord.id) {
+      await upsertLink({
+        sourceId: modifiedRecord.id,
+        targetId: owner.id,
+        predicate: 'created_by',
+      });
+    }
   }
 
   // Generate/refresh the record's embedding in the background. Best-effort:

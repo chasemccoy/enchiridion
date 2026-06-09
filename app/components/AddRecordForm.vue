@@ -33,6 +33,7 @@
       <FileUploadButton @fileUpload="handleFileUpload" />
 
       <USwitch
+        v-if="modelValue.type !== 'note'"
         v-model="modelValue.isCurated"
         label="Curated"
         size="lg"
@@ -41,6 +42,7 @@
 
     <CombinedFields>
       <UFormField
+        v-if="modelValue.type !== 'note'"
         aria-label="Summary"
         size="xs"
       >
@@ -56,7 +58,7 @@
 
       <SlugField v-model="slug" />
 
-      <UFieldGroup>
+      <UFieldGroup v-if="modelValue.type !== 'note'">
         <UBadge
           color="neutral"
           variant="outline"
@@ -143,7 +145,7 @@ import RecordTypeSelectButton from '@app/components/RecordTypeSelectButton.vue';
 import type { RecordInsert, RecordSelect } from '@db/schema';
 import { ref, useTemplateRef, watch, computed } from 'vue';
 import SlugField from '@app/components/SlugField.vue';
-import { formatDate, slugify } from '@shared/lib/formatting';
+import { formatDate, generateSlug, slugify } from '@shared/lib/formatting';
 import TitleField from '@app/components/TitleField.vue';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import MarkdownEditor from '@app/components/MarkdownEditor.vue';
@@ -209,8 +211,12 @@ watch(
 
 function handleSubmit() {
   if (formRef.value?.checkValidity()) {
+    // Untitled notes have no title to derive a slug from; fall back to a short
+    // generated slug so the not-empty/unique constraint is satisfied.
+    const finalSlug =
+      slug.value || generateSlug({ title: modelValue.value.title, type: modelValue.value.type });
     emit('save', {
-      record: { ...modelValue.value, slug: slug.value },
+      record: { ...modelValue.value, slug: finalSlug },
       links: links.value,
       files: files.value,
     });

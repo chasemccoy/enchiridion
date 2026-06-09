@@ -84,6 +84,16 @@
     />
 
     <ul class="RecordCard__tags">
+      <li
+        v-if="modelValue.isPinned"
+        class="RecordCard__pinned"
+        title="Pinned"
+      >
+        <UIcon
+          name="i-lucide-pin"
+          class="size-3"
+        />
+      </li>
       <li v-if="modelValue.type !== 'artifact'">
         <UBadge
           color="neutral"
@@ -367,6 +377,10 @@ const tags = computed(() => {
 
 .RecordCard__tag {
   color: var(--ui-text-dimmed);
+}
+
+.RecordCard__pinned {
+  color: var(--ui-primary);
 }
 
 .RecordCard__image {

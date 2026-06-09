@@ -50,6 +50,19 @@ export const slugify = (str: string) => {
   });
 };
 
+/**
+ * Derive a slug for a record from its title, falling back to a short random id
+ * when there's no title (notes are frequently untitled). Records require a
+ * non-empty, unique slug, so callers that allow blank titles must use this
+ * rather than `slugify(title)` alone.
+ */
+export const generateSlug = ({ title, type }: { title?: string | null; type?: string }) => {
+  const base = title?.trim() ? slugify(title) : '';
+  if (base) return base;
+  const suffix = crypto.randomUUID().slice(0, 8);
+  return `${type === 'note' ? 'note' : 'record'}-${suffix}`;
+};
+
 export const formatDate = (date: Date | string, options?: { year?: boolean; time?: boolean }) => {
   if (typeof date === 'string') {
     date = new Date(date + 'Z');
