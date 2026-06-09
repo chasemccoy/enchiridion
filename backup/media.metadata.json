@@ -14,5 +14,5 @@
     "updated_at"
   ],
   "schema": "CREATE TABLE `media` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`record_id` integer,\n\t`url` text NOT NULL,\n\t`alt_text` text,\n\t`type` text DEFAULT 'application',\n\t`content_type_string` text DEFAULT 'application/octet-stream' NOT NULL,\n\t`file_size` integer,\n\t`width` integer,\n\t`height` integer,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tFOREIGN KEY (`record_id`) REFERENCES `records`(`id`) ON UPDATE cascade ON DELETE cascade\n)",
-  "rowCount": 0
+  "rowCount": 19
 }
