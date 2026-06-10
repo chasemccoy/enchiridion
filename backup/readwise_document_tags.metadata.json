@@ -9,5 +9,5 @@
     "updated_at"
   ],
   "schema": "CREATE TABLE \"readwise_document_tags\" (\n\t`id` integer PRIMARY KEY AUTOINCREMENT,\n\t`document_id` text NOT NULL,\n\t`tag_id` integer NOT NULL,\n\t`deleted_at` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tCONSTRAINT `fk_readwise_document_tags_document_id_readwise_documents_id_fk` FOREIGN KEY (`document_id`) REFERENCES `readwise_documents`(`id`) ON UPDATE CASCADE ON DELETE CASCADE,\n\tCONSTRAINT `fk_readwise_document_tags_tag_id_readwise_tags_id_fk` FOREIGN KEY (`tag_id`) REFERENCES `readwise_tags`(`id`) ON UPDATE CASCADE ON DELETE CASCADE,\n\tCONSTRAINT `readwise_document_tags_document_id_tag_id_unique` UNIQUE(`document_id`,`tag_id`)\n)",
-  "rowCount": 449
+  "rowCount": 450
 }

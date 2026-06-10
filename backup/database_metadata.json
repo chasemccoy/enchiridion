@@ -239,7 +239,7 @@
   ],
   "freelist_count": [
     {
-      "freelist_count": 13
+      "freelist_count": 5
     }
   ],
   "fullfsync": [
@@ -274,7 +274,7 @@
   ],
   "page_count": [
     {
-      "page_count": 10187
+      "page_count": 10201
     }
   ],
   "page_size": [
@@ -492,8 +492,8 @@
   "wal_checkpoint": [
     {
       "busy": 0,
-      "log": 0,
-      "checkpointed": 0
+      "log": 862,
+      "checkpointed": 862
     }
   ],
   "writable_schema": [

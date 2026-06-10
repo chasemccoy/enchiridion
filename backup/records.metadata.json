@@ -17,5 +17,5 @@
     "content_updated_at"
   ],
   "schema": "CREATE TABLE \"records\" (\n\t`id` integer PRIMARY KEY AUTOINCREMENT,\n\t`slug` text NOT NULL,\n\t`type` text DEFAULT 'artifact' NOT NULL,\n\t`title` text,\n\t`url` text,\n\t`is_curated` integer DEFAULT false NOT NULL,\n\t`summary` text,\n\t`content` text,\n\t`notes` text,\n\t`source` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`content_created_at` text,\n\t`content_updated_at` text,\n\tCONSTRAINT \"slug_not_empty\" CHECK(\"slug\" != '')\n)",
-  "rowCount": 706
+  "rowCount": 708
 }

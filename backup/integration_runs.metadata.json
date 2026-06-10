@@ -12,5 +12,5 @@
     "created_at"
   ],
   "schema": "CREATE TABLE `integration_runs` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`integration_type` text NOT NULL,\n\t`run_type` text DEFAULT 'sync' NOT NULL,\n\t`status` text DEFAULT 'in_progress' NOT NULL,\n\t`message` text,\n\t`run_start_time` text NOT NULL,\n\t`run_end_time` text,\n\t`entries_created` integer DEFAULT 0,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL\n)",
-  "rowCount": 47
+  "rowCount": 48
 }

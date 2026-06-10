@@ -10,5 +10,5 @@
     "updated_at"
   ],
   "schema": "CREATE TABLE \"links\" (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`source_id` integer NOT NULL,\n\t`target_id` integer NOT NULL,\n\t`predicate` text NOT NULL,\n\t`notes` text,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tFOREIGN KEY (`source_id`) REFERENCES `records`(`id`) ON UPDATE cascade ON DELETE cascade,\n\tFOREIGN KEY (`target_id`) REFERENCES `records`(`id`) ON UPDATE cascade ON DELETE cascade\n)",
-  "rowCount": 1082
+  "rowCount": 1085
 }
