@@ -46,7 +46,6 @@ import useLink from '@app/composables/useLink';
 import type { DbId } from '@shared/types/api';
 import useRelatedRecords from '@app/composables/useRelatedRecords';
 import ConceptDetail from '@app/components/ConceptDetail.vue';
-import { RouteName } from '@app/router';
 
 const router = useRouter();
 const route = useRoute();
@@ -170,12 +169,13 @@ function handleDeleteRecord(id: DbId) {
 
   deleteRecordMutation(id, {
     onSuccess: (record) => {
+      // Pop up to the parent list route (the index) when a detail child was
+      // open, so the deleted record's now-dead URL doesn't linger. Carry the
+      // query along — the index keeps all its toolbar state (filters, search,
+      // view) there, and a bare path push would wipe it.
       const parentRoute = route.matched[route.matched.length - 2];
-      // Inbox owns its own post-delete navigation (advance to the next record
-      // in the list). Other routes don't have that logic, so fall back to
-      // popping up to the parent.
-      if (route.matched.length > 1 && parentRoute && parentRoute.name !== RouteName.inbox) {
-        router.push(parentRoute.path);
+      if (route.matched.length > 1 && parentRoute) {
+        router.push({ path: parentRoute.path, query: route.query });
       }
 
       toast.add({

@@ -84,6 +84,11 @@
    * paints the body as --ui-bg-muted; dark mode falls back to --ui-bg. */
   --page-bg: var(--ui-bg-muted);
 
+  /* Chrome tone behind the index toolbar — a slightly darker strip than the
+   * content panel below it, kept ~3 levels off the panel in both modes (light
+   * #fcfcfb content / #f9f9f7 chrome; dark #1a1a19 content / #171716 chrome). */
+  --index-chrome: #f9f9f7;
+
   /* Surfaces. The page canvas (--ui-bg-muted, painted on <body>) is the warm
    * near-white #fcfcfb; cards/panels (--ui-bg) lift to crisp white above it.
    * Raised controls (buttons/chips) sit on the page bg itself (--page-bg) + the
@@ -165,6 +170,8 @@ html.dark,
   --ui-border-inverted: var(--color-white);
 
   --page-bg: var(--ui-bg);
+
+  --index-chrome: #171716;
 
   /* Dark raised buttons match the page bg (--page-bg) and lift with this exact
    * stack: a top white edge highlight, a white hairline ring over a page-colored

@@ -1,9 +1,9 @@
 import { useRoute, useRouter } from 'vue-router';
 
 /**
- * URL-query state helpers shared by the record-list views (SearchView,
- * IndexV2View). Every piece of toolbar state lives in the query string so it
- * survives reloads, deep links, and back/forward.
+ * URL-query state helpers for the index view's toolbar. Every piece of toolbar
+ * state (search query, view mode, filters, sort) lives in the query string so
+ * it survives reloads, deep links, and back/forward.
  *
  * Reactivity: `readQuery` reads `route.query`, so calling it inside a `computed`
  * keeps that computed reactive to URL changes, exactly as an inline read would.

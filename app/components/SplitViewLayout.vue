@@ -113,22 +113,22 @@ const listRef = useTemplateRef<HTMLDivElement>('listRef');
 const route = useRoute();
 const router = useRouter();
 
-// A record detail is open when a child route is active. This (not the `isEmpty`
-// prop, which means different things per view — "no selection" for the index but
-// "the inbox is empty" for the inbox) is what drives the mobile single-column
-// collapse, so the inbox's always-present detail pane doesn't blank the list at
-// bare /inbox.
+// A record detail is open when a child route is active. This drives the mobile
+// single-column collapse (list vs. detail) and is distinct from the `isEmpty`
+// prop the parent passes to signal "no record selected".
 const hasSelection = computed(() => route.matched.length > 1);
 
-// Route of the list behind the open detail (parent of the `:slug` child route:
-// `/`, `/inbox`, `/v2`) — where the mobile back button returns to.
+// Route of the list behind the open detail (parent of the `:slug` child route,
+// i.e. `/`) — where the mobile back button returns to.
 const listRoutePath = computed(() => {
   const parent = route.matched[route.matched.length - 2];
   return parent?.path ?? null;
 });
 
 function goBackToList() {
-  if (listRoutePath.value) router.push(listRoutePath.value);
+  // Carry the query along — the index keeps its toolbar state (filters,
+  // search, view) there, and a bare path push would wipe it.
+  if (listRoutePath.value) router.push({ path: listRoutePath.value, query: route.query });
 }
 
 // --- Lazy rendering ----------------------------------------------------------
@@ -192,7 +192,7 @@ onActivated(() => {
 
 // Group records by month and year, including their original indices. Month
 // groups appear in the order their first record shows up in `modelValue`, so the
-// group order follows whatever sort the caller applied to the list (e.g. the v2
+// group order follows whatever sort the caller applied to the list (e.g. the
 // index's newest/oldest toggle) rather than being pinned newest-first. Callers
 // feed date-sorted data, so a date sort makes each month contiguous and the
 // groups come out in that same date order.
@@ -388,8 +388,8 @@ function handleRecordMounted(record: ListRecordsAPIResponse[number]) {
     display: none;
   }
 
-  /* With no record selected, suppress the detail pane entirely (the inbox keeps
-   * an empty one mounted) so it doesn't leave dead space under the list. */
+  /* With no record selected, suppress the detail pane entirely so it doesn't
+   * leave dead space under the list. */
   .SplitViewLayout:not(.SplitViewLayout--detail) .SplitViewLayout_detail {
     display: none;
   }

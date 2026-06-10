@@ -1,7 +1,6 @@
 <template>
   <UTable
     v-if="modelValue"
-    v-model:globalFilter="globalFilter"
     :data="modelValue"
     :columns="columns"
     :columnVisibility="columnVisibility"
@@ -10,7 +9,6 @@
       th: 'RecordTable__th',
       td: 'RecordTable__td',
     }"
-    :globalFilterOptions
     sticky
     @select="handleRowSelect"
   >
@@ -79,27 +77,20 @@
 <script setup lang="ts">
 import useApiClient from '@app/composables/useApiClient';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import type { TableColumn, TableRow } from '@nuxt/ui';
+import type { TableRow } from '@nuxt/ui';
 import { capitalize, formatDate } from '@shared/lib/formatting';
 import { isPredicateType } from '@shared/types';
 import slugify from 'slugify';
 import { computed, h, resolveComponent } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const modelValue = defineModel<ListRecordsAPIResponse>({ required: true });
-const globalFilter = defineModel<string>('globalFilter');
 
 const props = defineProps<{
   hideColumns?: string[];
-  /**
-   * Build the destination route for a clicked row. Defaults to the root record
-   * route (`/{slug}`); pass a builder when the table lives under a parent route
-   * (e.g. IndexV2View at `/v2`) so a row click stays in that context instead of
-   * escaping to the home index.
-   */
-  rowTo?: (slug: string) => string;
 }>();
 
+const route = useRoute();
 const router = useRouter();
 const { backendBaseUrl } = useApiClient();
 
@@ -135,12 +126,6 @@ const bylineByRecordId = computed(() => {
   }
   return map;
 });
-
-const globalFilterOptions = {
-  getColumnCanGlobalFilter: (column: TableColumn<ListRecordsAPIResponse[number]>) => {
-    return column.enableGlobalFilter === undefined ? true : column.enableGlobalFilter;
-  },
-};
 
 const UBadge = resolveComponent('UBadge');
 
@@ -197,7 +182,6 @@ const columns = [
   {
     accessorKey: 'url',
     header: 'URL',
-    enableGlobalFilter: false,
   },
   {
     accessorKey: 'content',
@@ -225,15 +209,12 @@ const columns = [
   {
     accessorKey: 'media',
     header: 'Media',
-    enableGlobalFilter: false,
   },
   {
     accessorKey: 'outgoingLinks',
-    enableGlobalFilter: false,
   },
   {
     accessorKey: 'incomingLinks',
-    enableGlobalFilter: false,
   },
 ];
 
@@ -247,7 +228,13 @@ function getTags(row: TableRow<RecordRow>): LinkTarget[] {
 
 function handleRowSelect(_event: Event, row: TableRow<ListRecordsAPIResponse[number]>) {
   const slug = row.getValue('slug') as string;
-  router.push(props.rowTo ? props.rowTo(slug) : `/${slug}`);
+  // Carry the toolbar's query state through to the detail. `q` is dropped
+  // (opening a result deliberately ends the search) and `view` too — the
+  // detail pane only renders in the index's cards mode.
+  const query = { ...route.query };
+  delete query.q;
+  delete query.view;
+  router.push({ path: `/${slug}`, query });
 }
 </script>
 
