@@ -152,6 +152,7 @@ The launcher resolves the project's `tsconfig.json` and SQLite file from its own
 # Records
 ench records get 1
 ench records list --type=artifact --curated --limit=5 --full
+ench records list --curated=false              # records needing curation
 ench records create '{"slug":"foo","title":"Foo","type":"concept"}'
 ench records tree 220
 ench records similar 220 --limit=5
@@ -164,10 +165,6 @@ ench search semantic "ways of thinking about links"
 # Links
 ench links list 1 --predicate=created_by
 ench links predicates
-
-# Inbox (unpromoted Readwise documents)
-ench inbox list --limit=10
-ench inbox promote <document-id> --curated
 
 # Sync
 ench sync                                      # all integrations + embedding backfill

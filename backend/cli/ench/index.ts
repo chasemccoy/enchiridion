@@ -72,7 +72,7 @@ let commands: Record<string, Record<string, CommandHandler>> | null = null;
 
 async function loadCommands() {
   if (commands) return commands;
-  const [records, search, links, media, sync, db, wayback, inbox] = await Promise.all([
+  const [records, search, links, media, sync, db, wayback] = await Promise.all([
     import('./commands/records'),
     import('./commands/search'),
     import('./commands/links'),
@@ -80,9 +80,8 @@ async function loadCommands() {
     import('./commands/sync'),
     import('./commands/db'),
     import('./commands/wayback'),
-    import('./commands/inbox'),
   ]);
-  commands = { records, search, links, media, sync, db, wayback, inbox };
+  commands = { records, search, links, media, sync, db, wayback };
   return commands;
 }
 
@@ -143,11 +142,6 @@ Commands:
   wayback archive <url-or-id>          Submit a URL to web.archive.org/save
   wayback status <url>                 Most recent snapshot for URL
 
-  inbox list [--limit=N]               Unpromoted Readwise documents
-  inbox next                           Next document in the inbox
-  inbox promote <id> [--curated]       Turn document into a record
-  inbox dismiss <id>                   Soft-delete the document
-
 Records List Filters:
   --type=<types>          artifact|entity|concept (comma-separated)
   --source=<source>       manual|readwise|twitter (comma-separated)
@@ -170,6 +164,7 @@ Global Options:
 
 Examples:
   ench records list --type=artifact --curated --limit=5 --full
+  ench records list --curated=false             # records needing curation
   ench records get 1 --links
   ench records similar 1 --limit=5
   ench search "knowledge graph"
@@ -177,7 +172,6 @@ Examples:
   ench links predicates
   ench db status
   ench db backup --out=/tmp/ench-backup.sqlite
-  ench inbox list --limit=10
   ench wayback status https://example.com
 `.trim();
 
