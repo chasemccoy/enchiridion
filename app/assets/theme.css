@@ -3,6 +3,11 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+/* Utilities referenced only from the `ui` theme override in vite.config.ts
+   (e.g. the tabs pill indicator inset) aren't seen by Tailwind's content scan,
+   so force-generate them here. */
+@source inline("inset-y-0.5");
+
 @font-face {
   font-family: 'Martina Plantijn';
   font-style: normal;

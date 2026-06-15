@@ -135,6 +135,7 @@
             class="RecordDetail__recordLink shadow-xs"
             linkDirection="incoming"
             :modelValue="child.sourceId"
+            :predicate="child.predicate"
             :truncate="false"
             :showParent="false"
             @updatePredicate="(predicate) => handleUpdatePredicate({ link: child, predicate })"
@@ -144,6 +145,12 @@
       </ul>
     </div>
 
+    <AddChildControl
+      v-if="modelValue.id"
+      class="RecordDetail__addChild"
+      :parent-id="modelValue.id"
+    />
+
     <AttachmentGallery
       v-if="modelValue.media && modelValue.media.length > 0"
       v-model="modelValue.media"
@@ -151,91 +158,12 @@
       @fileDelete="({ mediaId }) => emit('fileDelete', { mediaId })"
     />
 
-    <CombinedFields>
-      <UFormField
-        aria-label="Summary"
-        size="xs"
-      >
-        <UTextarea
-          v-model.trim="summary"
-          size="lg"
-          placeholder="A brief summary of this record"
-          variant="outline"
-          :rows="1"
-          autoresize
-        />
-      </UFormField>
-
-      <UFieldGroup>
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="URL"
-          class="RecordDetail__badge"
-        />
-
-        <UInput
-          v-model="url"
-          class="RecordDetail__input"
-          variant="outline"
-          placeholder="example.com"
-        >
-          <template
-            v-if="modelValue.url"
-            #trailing
-          >
-            <UTooltip text="Open source URL">
-              <UButton
-                variant="link"
-                size="sm"
-                icon="i-lucide-external-link"
-                aria-label="Open source URL"
-                target="_blank"
-                :to="modelValue.url"
-              />
-            </UTooltip>
-          </template>
-        </UInput>
-      </UFieldGroup>
-
-      <UFieldGroup v-if="createdAt">
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="Published"
-          class="RecordDetail__badge"
-        />
-
-        <UInput
-          v-model="createdAt"
-          class="RecordDetail__input"
-          variant="outline"
-          placeholder="May 4, 1995"
-          readonly
-        />
-      </UFieldGroup>
-
-      <UFieldGroup>
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="Notes"
-          class="RecordDetail__badge"
-        />
-
-        <UTextarea
-          v-model="notes"
-          class="RecordDetail__input"
-          variant="outline"
-          placeholder="Additional notes"
-          :rows="1"
-          autoresize
-        />
-      </UFieldGroup>
-    </CombinedFields>
+    <RecordMetadataSheet
+      v-model:summary="summary"
+      v-model:url="url"
+      v-model:notes="notes"
+      :published="createdAt"
+    />
 
     <div class="RecordDetail__actions">
       <FileUploadButton @fileUpload="(file) => emit('fileUpload', file)" />
@@ -295,6 +223,7 @@
 </template>
 
 <script setup lang="ts">
+import AddChildControl from '@app/components/AddChildControl.vue';
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import BrowserFrame from '@app/components/BrowserFrame.vue';
 import RecordLink from '@app/components/RecordLink.vue';
@@ -309,7 +238,7 @@ import type { DbId } from '@shared/types/api';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
 import TitleField from '@app/components/TitleField.vue';
 import EditableContent from '@app/components/EditableContent.vue';
-import CombinedFields from '@app/components/CombinedFields.vue';
+import RecordMetadataSheet from '@app/components/RecordMetadataSheet.vue';
 import LinkWithFavicon from '@app/components/LinkWithFavicon.vue';
 import type { FindAllRelatedRecordsAPIResponse } from '@db/queries/related-records';
 import type { SimilarRecordsAPIResponse } from '@db/queries/similar-records';
@@ -519,23 +448,6 @@ function handleDeleteLink({ linkId }: { linkId: DbId }) {
 
 .RecordDetail__badge {
   width: fit-content;
-
-  & :deep(svg) {
-    width: 12px;
-    height: 12px;
-    color: var(--ui-text-muted);
-  }
-}
-
-.RecordDetail__input {
-  & :deep(input) {
-    color: var(--ui-text-muted);
-  }
-
-  & :deep(input:hover),
-  & :deep(input:focus) {
-    color: var(--ui-text);
-  }
 
   & :deep(svg) {
     width: 12px;

@@ -77,6 +77,48 @@ export default defineConfig({
             content: 'dark',
           },
         },
+        // Restyle the pill tabs into a quiet segmented control: a bordered
+        // bg-elevated track with a light (bg-default) active pill instead of the
+        // default solid/inverted fill. Neutral by default so the active pill
+        // reads as a raised surface, not an accent. Applies to every UTabs.
+        tabs: {
+          slots: {
+            // Tighter 2px track padding (default p-1 = 4px) for a compact rail.
+            list: 'ring ring-default p-0.5',
+          },
+          variants: {
+            // Smaller 14px icons + tighter trigger padding than Nuxt's defaults,
+            // to match the rest of the app's compact controls.
+            size: {
+              sm: { trigger: 'px-2 py-1', leadingIcon: 'size-3.5' },
+              md: { trigger: 'px-2.5 py-1', leadingIcon: 'size-3.5' },
+            },
+          },
+          compoundVariants: [
+            {
+              color: 'neutral',
+              variant: 'pill',
+              class: {
+                indicator: 'bg-default',
+                // Active label rides a light pill, so it needs dark text — the
+                // default neutral pill uses text-inverted (for its dark fill).
+                trigger: 'data-[state=active]:text-highlighted',
+              },
+            },
+            {
+              // The active pill insets from the list edge; match the smaller 2px
+              // track padding so it doesn't float (default is inset-y-1 = 4px).
+              orientation: 'horizontal',
+              variant: 'pill',
+              class: {
+                indicator: 'inset-y-0.5',
+              },
+            },
+          ],
+          defaultVariants: {
+            color: 'neutral',
+          },
+        },
       },
     }),
   ],

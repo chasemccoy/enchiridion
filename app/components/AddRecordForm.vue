@@ -27,6 +27,16 @@
       @fileDelete="handleFileDelete"
     />
 
+    <RecordMetadataSheet
+      v-model:summary="summary"
+      v-model:url="url"
+      v-model:notes="notes"
+      v-model:slug="slug"
+      :published="createdAt"
+      with-slug
+      :style="{ '--metadata-sheet-label-width': '94px', '--metadata-sheet-gap': '10px' }"
+    />
+
     <div class="AddRecordForm__actions">
       <RelationshipSelect @createLink="handleCreateLink" />
 
@@ -38,75 +48,6 @@
         size="lg"
       />
     </div>
-
-    <CombinedFields>
-      <UFormField
-        aria-label="Summary"
-        size="xs"
-      >
-        <UTextarea
-          v-model.trim="summary"
-          size="lg"
-          placeholder="A brief summary of this record"
-          variant="outline"
-          :rows="1"
-          autoresize
-        />
-      </UFormField>
-
-      <SlugField v-model="slug" />
-
-      <UFieldGroup>
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="URL"
-          class="AddRecordForm__badge"
-        />
-
-        <UInput
-          v-model="url"
-          variant="outline"
-          placeholder="https://example.org"
-        />
-      </UFieldGroup>
-
-      <UFieldGroup v-if="createdAt">
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="Published"
-          class="AddRecordForm__badge"
-        />
-
-        <UInput
-          v-model="createdAt"
-          variant="outline"
-          placeholder="May 4, 1995"
-          readonly
-        />
-      </UFieldGroup>
-
-      <UFieldGroup>
-        <UBadge
-          color="neutral"
-          variant="outline"
-          size="lg"
-          label="Notes"
-          class="AddRecordForm__badge"
-        />
-
-        <UTextarea
-          v-model="notes"
-          variant="outline"
-          placeholder="Additional notes"
-          :rows="1"
-          autoresize
-        />
-      </UFieldGroup>
-    </CombinedFields>
 
     <div v-if="links.length > 0">
       <ul class="AddRecordForm__links">
@@ -142,7 +83,6 @@
 import RecordTypeSelectButton from '@app/components/RecordTypeSelectButton.vue';
 import type { RecordInsert, RecordSelect } from '@db/schema';
 import { ref, useTemplateRef, watch, computed } from 'vue';
-import SlugField from '@app/components/SlugField.vue';
 import { formatDate, slugify } from '@shared/lib/formatting';
 import TitleField from '@app/components/TitleField.vue';
 import FileUploadButton from '@app/components/FileUploadButton.vue';
@@ -154,7 +94,7 @@ import type {
 } from '@app/views/AddRecordView.vue';
 import AttachmentGallery from '@app/components/AttachmentGallery.vue';
 import { mediaFileToDataURL, nullableStringField } from '@app/utils';
-import CombinedFields from '@app/components/CombinedFields.vue';
+import RecordMetadataSheet from '@app/components/RecordMetadataSheet.vue';
 import RelationshipSelect from '@app/components/RelationshipSelect.vue';
 import type { DbId } from '@shared/types/api';
 import type { Predicate, PredicateSlug } from '@shared/types';
@@ -256,7 +196,6 @@ function handleUpdatePredicate(link: PartialLinkInsert, predicate: Predicate) {
 
 <style scoped>
 .AddRecordForm {
-  --combinedFieldMinBadgeWidth: 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
