@@ -176,7 +176,7 @@ html.dark,
 
   --page-bg: var(--ui-bg);
 
-  --index-chrome: #171716;
+  --index-chrome: #0c0c0b;
 
   /* Dark raised buttons match the page bg (--page-bg) and lift with this exact
    * stack: a top white edge highlight, a white hairline ring over a page-colored
