@@ -33,6 +33,7 @@ export const getRecord = (recordId: RecordSelect['id']) => {
         },
       },
       media: true,
+      archives: true,
     },
   });
 };
@@ -46,6 +47,7 @@ export const getRecordBySlug = (slug: RecordSelect['slug']) => {
     },
     with: {
       media: true,
+      archives: true,
     },
   });
 };

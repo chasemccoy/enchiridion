@@ -218,6 +218,8 @@
       v-if="modelValue.url && modelValue.type !== 'concept'"
       :key="modelValue.url"
       :url="modelValue.url"
+      :record-id="modelValue.id"
+      :archive="modelValue.archives?.[0] ?? null"
     />
   </div>
 </template>

@@ -72,7 +72,7 @@ let commands: Record<string, Record<string, CommandHandler>> | null = null;
 
 async function loadCommands() {
   if (commands) return commands;
-  const [records, search, links, media, sync, db, wayback] = await Promise.all([
+  const [records, search, links, media, sync, db, wayback, archive] = await Promise.all([
     import('./commands/records'),
     import('./commands/search'),
     import('./commands/links'),
@@ -80,8 +80,9 @@ async function loadCommands() {
     import('./commands/sync'),
     import('./commands/db'),
     import('./commands/wayback'),
+    import('./commands/archive'),
   ]);
-  commands = { records, search, links, media, sync, db, wayback };
+  commands = { records, search, links, media, sync, db, wayback, archive };
   return commands;
 }
 
@@ -141,6 +142,8 @@ Commands:
 
   wayback archive <url-or-id>          Submit a URL to web.archive.org/save
   wayback status <url>                 Most recent snapshot for URL
+
+  archive <record-id-or-url>           Save a local offline copy of a record's page
 
 Records List Filters:
   --type=<types>          artifact|entity|concept (comma-separated)
@@ -219,6 +222,18 @@ async function main(): Promise<void> {
     return runHandler(
       cmds.search!.hybrid!,
       [subcommand, ...args],
+      rawOptions,
+      baseOptions,
+      startTime,
+      debug,
+    );
+  }
+
+  // Special case: `archive <id-or-url>` archives a record (no subcommand verb).
+  if (command === 'archive') {
+    return runHandler(
+      cmds.archive!.create!,
+      subcommand ? [subcommand, ...args] : args,
       rawOptions,
       baseOptions,
       startTime,

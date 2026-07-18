@@ -121,3 +121,10 @@ Required environment variables (see `.env.example`). The ports are parsed at sta
 - `DATABASE_NAME` - SQLite database filename
 - `READWISE_TOKEN` - API token for Readwise integration
 - `OPENAI_API_KEY` - Required for embeddings / semantic search
+
+Optional (local web archives — the record detail "Archive this page" action, backed by the `amber` library at `../amber`):
+
+- `ANTHROPIC_API_KEY` - Drives the archive cleanup plan; archiving falls back to heuristics if unset
+- `ARCHIVE_DIR` - Where archive folders are written (defaults to `~/Documents/Archives`)
+- `ARCHIVE_BACKEND` - Capture backend: `playwright` (default, full render — runs JS and triggers lazy-loaded images), `auto` (static fetch, escalate only if the page looks empty), or `fetch` (static only)
+- `ARCHIVE_INSECURE_TLS` - Set to `1` only behind a trusted TLS-intercepting proxy

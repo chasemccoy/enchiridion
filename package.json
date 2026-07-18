@@ -42,6 +42,7 @@
     "@types/multer": "^2.1.0",
     "@unhead/vue": "^2.1.15",
     "@vueuse/core": "^14.3.0",
+    "amber": "link:../amber",
     "better-sqlite3": "^12.10.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",

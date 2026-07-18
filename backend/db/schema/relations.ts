@@ -8,6 +8,12 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.records.id,
     }),
   },
+  archives: {
+    record: r.one.records({
+      from: r.archives.recordId,
+      to: r.records.id,
+    }),
+  },
   records: {
     outgoingLinks: r.many.links({
       from: r.records.id,
@@ -18,6 +24,7 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.links.targetId,
     }),
     media: r.many.media(),
+    archives: r.many.archives(),
     readwiseAuthors: r.many.readwiseAuthors(),
     readwiseDocuments: r.many.readwiseDocuments(),
     readwiseTags: r.many.readwiseTags(),

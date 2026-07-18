@@ -10,6 +10,7 @@ import { searchRoutes } from './search';
 import { mediaRoutes } from './media';
 import { twitterRoutes } from './twitter';
 import { integrationRoutes } from './integrations';
+import { archiveRoot } from '@integrations/archive';
 
 const PORT = process.env.BACKEND_PORT;
 
@@ -29,6 +30,9 @@ app.use(mediaRoutes);
 app.use(twitterRoutes);
 app.use(integrationRoutes);
 app.use('/uploads', express.static('uploads'));
+// Local web archives (faithful, inert offline copies). Served from our own
+// origin so they're always frameable, unlike the live URLs.
+app.use('/archives', express.static(archiveRoot()));
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

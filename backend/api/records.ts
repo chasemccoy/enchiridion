@@ -13,6 +13,7 @@ import {
 import { findSimilarRecords } from '@db/queries/similar-records';
 import { findAllRelatedRecords } from '@db/queries/related-records';
 import { getFamilyTree } from '@db/queries/tree';
+import { archiveRecord } from '@integrations/archive';
 import { PredicateSlugSchema } from '@shared/types';
 import { z } from 'zod/v4';
 
@@ -128,6 +129,30 @@ recordRoutes.post('/records', async (req, res, next) => {
     const input = ListRecordsInputSchema.parse(req.body || {});
     const records = await listRecords(input);
     res.json(records);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Archive (or re-archive) a record's URL into a local offline copy. Returns the
+// resulting archive row, including `status: 'failed'` with an error message when
+// the run didn't succeed (failures are surfaced, not hidden).
+recordRoutes.post('/record/:id/archive', async (req, res, next) => {
+  try {
+    const { id } = IdParamSchema.parse(req.params);
+
+    const record = await getRecord(id);
+    if (!record) {
+      res.status(404).send(`Record with id ${id} not found`);
+      return;
+    }
+    if (!record.url) {
+      res.status(400).send(`Record with id ${id} has no URL to archive`);
+      return;
+    }
+
+    const archive = await archiveRecord(record);
+    res.json(archive);
   } catch (error) {
     next(error);
   }
