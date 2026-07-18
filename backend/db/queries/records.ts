@@ -245,8 +245,10 @@ export const upsertRecord = async (record: RecordInsert, options: { embed?: bool
     throw new Error(`Record upsert failed. Input data:\n\n${JSON.stringify(record, null, 2)}`);
   }
 
-  // Archive URL to Wayback Machine for new records
-  if (isNewRecord && modifiedRecord.url) {
+  // Archive URL to Wayback Machine for new records. Opt out with
+  // WAYBACK_AUTO_ARCHIVE=0 (tests, offline work) — the explicit
+  // `ench wayback archive` command is unaffected by the flag.
+  if (isNewRecord && modifiedRecord.url && process.env.WAYBACK_AUTO_ARCHIVE !== '0') {
     archiveUrlToWayback(modifiedRecord.url);
   }
 

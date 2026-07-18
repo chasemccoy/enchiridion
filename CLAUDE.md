@@ -142,3 +142,4 @@ Optional (local web archives — the record detail "Archive this page" action, b
 - `ARCHIVE_DIR` - Where archive folders are written (defaults to `~/Documents/Archives`)
 - `ARCHIVE_BACKEND` - Capture backend: `playwright` (default, full render — runs JS and triggers lazy-loaded images), `auto` (static fetch, escalate only if the page looks empty), or `fetch` (static only)
 - `ARCHIVE_INSECURE_TLS` - Set to `1` only behind a trusted TLS-intercepting proxy
+- `WAYBACK_AUTO_ARCHIVE` - Set to `0` to stop new records from being auto-submitted to the Wayback Machine on creation (tests set this; explicit `ench wayback archive` is unaffected)
