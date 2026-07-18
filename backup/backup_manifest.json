@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-10T02:53:10.509Z",
+  "timestamp": "2026-07-18T20:13:19.607Z",
   "database_path": "./enchiridion.db",
   "tables": [
     "media",
@@ -12,7 +12,7 @@
     "links",
     "__drizzle_migrations"
   ],
-  "total_rows": 4510,
+  "total_rows": 4754,
   "pragma_info_included": true,
   "schema_objects_included": true
 }

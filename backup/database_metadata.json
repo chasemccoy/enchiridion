@@ -239,7 +239,7 @@
   ],
   "freelist_count": [
     {
-      "freelist_count": 5
+      "freelist_count": 1
     }
   ],
   "fullfsync": [
@@ -274,7 +274,7 @@
   ],
   "page_count": [
     {
-      "page_count": 10201
+      "page_count": 10219
     }
   ],
   "page_size": [
@@ -326,17 +326,17 @@
   "table_list": [
     {
       "schema": "main",
-      "name": "links",
+      "name": "__drizzle_migrations",
       "type": "table",
-      "ncol": 7,
+      "ncol": 5,
       "wr": 0,
       "strict": 0
     },
     {
       "schema": "main",
-      "name": "vec_records_meta",
+      "name": "links",
       "type": "table",
-      "ncol": 2,
+      "ncol": 7,
       "wr": 0,
       "strict": 0
     },
@@ -390,6 +390,14 @@
     },
     {
       "schema": "main",
+      "name": "integration_runs",
+      "type": "table",
+      "ncol": 9,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
       "name": "sqlite_schema",
       "type": "table",
       "ncol": 5,
@@ -406,7 +414,7 @@
     },
     {
       "schema": "main",
-      "name": "sqlite_sequence",
+      "name": "vec_records_info",
       "type": "table",
       "ncol": 2,
       "wr": 0,
@@ -414,7 +422,7 @@
     },
     {
       "schema": "main",
-      "name": "vec_records_info",
+      "name": "sqlite_sequence",
       "type": "table",
       "ncol": 2,
       "wr": 0,
@@ -430,14 +438,6 @@
     },
     {
       "schema": "main",
-      "name": "integration_runs",
-      "type": "table",
-      "ncol": 9,
-      "wr": 0,
-      "strict": 0
-    },
-    {
-      "schema": "main",
       "name": "media",
       "type": "table",
       "ncol": 11,
@@ -446,9 +446,9 @@
     },
     {
       "schema": "main",
-      "name": "__drizzle_migrations",
+      "name": "vec_records_meta",
       "type": "table",
-      "ncol": 5,
+      "ncol": 2,
       "wr": 0,
       "strict": 0
     },
@@ -492,8 +492,8 @@
   "wal_checkpoint": [
     {
       "busy": 0,
-      "log": 862,
-      "checkpointed": 862
+      "log": 537,
+      "checkpointed": 537
     }
   ],
   "writable_schema": [
