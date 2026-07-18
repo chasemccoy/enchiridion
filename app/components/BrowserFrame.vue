@@ -40,8 +40,8 @@
             variant="ghost"
             size="sm"
             :icon="isArchived ? 'i-lucide-rotate-cw' : 'i-lucide-archive'"
-            :label="isPending ? 'Archiving…' : isArchived ? undefined : 'Archive'"
-            :loading="isPending"
+            :label="isArchiving ? 'Archiving…' : isArchived ? undefined : 'Archive'"
+            :loading="isArchiving"
             :aria-label="isArchived ? 'Re-archive this page' : 'Archive this page'"
             @click="runArchive"
           />
@@ -53,8 +53,8 @@
       v-if="isArchived"
       class="BrowserFrame__iframe"
       loading="lazy"
-      :src="archivedSrc"
       sandbox=""
+      :src="archivedSrc"
     />
     <iframe
       v-else-if="showLiveFrame"
@@ -103,11 +103,15 @@ function runArchive() {
   mutate(props.recordId);
 }
 
-const isArchived = computed(() => props.archive?.status === 'ok' && !!props.archive.path);
+// A stored copy exists — independent of the latest run's status, so a failed
+// or in-flight re-archive keeps the last good copy visible.
+const isArchived = computed(() => !!props.archive?.path);
 
-const archivedSrc = computed(() =>
-  isArchived.value ? (archiveSrc(props.archive) ?? undefined) : undefined,
-);
+// Covers both halves of a run: the mutation round-trip (isPending) and the
+// server-side 'pending' row the record polls while the capture finishes.
+const isArchiving = computed(() => isPending.value || props.archive?.status === 'pending');
+
+const archivedSrc = computed(() => archiveSrc(props.archive) ?? undefined);
 
 const archivedLabel = computed(() => {
   if (!props.archive?.archivedAt) return 'Archived';

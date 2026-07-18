@@ -45,7 +45,15 @@ export default function useApiClient() {
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(`HTTP response error in useApiClient: ${response.status}, ${body}`);
+      let message: string | undefined;
+      try {
+        // The backend's errorHandler responds with { message } — prefer that
+        // over the raw body so callers can show the error to the user as-is.
+        message = (JSON.parse(body) as { message?: string }).message;
+      } catch {
+        // Non-JSON error body; fall through to the raw text.
+      }
+      throw new Error(message || body || `Request failed with status ${response.status}`);
     }
 
     return response.json();

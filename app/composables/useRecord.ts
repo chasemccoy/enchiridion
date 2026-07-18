@@ -19,11 +19,18 @@ export default function useRecord() {
   const { fetch } = useApiClient();
   const queryClient = useQueryClient();
 
+  // Poll while the record's archive run is in flight ('pending') so the
+  // background capture's eventual 'ok'/'failed' outcome shows up on its own.
+  function archivePollInterval(data: { archives?: { status: string }[] } | undefined) {
+    return data?.archives?.[0]?.status === 'pending' ? 3000 : false;
+  }
+
   function getRecord(id: OptionalMaybeRef<DbId>, enabled: MaybeRefOrGetter<boolean> = true) {
     return useQuery({
       queryKey: ['get-record', id],
       queryFn: () => fetch<GetRecordAPIResponse>(`/record/${toValue(id)}`),
       enabled,
+      refetchInterval: (query) => archivePollInterval(query.state.data ?? undefined),
     });
   }
 
@@ -31,6 +38,7 @@ export default function useRecord() {
     return useQuery({
       queryKey: ['get-record-by-slug', slug],
       queryFn: () => fetch<GetRecordBySlugAPIResponse>(`/record/slug/${toValue(slug)}`),
+      refetchInterval: (query) => archivePollInterval(query.state.data ?? undefined),
     });
   }
 

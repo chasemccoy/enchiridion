@@ -13,7 +13,7 @@ import {
 import { findSimilarRecords } from '@db/queries/similar-records';
 import { findAllRelatedRecords } from '@db/queries/related-records';
 import { getFamilyTree } from '@db/queries/tree';
-import { archiveRecord } from '@integrations/archive';
+import { claimArchive, runArchive } from '@integrations/archive';
 import { PredicateSlugSchema } from '@shared/types';
 import { z } from 'zod/v4';
 
@@ -134,9 +134,12 @@ recordRoutes.post('/records', async (req, res, next) => {
   }
 });
 
-// Archive (or re-archive) a record's URL into a local offline copy. Returns the
-// resulting archive row, including `status: 'failed'` with an error message when
-// the run didn't succeed (failures are surfaced, not hidden).
+// Start archiving (or re-archiving) a record's URL into a local offline copy.
+// Responds 202 with the claimed 'pending' archive row immediately — the capture
+// can take minutes (longer than browsers keep a request open), so it continues
+// in the background and writes 'ok' or 'failed' onto the same row, which
+// clients observe by refetching the record. 409 when a run is already in
+// flight (here or via the CLI).
 recordRoutes.post('/record/:id/archive', async (req, res, next) => {
   try {
     const { id } = IdParamSchema.parse(req.params);
@@ -151,8 +154,19 @@ recordRoutes.post('/record/:id/archive', async (req, res, next) => {
       return;
     }
 
-    const archive = await archiveRecord(record);
-    res.json(archive);
+    const pending = await claimArchive(record);
+    if (!pending) {
+      res.status(409).json({ message: `Record ${id} is already being archived` });
+      return;
+    }
+    res.status(202).json(pending);
+
+    // Detached on purpose: runArchive persists its own failures onto the row,
+    // so this catch only covers that persistence itself blowing up.
+    runArchive(record).catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error(`Archive run for record ${id} failed to persist its outcome:`, error);
+    });
   } catch (error) {
     next(error);
   }

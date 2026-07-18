@@ -33,8 +33,8 @@
       v-model:notes="notes"
       v-model:slug="slug"
       :published="createdAt"
-      with-slug
       :style="{ '--metadata-sheet-label-width': '94px', '--metadata-sheet-gap': '10px' }"
+      with-slug
     />
 
     <div class="AddRecordForm__actions">

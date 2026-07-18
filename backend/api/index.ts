@@ -21,7 +21,6 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(cors({ origin: '*' }));
 
-app.use(errorHandler);
 app.use(recordRoutes);
 app.use(treeRoutes);
 app.use(linkRoutes);
@@ -33,6 +32,10 @@ app.use('/uploads', express.static('uploads'));
 // Local web archives (faithful, inert offline copies). Served from our own
 // origin so they're always frameable, unlike the live URLs.
 app.use('/archives', express.static(archiveRoot()));
+
+// Error middleware must be mounted AFTER the routes it covers — Express only
+// dispatches next(error) to handlers registered later in the chain.
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

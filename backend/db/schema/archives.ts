@@ -5,13 +5,16 @@ import { records } from './records';
 
 const sqliteTable = snakeCase.table;
 
-export const archiveStatusEnum = ['ok', 'failed'] as const;
+export const archiveStatusEnum = ['pending', 'ok', 'failed'] as const;
 
 /**
  * A local, self-contained web archive of a record's URL (the "Archive this page"
  * action). One current archive per record — re-archiving upserts the row.
- * `path` is the archive folder relative to ARCHIVE_DIR; the files themselves live
- * on disk and are served as static assets.
+ *
+ * `status`/`error` describe the LATEST run ('pending' → 'ok' | 'failed'), while
+ * `path`/`title`/`archivedAt` always describe the last SUCCESSFUL capture, so a
+ * failed re-archive never orphans a working copy. The 'pending' status doubles
+ * as the cross-process claim on the row (see `claimArchive`).
  */
 export const archives = sqliteTable(
   'archives',
@@ -24,12 +27,16 @@ export const archives = sqliteTable(
       })
       .notNull(),
     url: text().notNull(),
-    /** Archive folder relative to ARCHIVE_DIR (null when the run failed). */
+    /**
+     * Folder of the last successful capture, relative to ARCHIVE_DIR (null when
+     * no run has succeeded yet).
+     */
     path: text(),
     status: text({ enum: archiveStatusEnum }).notNull(),
     title: text(),
     /** Failure message when status is 'failed'. */
     error: text(),
+    /** When the last successful capture was taken. */
     archivedAt: text()
       .notNull()
       .default(sql`(CURRENT_TIMESTAMP)`),

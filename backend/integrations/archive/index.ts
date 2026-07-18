@@ -5,14 +5,21 @@
  * package (`amber`). Everything else (the API route, the CLI command) depends on
  * `archiveRecord` / `archiveRoot` here, so if that project is renamed the change
  * is confined to this file plus `package.json`.
+ *
+ * Row semantics: `status`/`error` describe the latest run ('pending' → 'ok' |
+ * 'failed'), while `path`/`title`/`archivedAt` always describe the last
+ * successful capture — a failed re-archive records the error without wiping the
+ * working copy. The 'pending' row is also the concurrency guard: it lives in
+ * the DB, so it holds across the API server and the `ench` CLI (separate
+ * processes an in-memory lock can't see).
  */
 
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { archiveUrl } from 'amber';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@db/index';
-import { archives, type ArchiveInsert, type ArchiveSelect, type RecordSelect } from '@db/schema';
+import { archives, type ArchiveSelect, type RecordSelect } from '@db/schema';
 
 /** Root directory archive folders are written to (and served from). */
 export function archiveRoot(): string {
@@ -33,50 +40,98 @@ function archiveBackend(): 'fetch' | 'playwright' | 'auto' {
   return 'playwright';
 }
 
-// Guard against a record being archived twice concurrently (e.g. a double
-// request). The folder would just be overwritten, but two browser launches is
-// wasteful — last writer would also race the DB row.
-const inFlight = new Set<RecordSelect['id']>();
+/**
+ * A 'pending' claim older than this is treated as abandoned (the archiving
+ * process died before writing an outcome) and may be reclaimed. The longest
+ * legitimate run is bounded by the 4-minute page-load timeout plus asset
+ * downloads and the cleanup-plan call.
+ */
+const PENDING_STALE_MS = 10 * 60 * 1000;
 
-/** Insert or refresh the single archive row for a record. */
-async function upsertArchive(row: ArchiveInsert): Promise<ArchiveSelect> {
-  const [saved] = await db
+/**
+ * Atomically claim a record's archive row by marking it 'pending'. Returns the
+ * claimed row, or null when another run (from this process, the CLI, or the
+ * server) already holds a fresh claim — SQLite serializes the conditional
+ * upsert, so exactly one claimant wins.
+ */
+export async function claimArchive(record: RecordSelect): Promise<ArchiveSelect | null> {
+  if (!record.url) {
+    throw new Error(`Record ${record.id} has no URL to archive`);
+  }
+
+  const [claimed] = await db
     .insert(archives)
-    .values(row)
+    .values({ recordId: record.id, url: record.url, status: 'pending', error: null })
     .onConflictDoUpdate({
       target: archives.recordId,
       set: {
-        ...row,
-        archivedAt: sql`(CURRENT_TIMESTAMP)`,
+        url: record.url,
+        status: 'pending',
+        error: null,
         recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
       },
+      // Only take the row when no fresh claim is on it; stale claims are
+      // reclaimable so a crashed run doesn't wedge the record forever.
+      setWhere: sql`NOT (${archives.status} = 'pending' AND unixepoch(${archives.recordUpdatedAt}) > unixepoch('now') - ${PENDING_STALE_MS / 1000})`,
     })
     .returning();
 
+  return claimed ?? null;
+}
+
+/** Write a run's outcome onto the record's (claimed) archive row. */
+async function finishArchive(
+  recordId: RecordSelect['id'],
+  outcome:
+    | { status: 'ok'; path: string; title: string | null }
+    | { status: 'failed'; error: string },
+): Promise<ArchiveSelect> {
+  const [saved] = await db
+    .update(archives)
+    .set(
+      outcome.status === 'ok'
+        ? {
+            status: 'ok',
+            path: outcome.path,
+            title: outcome.title,
+            error: null,
+            archivedAt: sql`(CURRENT_TIMESTAMP)`,
+            recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
+          }
+        : {
+            // Leave path/title/archivedAt alone: they point at the last
+            // successful capture, which a failed re-run must not orphan.
+            status: 'failed',
+            error: outcome.error,
+            recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
+          },
+    )
+    .where(eq(archives.recordId, recordId))
+    .returning();
+
   if (!saved) {
-    throw new Error(`Archive upsert failed for record ${row.recordId}`);
+    throw new Error(`Archive row missing for record ${recordId}`);
   }
   return saved;
 }
 
 /**
- * Archive a record's URL into a self-contained local folder and record the
- * outcome. Best-effort: a failed run is persisted with `status: 'failed'` and an
- * error message rather than thrown, so the failure is visible in the UI.
+ * Run the capture for an already-claimed record and persist the outcome.
+ * Best-effort: a failed run is recorded on the row rather than thrown, so the
+ * failure is visible in the UI.
  */
-export async function archiveRecord(record: RecordSelect): Promise<ArchiveSelect> {
+export async function runArchive(record: RecordSelect): Promise<ArchiveSelect> {
   if (!record.url) {
     throw new Error(`Record ${record.id} has no URL to archive`);
   }
-  if (inFlight.has(record.id)) {
-    throw new Error(`Record ${record.id} is already being archived`);
-  }
 
-  inFlight.add(record.id);
   const root = archiveRoot();
   try {
     const res = await archiveUrl(record.url, {
-      outRoot: root,
+      // Each record archives into its own subfolder: amber's folder slug is
+      // host+pathname only, so records whose URLs differ only by query string
+      // (e.g. youtube.com/watch?v=…) would otherwise collide in one folder.
+      outRoot: path.join(root, String(record.id)),
       useLLM: true,
       model: 'claude-sonnet-4-6',
       backend: archiveBackend(),
@@ -87,24 +142,28 @@ export async function archiveRecord(record: RecordSelect): Promise<ArchiveSelect
       verbose: false,
     });
 
-    return await upsertArchive({
-      recordId: record.id,
-      url: record.url,
+    return await finishArchive(record.id, {
       status: 'ok',
       path: path.relative(root, res.outDir),
       title: res.plan.title || null,
-      error: null,
     });
   } catch (err) {
-    return await upsertArchive({
-      recordId: record.id,
-      url: record.url,
+    return await finishArchive(record.id, {
       status: 'failed',
-      path: null,
-      title: null,
       error: String((err as Error)?.message ?? err),
     });
-  } finally {
-    inFlight.delete(record.id);
   }
+}
+
+/**
+ * Claim + run in one awaited call — the synchronous path used by the CLI (and
+ * anything happy to wait out the capture). Throws when another run already
+ * holds the claim.
+ */
+export async function archiveRecord(record: RecordSelect): Promise<ArchiveSelect> {
+  const claimed = await claimArchive(record);
+  if (!claimed) {
+    throw new Error(`Record ${record.id} is already being archived`);
+  }
+  return runArchive(record);
 }
