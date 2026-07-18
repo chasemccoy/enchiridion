@@ -13,5 +13,8 @@
       "#build/ui": ["./node_modules/@nuxt/ui/.nuxt/ui"]
     }
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx", "app/**/*.vue"]
+  "include": ["app/**/*.ts", "app/**/*.tsx", "app/**/*.vue"],
+  // Scratch playground, deliberately untyped — see the design-lab route in
+  // app/router.ts for how it stays out of the checked program.
+  "exclude": ["app/design-lab"]
 }

@@ -1,3 +1,4 @@
+import type { Component } from 'vue';
 import AddRecordView from '@app/views/AddRecordView.vue';
 import ArtifactsView from '@app/views/ArtifactsView.vue';
 import ConceptsView from '@app/views/ConceptsView.vue';
@@ -48,8 +49,14 @@ const routes: RouteRecordRaw[] = [
   },
   {
     // Design lab — scratch playground for layout exploration. Not for prod.
+    // Loaded via import.meta.glob rather than a direct dynamic import so
+    // TypeScript doesn't follow the reference: design-lab is untyped scratch
+    // space, excluded from type checking (tsconfig.app.json) and lint
+    // (eslint.config.js) so its experiments can't redden the real gates.
     path: '/design-lab/:slug/:n?',
-    component: () => import('@app/design-lab/LabRouter.vue'),
+    component: Object.values(
+      import.meta.glob<{ default: Component }>('./design-lab/LabRouter.vue'),
+    )[0]!,
   },
 ];
 

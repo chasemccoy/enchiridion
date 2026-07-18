@@ -24,9 +24,11 @@
   },
   "include": [
     "vite.config.ts",
+    "vitest.config.ts",
     "backend/**/*.ts",
     "backend/**/*.tsx",
     "shared/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
   ]
 }

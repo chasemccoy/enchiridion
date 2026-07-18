@@ -7,6 +7,15 @@ import prettier from 'eslint-config-prettier';
 
 export default defineConfig([
   {
+    ignores: [
+      // Build output (`pnpm build` writes app/dist).
+      '**/dist/**',
+      // Scratch playground, exempt from lint (and from type checking — see
+      // tsconfig.app.json) so experiments can't redden the real gates.
+      'app/design-lab/**',
+    ],
+  },
+  {
     files: ['**/*.{js,ts,vue}'],
     plugins: { js },
     extends: ['js/recommended'],
@@ -35,6 +44,16 @@ export default defineConfig([
     files: ['**/*.{js,ts,vue}'],
     rules: {
       'no-console': 'error',
+      // Allow deliberately-unused names when underscore-prefixed — e.g. the
+      // `_next` param Express requires for error-middleware arity.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'vue/attribute-hyphenation': 'off',
       'vue/require-default-prop': 'off',
       'vue/no-undef-properties': ['error'],

@@ -14,7 +14,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `pnpm build` - Build the Vue frontend for production
 - `pnpm preview` - Preview the production build locally
-- `pnpm lint` - Format, lint, and type-check all code (Prettier `--write`, ESLint `--fix`, and vue-tsc). This is also how you format-only — there is no separate `format` script.
+- `pnpm lint` - Check-only quality gate: Prettier `--check`, ESLint (no fix), and vue-tsc. Never mutates files, so it's safe as a CI/pre-commit gate. Should always pass on `main`.
+- `pnpm fix` - The mutating counterpart: Prettier `--write` + ESLint `--fix`, then vue-tsc. Use this to format.
+- `pnpm test` / `pnpm test:watch` - Run the Vitest suite (see Testing below).
+
+`app/design-lab/` is a scratch playground and is deliberately exempt from both type checking and lint (excluded in `tsconfig.app.json` and `eslint.config.js`; the router reaches it via `import.meta.glob` so TypeScript doesn't follow the import). Don't "fix" its errors and don't let real code depend on it.
+
+### Testing
+
+Tests live in `tests/` and run with Vitest (`vitest.config.ts`). The harness gives every test file its own forked process and its own scratch SQLite database:
+
+- `tests/setup.ts` runs before each file and points `DATABASE_PATH` (the override `backend/db/index.ts` exists for) at a fresh temp file, migrated from `backend/db/migrations` — tests never touch `enchiridion.db`.
+- `ARCHIVE_DIR`/`ARCHIVE_BACKEND` point at a temp folder with static-fetch capture, and `ANTHROPIC_API_KEY` is cleared so amber uses heuristics — no network, no LLM calls. Archive tests that need a real URL serve one from a local ephemeral-port HTTP server (`servePage` in `tests/helpers.ts`).
+- API tests use supertest against the assembled Express app (`backend/api/app.ts` — assembly is split from the listener in `backend/api/index.ts` precisely so tests can import it without binding a port).
+
+Prefer tests for invariant-heavy core logic (db queries, claim/upsert semantics, CLI parsing, route contracts) over UI components.
 
 ### Database Operations
 

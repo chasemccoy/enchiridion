@@ -15,7 +15,10 @@
   },
   "scripts": {
     "cli": "tsx backend/cli/ench/index.ts",
-    "lint": "prettier --write . && eslint . --fix && vue-tsc -b",
+    "lint": "prettier --check . && eslint . && vue-tsc -b",
+    "fix": "prettier --write . && eslint . --fix && vue-tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev:app": "vite --host",
     "dev:backend": "tsx watch backend/api/index.ts",
     "health-check": "tsx scripts/health-check.ts",
@@ -72,6 +75,7 @@
     "@types/express": "^5.0.6",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.7.1",
+    "@types/supertest": "^7.2.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.9.1",
     "concurrently": "^10.0.3",
@@ -82,10 +86,12 @@
     "eslint-plugin-vue": "^10.9.2",
     "globals": "^17.6.0",
     "prettier": "^3.8.3",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.4",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.60.1",
     "vite": "^8.0.16",
+    "vitest": "^4.1.10",
     "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "^3.3.3"
   }

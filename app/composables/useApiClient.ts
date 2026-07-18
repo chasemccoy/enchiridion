@@ -40,7 +40,7 @@ export default function useApiClient() {
     try {
       response = await window.fetch(url, optionsWithDefaults);
     } catch (error) {
-      throw new Error(`Error in useApiClient: ${error}`);
+      throw new Error(`Error in useApiClient: ${error}`, { cause: error });
     }
 
     if (!response.ok) {

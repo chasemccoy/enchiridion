@@ -280,7 +280,7 @@ export async function createReadwiseAuthors(integrationRunId: number) {
       continue;
     }
 
-    let insertedRecord: ReadwiseAuthorSelect | null = null;
+    let insertedRecord: ReadwiseAuthorSelect | null;
 
     try {
       const [newRecord] = await db
