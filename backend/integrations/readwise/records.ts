@@ -441,9 +441,12 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
     const recordPayload = mapReadwiseDocumentToRecord(doc);
 
     let newRecord: { id: number } | undefined;
+    let mappedToExisting = false;
 
     try {
-      // Check if record already exists by slug to determine if it's new
+      // Check if a record already exists with this slug — e.g. the same article
+      // saved under a different URL (author domain migrations) or by an earlier
+      // import path.
       const existingRecord = await db.query.records.findFirst({
         where: {
           slug: recordPayload.slug,
@@ -451,19 +454,19 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
         columns: { id: true },
       });
 
-      const [insertedRecord] = await db
-        .insert(records)
-        .values(recordPayload)
-        .onConflictDoUpdate({
-          target: records.id,
-          set: { recordUpdatedAt: sql`(CURRENT_TIMESTAMP)` },
-        })
-        .returning({ id: records.id });
+      if (existingRecord) {
+        // Inserting would violate the slug UNIQUE constraint, permanently
+        // stranding this document (and orphaning its children) on every sync —
+        // map the document to the existing record instead.
+        newRecord = existingRecord;
+        mappedToExisting = true;
+      } else {
+        const [insertedRecord] = await db
+          .insert(records)
+          .values(recordPayload)
+          .returning({ id: records.id });
 
-      newRecord = insertedRecord;
-
-      // Track as new if it didn't exist before
-      if (!existingRecord) {
+        newRecord = insertedRecord;
         newRecords.push({ title: recordPayload.title ?? null, slug: recordPayload.slug });
       }
     } catch (error) {
@@ -476,12 +479,18 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
       continue;
     }
 
-    logger.info(
-      `Created record ${newRecord.id} for readwise document ${doc.title || doc.content?.slice(0, 20)} (${doc.id})`,
-    );
+    if (mappedToExisting) {
+      logger.info(
+        `Mapped readwise document ${doc.title || doc.content?.slice(0, 20)} (${doc.id}) to existing record ${newRecord.id} (slug match)`,
+      );
+    } else {
+      logger.info(
+        `Created record ${newRecord.id} for readwise document ${doc.title || doc.content?.slice(0, 20)} (${doc.id})`,
+      );
 
-    if (recordPayload.url) {
-      archiveUrlToWayback(recordPayload.url);
+      if (recordPayload.url) {
+        archiveUrlToWayback(recordPayload.url);
+      }
     }
 
     // Update the readwise document with the corresponding record id.
@@ -520,6 +529,36 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
         logger.info(`Linked child record ${childRecordId} to parent record ${parentRecordId}`);
       } else {
         logger.warn(`Skipping linking for document ${doc.id} due to missing parent record id`);
+      }
+    }
+  }
+
+  // Step 2.5: Heal links for children mapped in earlier runs whose parent only
+  // just now got a record (e.g. after a slug-collision failure). Those children
+  // are no longer unmapped, so they aren't in this batch and step 2 can't see
+  // them. Scoped to parents processed in this run so it never re-creates links
+  // a user deliberately removed elsewhere; linkRecords upserts, so re-linking
+  // in-batch children is harmless.
+  for (const doc of documents) {
+    const parentRecordId = recordMap.get(doc.id);
+    if (!parentRecordId) continue;
+
+    const mappedChildren = await db.query.readwiseDocuments.findMany({
+      columns: { recordId: true },
+      where: {
+        parentId: doc.id,
+        recordId: {
+          isNotNull: true,
+        },
+      },
+    });
+
+    for (const child of mappedChildren) {
+      if (child.recordId && child.recordId !== parentRecordId) {
+        await linkRecords(child.recordId, parentRecordId, 'contained_by', db);
+        logger.info(
+          `Healed link from child record ${child.recordId} to parent record ${parentRecordId}`,
+        );
       }
     }
   }
