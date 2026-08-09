@@ -251,7 +251,8 @@ export async function createRecordsFromReadwiseTags(): Promise<NewRecordInfo[]> 
   for (const tag of tags) {
     const category = mapReadwiseTagToRecord(tag);
 
-    // Check if record already exists by slug to determine if it's new
+    // Check if a concept already exists with this slug — coined manually, via
+    // the CLI, or through a renamed Reader tag whose concept predates the tag.
     const existingRecord = await db.query.records.findFirst({
       where: {
         slug: category.slug,
@@ -259,45 +260,52 @@ export async function createRecordsFromReadwiseTags(): Promise<NewRecordInfo[]> 
       columns: { id: true },
     });
 
-    const [newCategory] = await db
-      .insert(records)
-      .values(category)
-      .onConflictDoUpdate({
-        target: records.id,
-        set: { recordUpdatedAt: sql`(CURRENT_TIMESTAMP)` },
-      })
-      .returning({ id: records.id });
+    let tagRecord: { id: number } | undefined;
 
-    if (!newCategory) {
+    if (existingRecord) {
+      // Inserting would violate the slug UNIQUE constraint and abort the sync
+      // (the old onConflictDoUpdate targeted records.id, unreachable in this
+      // path) — adopt the existing concept and map the tag onto it instead.
+      tagRecord = existingRecord;
+    } else {
+      const [insertedRecord] = await db
+        .insert(records)
+        .values(category)
+        .returning({ id: records.id });
+
+      tagRecord = insertedRecord;
+    }
+
+    if (!tagRecord) {
       logger.error(`Failed to create record for tag ${tag.tag}`);
       continue;
     }
 
-    // Track as new if it didn't exist before
-    if (!existingRecord) {
+    if (existingRecord) {
+      logger.info(`Mapped tag ${tag.tag} (${tag.id}) to existing record ${tagRecord.id}`);
+    } else {
       newRecords.push({ title: category.title ?? null, slug: category.slug });
+      logger.info(`Created record ${tagRecord.id} for tag ${tag.tag} (${tag.id})`);
     }
-
-    logger.info(`Created record ${newCategory.id} for tag ${tag.tag} (${tag.id})`);
 
     const [updatedTag] = await db
       .update(readwiseTags)
-      .set({ recordId: newCategory.id })
+      .set({ recordId: tagRecord.id })
       .where(eq(readwiseTags.id, tag.id))
       .returning();
 
     if (!updatedTag) {
-      logger.error(`Failed to update tag ${tag.tag} with record ${newCategory.id}`);
+      logger.error(`Failed to update tag ${tag.tag} with record ${tagRecord.id}`);
       continue;
     }
 
-    logger.info(`Linked tag ${tag.tag} to record ${newCategory.id}`);
+    logger.info(`Linked tag ${tag.tag} to record ${tagRecord.id}`);
 
     // Link documents to tag
     for (const tagDocument of tag.documents) {
       if (tagDocument.recordId) {
         logger.info(`Linking tag ${tag.tag} to record ${tagDocument.recordId}`);
-        await linkRecords(tagDocument.recordId, newCategory.id, 'tagged_with', db);
+        await linkRecords(tagDocument.recordId, tagRecord.id, 'tagged_with', db);
       }
     }
   }

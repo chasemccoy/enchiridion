@@ -9,8 +9,18 @@
 import { describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@db/index';
-import { integrationRuns, links, readwiseDocuments } from '@db/schema';
-import { createRecordsFromReadwiseDocuments } from '@integrations/readwise/records';
+import {
+  integrationRuns,
+  links,
+  readwiseDocuments,
+  readwiseDocumentTags,
+  readwiseTags,
+  records,
+} from '@db/schema';
+import {
+  createRecordsFromReadwiseDocuments,
+  createRecordsFromReadwiseTags,
+} from '@integrations/readwise/records';
 import { createRecord } from './helpers';
 
 async function createIntegrationRun(): Promise<number> {
@@ -125,5 +135,69 @@ describe('createRecordsFromReadwiseDocuments', () => {
 
     const healedLink = await findContainedByLink(orphanRecord.id, existingParentRecord.id);
     expect(healedLink).toHaveLength(1);
+  });
+});
+
+describe('createRecordsFromReadwiseTags', () => {
+  async function insertTagOnDoc(tag: string, documentId: string) {
+    const [tagRow] = await db.insert(readwiseTags).values({ tag }).returning();
+    if (!tagRow) throw new Error('tag fixture insert failed');
+    await db.insert(readwiseDocumentTags).values({ documentId, tagId: tagRow.id });
+    return tagRow;
+  }
+
+  it('maps a slug-colliding tag to the existing concept instead of inserting a duplicate', async () => {
+    // A concept coined in Enchiridion before the Reader tag exists — the exact
+    // shape of a taxonomy promotion (css) or a tag rename (the-web).
+    const existingConcept = await createRecord({
+      slug: 'css',
+      title: 'CSS',
+      type: 'concept',
+      isCurated: true,
+    });
+    const docRecord = await createRecord({ slug: 'css-article', title: 'A CSS article' });
+    const runId = await createIntegrationRun();
+    await insertDoc(runId, { id: 'css-doc', recordId: docRecord.id });
+    const tagRow = await insertTagOnDoc('css', 'css-doc');
+
+    const reportedNew = await createRecordsFromReadwiseTags();
+
+    // Not reported as new, no duplicate record, tag mapped to the existing concept
+    expect(reportedNew.map((r) => r.slug)).not.toContain('css');
+    const cssRecords = await db.select().from(records).where(eq(records.slug, 'css'));
+    expect(cssRecords).toHaveLength(1);
+    expect(cssRecords[0]?.id).toBe(existingConcept.id);
+    expect(cssRecords[0]?.isCurated).toBe(true);
+
+    const mappedTag = await db.query.readwiseTags.findFirst({ where: { id: tagRow.id } });
+    expect(mappedTag?.recordId).toBe(existingConcept.id);
+
+    const tagLinks = await db
+      .select()
+      .from(links)
+      .where(
+        and(
+          eq(links.sourceId, docRecord.id),
+          eq(links.targetId, existingConcept.id),
+          eq(links.predicate, 'tagged_with'),
+        ),
+      );
+    expect(tagLinks).toHaveLength(1);
+  });
+
+  it('still creates a concept for a genuinely new tag', async () => {
+    const docRecord = await createRecord({ slug: 'weaving-article', title: 'On weaving' });
+    const runId = await createIntegrationRun();
+    await insertDoc(runId, { id: 'weaving-doc', recordId: docRecord.id });
+    const tagRow = await insertTagOnDoc('weaving', 'weaving-doc');
+
+    const reportedNew = await createRecordsFromReadwiseTags();
+
+    expect(reportedNew.map((r) => r.slug)).toContain('weaving');
+    const created = await db.query.records.findFirst({ where: { slug: 'weaving' } });
+    expect(created?.type).toBe('concept');
+
+    const mappedTag = await db.query.readwiseTags.findFirst({ where: { id: tagRow.id } });
+    expect(mappedTag?.recordId).toBe(created?.id);
   });
 });
