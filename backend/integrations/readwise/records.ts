@@ -11,11 +11,12 @@ import {
   type ReadwiseTagSelect,
   type RecordInsert,
 } from '@db/schema';
-import { slugify } from '@shared/lib/formatting';
+import { pluralize, slugify } from '@shared/lib/formatting';
 import { createIntegrationLogger } from '@integrations/utils/log';
 import { eq, sql } from 'drizzle-orm';
 import { bulkInsertLinks, linkRecords } from '@integrations/utils/db';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
+import { report } from '@integrations/utils/progress';
 
 const logger = createIntegrationLogger('readwise', 'create-records');
 
@@ -23,6 +24,31 @@ export type NewRecordInfo = {
   title: string | null;
   slug: string;
 };
+
+/** "a, b, and c" — for the human-readable reasons in progress events. */
+function joinList(parts: string[]): string {
+  if (parts.length <= 1) return parts.join('');
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+}
+
+/**
+ * Explains why an author qualified for an entity record: it's the author of
+ * at least one archived document that itself earned a record.
+ */
+async function describeAuthor(authorId: number): Promise<string> {
+  const docs = await db.query.readwiseDocuments.findMany({
+    where: { authorId, location: ReadwiseLocation.enum.archive },
+    columns: { title: true },
+    limit: 3,
+  });
+  const titles = docs.map((doc) => doc.title).filter((title): title is string => !!title);
+  if (titles.length === 0) return 'Author of an archived document';
+  const [first, ...rest] = titles;
+  return rest.length > 0
+    ? `Author of “${first}” and ${pluralize(rest.length, 'other', 'others')}`
+    : `Author of “${first}”`;
+}
 
 // ------------------------------------------------------------------------
 // 1. Create readwise authors and upsert corresponding index entities
@@ -177,6 +203,17 @@ export async function createRecordsFromReadwiseAuthors(): Promise<NewRecordInfo[
     }
 
     logger.info(`Created record ${newRecord.id} for author ${author.name} (${author.id})`);
+    report({
+      type: 'record',
+      action: 'created',
+      recordId: newRecord.id,
+      recordType: 'entity',
+      title: entity.title ?? null,
+      slug: entity.slug,
+      url: entity.url,
+      source: 'author',
+      reason: await describeAuthor(author.id),
+    });
 
     if (entity.url) {
       archiveUrlToWayback(entity.url);
@@ -247,9 +284,11 @@ export async function createRecordsFromReadwiseTags(): Promise<NewRecordInfo[]> 
   logger.info(`Found ${tags.length} unmapped Readwise tags`);
 
   const newRecords: NewRecordInfo[] = [];
+  let taggedWithLinks = 0;
 
   for (const tag of tags) {
     const category = mapReadwiseTagToRecord(tag);
+    const reason = `Tag on ${pluralize(tag.documents.length, 'document', 'documents')}`;
 
     // Check if a concept already exists with this slug — coined manually, via
     // the CLI, or through a renamed Reader tag whose concept predates the tag.
@@ -287,6 +326,16 @@ export async function createRecordsFromReadwiseTags(): Promise<NewRecordInfo[]> 
       newRecords.push({ title: category.title ?? null, slug: category.slug });
       logger.info(`Created record ${tagRecord.id} for tag ${tag.tag} (${tag.id})`);
     }
+    report({
+      type: 'record',
+      action: existingRecord ? 'mapped' : 'created',
+      recordId: tagRecord.id,
+      recordType: 'concept',
+      title: category.title ?? null,
+      slug: category.slug,
+      source: 'tag',
+      reason: existingRecord ? `${reason}; a concept with this slug already existed` : reason,
+    });
 
     const [updatedTag] = await db
       .update(readwiseTags)
@@ -306,8 +355,13 @@ export async function createRecordsFromReadwiseTags(): Promise<NewRecordInfo[]> 
       if (tagDocument.recordId) {
         logger.info(`Linking tag ${tag.tag} to record ${tagDocument.recordId}`);
         await linkRecords(tagDocument.recordId, tagRecord.id, 'tagged_with', db);
+        taggedWithLinks++;
       }
     }
+  }
+
+  if (taggedWithLinks > 0) {
+    report({ type: 'link', predicate: 'tagged_with', count: taggedWithLinks });
   }
 
   logger.complete(`Processed ${tags.length} Readwise tags`);
@@ -357,6 +411,32 @@ export const mapReadwiseDocumentToRecord = (
     contentUpdatedAt: document.contentUpdatedAt,
   };
 };
+
+type ReadwiseDocumentWithRelations = ReadwiseDocumentWithChildren & {
+  parent: ReadwiseDocumentSelect | null;
+};
+
+/**
+ * Explains why a document qualified for a record — mirrors the where-clause in
+ * createRecordsFromReadwiseDocuments: either a highlight inside an archived
+ * parent, or an archived document that has tags, highlights, or a note.
+ */
+export function describeDocument(doc: ReadwiseDocumentWithRelations): string {
+  if (doc.location === null && doc.parent) {
+    const parentTitle = doc.parent.title ? `“${doc.parent.title}”` : 'an archived document';
+    return `Highlight in ${parentTitle}`;
+  }
+
+  const highlights = doc.children.filter((child) => child.category === 'highlight').length;
+  const tags = doc.tags?.length ?? 0;
+  const qualifiers: string[] = [];
+  if (highlights > 0) qualifiers.push(pluralize(highlights, 'highlight', 'highlights'));
+  if (tags > 0) qualifiers.push(pluralize(tags, 'tag', 'tags'));
+  if (doc.notes) qualifiers.push('a note');
+
+  const what = `Archived ${doc.category ?? 'document'}`;
+  return qualifiers.length > 0 ? `${what} with ${joinList(qualifiers)}` : what;
+}
 
 /**
  * Creates records from Readwise documents that don't have associated records yet
@@ -487,6 +567,19 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
       continue;
     }
 
+    const reason = describeDocument(doc);
+    report({
+      type: 'record',
+      action: mappedToExisting ? 'mapped' : 'created',
+      recordId: newRecord.id,
+      recordType: 'artifact',
+      title: recordPayload.title ?? null,
+      slug: recordPayload.slug,
+      url: recordPayload.url,
+      source: 'document',
+      reason: mappedToExisting ? `${reason}; a record with this slug already existed` : reason,
+    });
+
     if (mappedToExisting) {
       logger.info(
         `Mapped readwise document ${doc.title || doc.content?.slice(0, 20)} (${doc.id}) to existing record ${newRecord.id} (slug match)`,
@@ -513,6 +606,9 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
 
   // Step 2: Update the parent-child relationships.
   // For each document that has a non-null parentId, update the corresponding child record's parentId.
+  // Distinct child→parent pairs: the heal pass below re-links in-batch children
+  // (a harmless upsert), so a plain counter would double-count them.
+  const containedByLinks = new Set<string>();
   for (const doc of documents) {
     if (doc.parentId) {
       const childRecordId = recordMap.get(doc.id);
@@ -534,6 +630,7 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
 
       if (childRecordId && parentRecordId) {
         await linkRecords(childRecordId, parentRecordId, 'contained_by', db);
+        containedByLinks.add(`${childRecordId}:${parentRecordId}`);
         logger.info(`Linked child record ${childRecordId} to parent record ${parentRecordId}`);
       } else {
         logger.warn(`Skipping linking for document ${doc.id} due to missing parent record id`);
@@ -564,11 +661,16 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
     for (const child of mappedChildren) {
       if (child.recordId && child.recordId !== parentRecordId) {
         await linkRecords(child.recordId, parentRecordId, 'contained_by', db);
+        containedByLinks.add(`${child.recordId}:${parentRecordId}`);
         logger.info(
           `Healed link from child record ${child.recordId} to parent record ${parentRecordId}`,
         );
       }
     }
+  }
+
+  if (containedByLinks.size > 0) {
+    report({ type: 'link', predicate: 'contained_by', count: containedByLinks.size });
   }
 
   // Step 3: Link records to index entries via recordCreators (for authors) and recordCategories (for tags).
@@ -707,15 +809,18 @@ export async function createRecordsFromReadwiseDocuments(): Promise<NewRecordInf
   if (recordCreatorsValues.length > 0) {
     await bulkInsertLinks(recordCreatorsValues, db);
     logger.info(`Linked ${recordCreatorsValues.length} authors to records`);
+    report({ type: 'link', predicate: 'created_by', count: recordCreatorsValues.length });
   }
 
   if (recordRelationsValues.length > 0) {
     await bulkInsertLinks(recordRelationsValues, db);
     logger.info(`Linked ${recordRelationsValues.length} tags to records`);
+    report({ type: 'link', predicate: 'tagged_with', count: recordRelationsValues.length });
   }
 
   if (recordFormatsValues.length > 0) {
     await bulkInsertLinks(recordFormatsValues, db);
+    report({ type: 'link', predicate: 'has_format', count: recordFormatsValues.length });
   }
 
   logger.complete(`Processed ${recordMap.size} Readwise documents`);

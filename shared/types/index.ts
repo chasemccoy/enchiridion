@@ -10,3 +10,5 @@ export const recordTypeEnum = [
 
 export const RecordTypeSchema = z.enum(recordTypeEnum);
 export type RecordType = z.infer<typeof RecordTypeSchema>;
+
+export * from './sync';

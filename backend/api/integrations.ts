@@ -1,111 +1,66 @@
-/* eslint-disable no-console */
 import { syncReadwiseData } from '@integrations/readwise/sync';
+import { withSyncReporter } from '@integrations/utils/progress';
+import type { SyncDoneEvent, SyncEvent } from '@shared/types/sync';
 import { Router } from 'express';
 
 export const integrationRoutes = Router();
-
-interface LogMessage {
-  type: 'info' | 'error' | 'warn' | 'success';
-  message: string;
-  timestamp: string;
-}
-
-interface IntegrationResult {
-  success: boolean;
-  messages: LogMessage[];
-  entriesCreated?: number;
-  error?: string;
-}
 
 // ============================================================================
 // POST
 // ============================================================================
 
-integrationRoutes.post('/sync/readwise', async (_, res, next) => {
-  const messages: LogMessage[] = [];
+/**
+ * Runs a Readwise sync and streams its progress as NDJSON — one `SyncEvent`
+ * per line, ending with a `done` event. The settings panel consumes this to
+ * show phases, created records, and the log while the sync is still running.
+ *
+ * Because the response is streamed, failures can't use the JSON errorHandler
+ * (headers are already out): they're reported in the terminal `done` event
+ * instead, and the HTTP status is always 200.
+ */
+integrationRoutes.post('/sync/readwise', async (_, res) => {
+  const startedAt = performance.now();
   let entriesCreated = 0;
 
-  const originalConsoleLog = console.log;
-  const originalConsoleError = console.error;
-  const originalConsoleWarn = console.warn;
+  res.status(200);
+  res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+  // no-transform keeps the compression middleware (and any proxy) from
+  // buffering the stream; X-Accel-Buffering is the same hint for nginx-style
+  // proxies.
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
 
-  console.log = (...args: unknown[]) => {
-    const message = args
-      .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)))
-      .join(' ');
-
-    const entryMatch = message.match(/Successfully created (\d+) entries/);
-
-    if (entryMatch && entryMatch[1]) {
-      entriesCreated = parseInt(entryMatch[1], 10);
-    }
-
-    messages.push({
-      type: 'info',
-      message,
-      timestamp: new Date().toISOString(),
-    });
-
-    originalConsoleLog(...args);
+  const send = (event: SyncEvent) => {
+    // The sync fires background work (Wayback submissions) that may log after
+    // the response has ended; don't try to write to a closed stream.
+    if (res.writableEnded || res.destroyed) return;
+    res.write(`${JSON.stringify(event)}\n`);
+    // compression exposes flush(); it's a no-op when nothing is compressed.
+    (res as typeof res & { flush?: () => void }).flush?.();
   };
 
-  console.error = (...args: unknown[]) => {
-    const message = args
-      .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)))
-      .join(' ');
-
-    messages.push({
-      type: 'error',
-      message,
-      timestamp: new Date().toISOString(),
+  const finish = (done: Omit<SyncDoneEvent, 'ts' | 'type' | 'durationMs'>) => {
+    send({
+      type: 'done',
+      ts: new Date().toISOString(),
+      durationMs: Math.round(performance.now() - startedAt),
+      ...done,
     });
-
-    originalConsoleError(...args);
-  };
-
-  console.warn = (...args: unknown[]) => {
-    const message = args
-      .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)))
-      .join(' ');
-
-    messages.push({
-      type: 'warn',
-      message,
-      timestamp: new Date().toISOString(),
-    });
-
-    originalConsoleWarn(...args);
+    res.end();
   };
 
   try {
-    await syncReadwiseData();
+    await withSyncReporter((event) => {
+      if (event.type === 'run' && event.status === 'completed') {
+        entriesCreated = event.entriesCreated ?? 0;
+      }
+      send(event);
+    }, syncReadwiseData);
 
-    messages.push({
-      type: 'success',
-      message: `Readwise sync completed successfully${entriesCreated > 0 ? `. Created ${entriesCreated} entries.` : '.'}`,
-      timestamp: new Date().toISOString(),
-    });
-
-    res.json({
-      success: true,
-      messages,
-      entriesCreated,
-    });
+    finish({ ok: true, entriesCreated });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-    messages.push({
-      type: 'error',
-      message: `Sync failed: ${errorMessage}`,
-      timestamp: new Date().toISOString(),
-    });
-
-    next(error);
-  } finally {
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
-    console.warn = originalConsoleWarn;
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    finish({ ok: false, entriesCreated, error: message });
   }
 });
-
-export type SyncRunAPIResponse = IntegrationResult;

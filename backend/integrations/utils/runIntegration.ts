@@ -7,6 +7,7 @@ import {
   RunType,
   type IntegrationType,
 } from '@db/schema/utils';
+import { report } from './progress';
 
 /**
  * Function signature for integration implementations
@@ -50,6 +51,7 @@ export async function runIntegration(
   }
 
   console.log(`Created integration run with ID ${run.id}`);
+  report({ type: 'run', status: 'started', runId: run.id });
 
   try {
     console.log('Executing integration function...');
@@ -72,9 +74,11 @@ export async function runIntegration(
       .where(eq(integrationRuns.id, run.id));
 
     console.log('Integration run completed successfully');
+    report({ type: 'run', status: 'completed', runId: run.id, entriesCreated });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Integration run failed:', errorMessage);
+    report({ type: 'run', status: 'failed', runId: run.id, message: errorMessage });
 
     await db
       .update(integrationRuns)

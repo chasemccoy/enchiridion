@@ -25,17 +25,18 @@
               @click="handleSyncReadwise"
             />
 
-            <ul
-              v-if="syncReadwiseData?.messages && !isSyncingReadwise"
-              class="SettingsModalView__syncLog"
-            >
-              <li
-                v-for="message in syncReadwiseData?.messages"
-                :key="message.timestamp"
-              >
-                {{ message.message }}
-              </li>
-            </ul>
+            <SyncReport
+              v-if="readwise.status.value !== 'idle'"
+              class="SettingsModalView__syncReport"
+              :status="readwise.status.value"
+              :phases="readwise.phases.value"
+              :records="readwise.records.value"
+              :links="readwise.links.value"
+              :log="readwise.log.value"
+              :warnings="readwise.warnings.value"
+              :done="readwise.done.value"
+              :error="readwise.error.value"
+            />
           </li>
         </ul>
       </div>
@@ -44,24 +45,23 @@
 </template>
 
 <script setup lang="ts">
-import useIntegrations from '@app/composables/useIntegrations';
+import SyncReport from '@app/components/SyncReport.vue';
+import useReadwiseSync from '@app/composables/useReadwiseSync';
+import { computed } from 'vue';
 
 const isOpen = defineModel<boolean>('isOpen', { required: true, default: false });
 
-const { readwise } = useIntegrations();
-const {
-  mutate: syncReadwise,
-  data: syncReadwiseData,
-  isPending: isSyncingReadwise,
-  reset: resetSyncReadwise,
-} = readwise();
+const readwise = useReadwiseSync();
+const isSyncingReadwise = computed(() => readwise.status.value === 'running');
 
 function handleSyncReadwise() {
-  syncReadwise();
+  readwise.run();
 }
 
 function handleAfterLeave() {
-  resetSyncReadwise();
+  // Leaves a running sync alone so reopening the panel picks it back up;
+  // reset() is a no-op mid-run.
+  readwise.reset();
 }
 </script>
 
@@ -91,7 +91,7 @@ function handleAfterLeave() {
   grid-template:
     'title button'
     'description button'
-    'log log'
+    'report report'
     / 1fr min-content;
   column-gap: 16px;
   align-items: center;
@@ -117,11 +117,10 @@ function handleAfterLeave() {
   }
 }
 
-.SettingsModalView__syncLog {
-  grid-area: log;
-  font-size: 12px;
-  color: var(--ui-text-muted);
-  margin-top: 8px;
-  font-family: monospace;
+.SettingsModalView__syncReport {
+  grid-area: report;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ui-border);
 }
 </style>

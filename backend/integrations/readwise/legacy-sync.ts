@@ -10,6 +10,8 @@ import {
   sortBooksByHierarchy,
 } from '@integrations/readwise/utils';
 import type { ReadwiseBook } from '@integrations/readwise/types';
+import { report } from '@integrations/utils/progress';
+import { pluralize } from '@shared/lib/formatting';
 
 /**
  * Synchronizes legacy Readwise books and highlights with the database
@@ -25,6 +27,7 @@ import type { ReadwiseBook } from '@integrations/readwise/types';
 export async function syncReadwiseBooks(integrationRunId: number) {
   try {
     logger.info('Starting legacy Readwise books sync');
+    report({ type: 'phase', phase: 'books', status: 'start' });
 
     // Step 1: Determine last sync point
     const lastUpdateTime = await getMostRecentBookUpdateTime();
@@ -43,6 +46,12 @@ export async function syncReadwiseBooks(integrationRunId: number) {
       nextPageCursor = response.nextPageCursor;
 
       logger.info(`Retrieved ${response.results.length} books (total: ${allBooks.length})`);
+      report({
+        type: 'progress',
+        phase: 'books',
+        message: `Fetched ${pluralize(allBooks.length, 'book', 'books')} so far`,
+        current: allBooks.length,
+      });
     } while (nextPageCursor);
 
     // Step 3: Process books and highlights
@@ -100,6 +109,13 @@ export async function syncReadwiseBooks(integrationRunId: number) {
           // Log progress periodically
           if (successCount % 10 === 0) {
             logger.info(`Processed ${successCount} of ${sortedBooks.length} books`);
+            report({
+              type: 'progress',
+              phase: 'books',
+              message: `Stored ${successCount} of ${sortedBooks.length} books`,
+              current: successCount,
+              total: sortedBooks.length,
+            });
           }
         } catch (error) {
           logger.error('Error processing book', {
@@ -110,6 +126,19 @@ export async function syncReadwiseBooks(integrationRunId: number) {
       }
       logger.complete('Processed books', successCount);
     }
+
+    report({
+      type: 'phase',
+      phase: 'books',
+      status: successCount > 0 ? 'done' : 'skip',
+      count: successCount,
+      message:
+        successCount > 0
+          ? `Stored ${pluralize(successCount, 'book', 'books')} with highlights`
+          : allBooks.length > 0
+            ? `Fetched ${pluralize(allBooks.length, 'item', 'items')}, none were books with highlights`
+            : 'Nothing new since the last sync',
+    });
   } catch (error) {
     logger.error('Error syncing Readwise books', error);
     throw error;

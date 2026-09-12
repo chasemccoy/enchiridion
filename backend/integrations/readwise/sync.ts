@@ -19,6 +19,8 @@ import {
   type NewRecordInfo,
 } from '@integrations/readwise/records';
 import { syncReadwiseBooks } from '@integrations/readwise/legacy-sync';
+import { report } from '@integrations/utils/progress';
+import { pluralize } from '@shared/lib/formatting';
 
 /**
  * Synchronizes Readwise documents with the database
@@ -34,6 +36,7 @@ import { syncReadwiseBooks } from '@integrations/readwise/legacy-sync';
 export async function syncReadwiseDocuments(integrationRunId: number) {
   try {
     logger.info('Starting Readwise documents sync');
+    report({ type: 'phase', phase: 'documents', status: 'start' });
 
     // Step 1: Determine last sync point
     const lastUpdateTime = await getMostRecentUpdateTime();
@@ -52,6 +55,12 @@ export async function syncReadwiseDocuments(integrationRunId: number) {
       nextPageCursor = response.nextPageCursor;
 
       logger.info(`Retrieved ${response.results.length} documents (total: ${allDocuments.length})`);
+      report({
+        type: 'progress',
+        phase: 'documents',
+        message: `Fetched ${pluralize(allDocuments.length, 'document', 'documents')} so far`,
+        current: allDocuments.length,
+      });
     } while (nextPageCursor);
 
     // Step 3: Process documents
@@ -80,6 +89,13 @@ export async function syncReadwiseDocuments(integrationRunId: number) {
           // Log progress periodically
           if (successCount % 20 === 0) {
             logger.info(`Processed ${successCount} of ${sortedDocuments.length} documents`);
+            report({
+              type: 'progress',
+              phase: 'documents',
+              message: `Stored ${successCount} of ${sortedDocuments.length} documents`,
+              current: successCount,
+              total: sortedDocuments.length,
+            });
           }
         } catch (error) {
           logger.error('Error processing document', {
@@ -91,6 +107,17 @@ export async function syncReadwiseDocuments(integrationRunId: number) {
 
       logger.complete('Processed documents', successCount);
     }
+
+    report({
+      type: 'phase',
+      phase: 'documents',
+      status: allDocuments.length > 0 ? 'done' : 'skip',
+      count: successCount,
+      message:
+        allDocuments.length > 0
+          ? `Stored ${pluralize(successCount, 'new or updated document', 'new or updated documents')}`
+          : 'Nothing new since the last sync',
+    });
   } catch (error) {
     logger.error('Error syncing Readwise documents', error);
     throw error;
@@ -108,15 +135,45 @@ export async function syncReadwiseDocuments(integrationRunId: number) {
  */
 async function createReadwiseEntities(integrationRunId: number): Promise<NewRecordInfo[]> {
   logger.info('Creating related entities');
+
+  // Each phase pairs the Readwise-side upsert (authors/tags tables) with the
+  // records it yields, so the progress view can report one outcome per phase.
+  // The three are independent of one another; only the documents phase
+  // depends on authors and tags having their records first.
+  report({ type: 'phase', phase: 'authors', status: 'start' });
   await createReadwiseAuthors(integrationRunId);
-  await createReadwiseTags(integrationRunId);
   const authorRecords = await createRecordsFromReadwiseAuthors();
+  reportPhaseOutcome('authors', authorRecords.length, 'author');
+
+  report({ type: 'phase', phase: 'tags', status: 'start' });
+  await createReadwiseTags(integrationRunId);
   const tagRecords = await createRecordsFromReadwiseTags();
+  reportPhaseOutcome('tags', tagRecords.length, 'tag');
+
+  report({ type: 'phase', phase: 'records', status: 'start' });
   const documentRecords = await createRecordsFromReadwiseDocuments();
+  reportPhaseOutcome('records', documentRecords.length, 'document');
 
   const allNewRecords = [...authorRecords, ...tagRecords, ...documentRecords];
   logger.complete('Created all related entities');
   return allNewRecords;
+}
+
+function reportPhaseOutcome(
+  phase: 'authors' | 'tags' | 'records',
+  created: number,
+  noun: string,
+): void {
+  report({
+    type: 'phase',
+    phase,
+    status: created > 0 ? 'done' : 'skip',
+    count: created,
+    message:
+      created > 0
+        ? `Created ${pluralize(created, 'record', 'records')} from ${noun === 'document' ? 'documents' : `${noun}s`}`
+        : `No new ${noun}s to create records for`,
+  });
 }
 
 export async function syncReadwiseData(): Promise<void> {
