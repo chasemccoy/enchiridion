@@ -69,6 +69,15 @@ export default function useRecord() {
     });
   }
 
+  // Search results are cached per query, so a record created or deleted in
+  // this session would keep showing the pre-change result set for the same
+  // words until the page reloads. Drop them with the list.
+  function invalidateRecordLists() {
+    queryClient.invalidateQueries({ queryKey: ['list-records'] });
+    queryClient.invalidateQueries({ queryKey: ['hybrid-search'] });
+    queryClient.invalidateQueries({ queryKey: ['search'] });
+  }
+
   function upsertRecord() {
     return useMutation({
       mutationFn: (data: RecordInsert) =>
@@ -77,7 +86,7 @@ export default function useRecord() {
           body: JSON.stringify(data),
         }),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['list-records'] });
+        invalidateRecordLists();
       },
     });
   }
@@ -89,7 +98,7 @@ export default function useRecord() {
           method: 'DELETE',
         }),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['list-records'] });
+        invalidateRecordLists();
       },
     });
   }
