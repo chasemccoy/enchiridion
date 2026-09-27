@@ -47,7 +47,7 @@
     "@unhead/vue": "^3.4.1",
     "@vueuse/core": "^14.4.0",
     "amber": "link:../amber",
-    "better-sqlite3": "^12.11.1",
+    "better-sqlite3": "^13.0.3",
     "compression": "^1.8.2",
     "cors": "^2.8.6",
     "dompurify": "^3.4.16",

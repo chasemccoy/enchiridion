@@ -3,7 +3,9 @@ packages:
   - 'backend/*'
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
-  - better-sqlite3
   - esbuild
   - sharp
   - vue-demi
+# better-sqlite3 13+ ships N-API prebuilds and has no install script; keeping it
+# out of onlyBuiltDependencies stops pnpm from forcing an implicit node-gyp
+# build (which needs the Xcode toolchain) on every install.
