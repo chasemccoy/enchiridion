@@ -16,7 +16,7 @@
 
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { archiveUrl } from 'amber';
+import { archiveUrl, slugifyUrl } from 'amber';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@db/index';
 import { archives, type ArchiveSelect, type RecordSelect } from '@db/schema';
@@ -38,6 +38,27 @@ function archiveBackend(): 'fetch' | 'playwright' | 'auto' {
   const v = process.env.ARCHIVE_BACKEND?.trim();
   if (v === 'fetch' || v === 'auto') return v;
   return 'playwright';
+}
+
+/**
+ * Where a record's archive goes, relative to the archive root.
+ *
+ * Records share the flat `<root>/<slug>/` layout amber's own CLI and library use,
+ * so a page archived either way lands in one folder with one version history
+ * and shows up in the library index. Amber's slug drops the query string, so
+ * two records whose URLs differ only there would share a slug; that case has
+ * never occurred in practice, and when it does the later record is given its
+ * own `<id>/` subfolder rather than being filed as a version of the other page.
+ * Records with the same URL deliberately share the folder.
+ */
+export async function archivePrefix(record: RecordSelect): Promise<string> {
+  if (!record.url) throw new Error(`Record ${record.id} has no URL to archive`);
+  const slug = slugifyUrl(record.url);
+  const takenByOtherUrl = await db.query.archives.findFirst({
+    where: { path: slug, url: { ne: record.url } },
+    columns: { id: true },
+  });
+  return takenByOtherUrl ? String(record.id) : '';
 }
 
 /**
@@ -128,10 +149,7 @@ export async function runArchive(record: RecordSelect): Promise<ArchiveSelect> {
   const root = archiveRoot();
   try {
     const res = await archiveUrl(record.url, {
-      // Each record archives into its own subfolder: amber's folder slug is
-      // host+pathname only, so records whose URLs differ only by query string
-      // (e.g. youtube.com/watch?v=…) would otherwise collide in one folder.
-      outRoot: path.join(root, String(record.id)),
+      outRoot: path.join(root, await archivePrefix(record)),
       useLLM: true,
       model: 'claude-sonnet-4-6',
       backend: archiveBackend(),

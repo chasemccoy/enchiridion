@@ -36,7 +36,8 @@
     "db:backup": "tsx scripts/backup-database.ts",
     "sync:readwise": "tsx scripts/sync-readwise.ts",
     "sync": "pnpm sync:readwise",
-    "embed": "tsx scripts/embed-records.ts"
+    "embed": "tsx scripts/embed-records.ts",
+    "archive:flatten": "tsx scripts/flatten-archives.ts"
   },
   "dependencies": {
     "@iconify/vue": "^5.0.1",

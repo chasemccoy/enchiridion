@@ -10,3 +10,5 @@ yarn.lock
 backup/
 # Build output
 **/dist/
+# Claude Test runs and specs (generated; specs are saved by its own tooling)
+.claude-test/

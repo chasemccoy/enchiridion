@@ -10,6 +10,8 @@ export default defineConfig([
     ignores: [
       // Build output (`pnpm build` writes app/dist).
       '**/dist/**',
+      // Claude Test run folders hold generated live-page scripts and specs.
+      '.claude-test/**',
       // Scratch playground, exempt from lint (and from type checking — see
       // tsconfig.app.json) so experiments can't redden the real gates.
       'app/design-lab/**',

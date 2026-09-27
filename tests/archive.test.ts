@@ -70,7 +70,38 @@ describe('runArchive', () => {
     expect(failed.title).toBe('Seed');
   });
 
-  it('archives into per-record folders so query-string twins cannot collide', async () => {
+  it('archives into the flat slug folder amber itself uses', async () => {
+    const page = await servePage(PAGE);
+    try {
+      const record = await createRecord({ url: `${page.url}/page` });
+      await claimArchive(record);
+      const result = await runArchive(record);
+      expect(result.status).toBe('ok');
+      expect(result.path).not.toMatch(/^\d+\//);
+      expect(result.path).toMatch(/-page$/);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it('records with the same URL share one archive folder', async () => {
+    const page = await servePage(PAGE);
+    try {
+      const a = await createRecord({ url: `${page.url}/shared` });
+      const b = await createRecord({ url: `${page.url}/shared` });
+      await claimArchive(a);
+      const resultA = await runArchive(a);
+      await claimArchive(b);
+      const resultB = await runArchive(b);
+      expect(resultA.status).toBe('ok');
+      expect(resultB.status).toBe('ok');
+      expect(resultB.path).toBe(resultA.path);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it('falls back to a per-record folder only when a different URL already owns the slug', async () => {
     const page = await servePage(PAGE);
     try {
       const a = await createRecord({ url: `${page.url}/watch?v=aaa` });
@@ -83,7 +114,7 @@ describe('runArchive', () => {
 
       expect(resultA.status).toBe('ok');
       expect(resultB.status).toBe('ok');
-      expect(resultA.path).toMatch(new RegExp(`^${a.id}/`));
+      expect(resultA.path).not.toMatch(/^\d+\//);
       expect(resultB.path).toMatch(new RegExp(`^${b.id}/`));
       expect(resultA.path).not.toBe(resultB.path);
     } finally {
