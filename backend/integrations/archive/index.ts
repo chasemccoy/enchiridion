@@ -104,8 +104,7 @@ export async function claimArchive(record: RecordSelect): Promise<ArchiveSelect 
 async function finishArchive(
   recordId: RecordSelect['id'],
   outcome:
-    | { status: 'ok'; path: string; title: string | null }
-    | { status: 'failed'; error: string },
+    { status: 'ok'; path: string; title: string | null } | { status: 'failed'; error: string },
 ): Promise<ArchiveSelect> {
   const [saved] = await db
     .update(archives)

@@ -102,9 +102,9 @@ import RecordLink from '@app/components/RecordLink.vue';
 
 const modelValue = defineModel<RecordSelect | RecordInsert>({ required: true });
 
-const files = defineModel<PartialMediaInsert[]>('files', { default: [] });
+const files = defineModel<PartialMediaInsert[]>('files', { default: () => [] });
 
-const links = defineModel<PartialLinkInsert[]>('links', { default: [] });
+const links = defineModel<PartialLinkInsert[]>('links', { default: () => [] });
 
 const emit = defineEmits<{
   save: [data: NewRecordData];

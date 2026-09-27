@@ -25,14 +25,7 @@ export type RawCLIOptions = Record<string, string | boolean | number | undefined
  * `unknown`) without forcing every domain type to grow an index signature.
  */
 export type ResultValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Date
-  | readonly ResultValue[]
-  | object;
+  string | number | boolean | null | undefined | Date | readonly ResultValue[] | object;
 
 export interface ResultMeta {
   count?: number;
