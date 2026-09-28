@@ -1,3 +1,6 @@
+-- Index: archives_record_id_idx
+CREATE UNIQUE INDEX `archives_record_id_idx` ON `archives` (`record_id`);
+
 -- Index: links_predicate_idx
 CREATE INDEX `links_predicate_idx` ON `links` (`predicate`);
 

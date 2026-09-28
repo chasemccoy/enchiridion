@@ -8,5 +8,5 @@
     "applied_at"
   ],
   "schema": "CREATE TABLE __drizzle_migrations (\n      id INTEGER PRIMARY KEY,\n      hash text NOT NULL,\n      created_at numeric,\n      name text,\n      applied_at TEXT\n    )",
-  "rowCount": 1
+  "rowCount": 2
 }

@@ -239,7 +239,7 @@
   ],
   "freelist_count": [
     {
-      "freelist_count": 1
+      "freelist_count": 8
     }
   ],
   "fullfsync": [
@@ -274,7 +274,7 @@
   ],
   "page_count": [
     {
-      "page_count": 10219
+      "page_count": 10478
     }
   ],
   "page_size": [
@@ -310,7 +310,7 @@
   ],
   "schema_version": [
     {
-      "schema_version": 103
+      "schema_version": 105
     }
   ],
   "secure_delete": [
@@ -446,6 +446,14 @@
     },
     {
       "schema": "main",
+      "name": "archives",
+      "type": "table",
+      "ncol": 10,
+      "wr": 0,
+      "strict": 0
+    },
+    {
+      "schema": "main",
       "name": "vec_records_meta",
       "type": "table",
       "ncol": 2,
@@ -492,8 +500,8 @@
   "wal_checkpoint": [
     {
       "busy": 0,
-      "log": 537,
-      "checkpointed": 537
+      "log": 599,
+      "checkpointed": 599
     }
   ],
   "writable_schema": [

@@ -1,0 +1,17 @@
+{
+  "name": "archives",
+  "columns": [
+    "id",
+    "record_id",
+    "url",
+    "path",
+    "status",
+    "title",
+    "error",
+    "archived_at",
+    "created_at",
+    "updated_at"
+  ],
+  "schema": "CREATE TABLE `archives` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT,\n\t`record_id` integer NOT NULL,\n\t`url` text NOT NULL,\n\t`path` text,\n\t`status` text NOT NULL,\n\t`title` text,\n\t`error` text,\n\t`archived_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`created_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\t`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,\n\tCONSTRAINT `fk_archives_record_id_records_id_fk` FOREIGN KEY (`record_id`) REFERENCES `records`(`id`) ON UPDATE CASCADE ON DELETE CASCADE\n)",
+  "rowCount": 1
+}
