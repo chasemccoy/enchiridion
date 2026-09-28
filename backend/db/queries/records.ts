@@ -124,53 +124,37 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
         },
       },
     },
+    // Drizzle rc.5+ rejects `undefined` as a filter value (it used to skip the
+    // field), so every optional filter is spread in only when it is set.
     where: {
-      type,
-      source,
+      ...(type !== undefined ? { type } : {}),
+      ...(source !== undefined ? { source } : {}),
       // `ids: undefined` = no id filter (normal list); `ids: []` = match nothing
       // (a caller asked for an empty set, e.g. a record with no links — don't
       // fall through to returning every record).
       ...(ids !== undefined ? { id: { in: ids } } : {}),
-      title:
-        title === null || hasTitle === false
-          ? {
-              isNull: true,
-            }
-          : title
-            ? {
-                like: `%${title}%`,
-              }
-            : undefined,
-      OR: text
-        ? [
-            {
-              title: { like: `%${text}%` },
-            },
-            {
-              slug: { like: `%${text}%` },
-            },
-            {
-              content: { like: `%${text}%` },
-            },
-            {
-              summary: { like: `%${text}%` },
-            },
-            {
-              notes: { like: `%${text}%` },
-            },
-          ]
-        : undefined,
-      url:
-        domain === null
-          ? {
-              isNull: true,
-            }
-          : domain
-            ? {
-                like: `%${domain}%`,
-              }
-            : undefined,
-      isCurated,
+      ...(title === null || hasTitle === false
+        ? { title: { isNull: true } }
+        : title
+          ? { title: { like: `%${title}%` } }
+          : {}),
+      ...(text
+        ? {
+            OR: [
+              { title: { like: `%${text}%` } },
+              { slug: { like: `%${text}%` } },
+              { content: { like: `%${text}%` } },
+              { summary: { like: `%${text}%` } },
+              { notes: { like: `%${text}%` } },
+            ],
+          }
+        : {}),
+      ...(domain === null
+        ? { url: { isNull: true } }
+        : domain
+          ? { url: { like: `%${domain}%` } }
+          : {}),
+      ...(isCurated !== undefined ? { isCurated } : {}),
       ...(hasParent === true
         ? {
             outgoingLinks: {
@@ -202,7 +186,7 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
             },
           }
         : {}),
-      media: hasMedia,
+      ...(hasMedia !== undefined ? { media: hasMedia } : {}),
     },
     limit,
     offset,
