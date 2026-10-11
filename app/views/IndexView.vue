@@ -346,6 +346,28 @@ const filteredRecords = computed<ListRecordsAPIResponse | undefined>(() => {
 // binding (`:modelValue`), not a v-model.
 const records = computed<ListRecordsAPIResponse>(() => filteredRecords.value ?? []);
 
+// Keep a selection alive when the open record leaves the list (e.g. marked
+// curated while the list is filtered to needs-curation). Move to the record that
+// took its place, or the last one if it was at the end, and replace (not push)
+// so Back doesn't return to the record that disappeared. Does nothing when the
+// open record was never in the list (opened by direct link, or a search).
+let previousSlugs: string[] = [];
+watch(filteredRecords, (next) => {
+  if (!next) return;
+  const slugs = next.map((record) => record.slug);
+  const current = route.params.slug as string | undefined;
+  if (current && !slugs.includes(current)) {
+    const index = previousSlugs.indexOf(current);
+    if (index !== -1) {
+      const successor = slugs[Math.min(index, slugs.length - 1)];
+      router.replace(
+        successor ? `/${successor}${detailQuerySuffix.value}` : `/${detailQuerySuffix.value}`,
+      );
+    }
+  }
+  previousSlugs = slugs;
+});
+
 // Query params carried through card/row navigation: everything except `q`
 // (opening a result deliberately ends the search — results and an open detail
 // don't coexist) and `view` (the detail pane only exists in cards mode).
