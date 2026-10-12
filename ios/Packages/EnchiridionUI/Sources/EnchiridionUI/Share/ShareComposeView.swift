@@ -126,7 +126,9 @@ public struct ShareComposeView: View {
             } label: {
                 Text(saving ? "Saving…" : model.state.error == nil ? "Save to Enchiridion" : "Retry")
             }
-            .buttonStyle(.prominent)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .buttonSizing(.flexible)
             .disabled(!model.canSave)
             .keyboardShortcut(.return, modifiers: .command)
         }
@@ -235,7 +237,7 @@ private struct ShareFailure: View {
                 } label: {
                     Label(copied ? "Copied" : copyable.label, systemImage: Symbol.copy)
                 }
-                .buttonStyle(.raised)
+                .buttonStyle(.bordered)
             }
         }
         .padding(Space.cardPadding)

@@ -2,95 +2,130 @@ import EnchiridionCore
 import EnchiridionKit
 import SwiftUI
 
-/// The library: a `NavigationSplitView` whose list column holds the record cards and whose detail column shows the
-/// record `LibraryModel.selectedID` names. Reads `LibraryModel` from the environment (`EnchiridionRootView` puts it
-/// there).
+/// The library: the record cards grouped by month, with search, a filter and sort menu and New record in a Liquid Glass
+/// bottom bar, and the record `LibraryModel.selectedID` names beside or above them.
 ///
-/// The list column: the serif wordmark with the record count under it; Settings and New record in the bar; a filter bar
-/// (All, Artifact, Concept, Entity, then Needs curation); search ("Search records", hybrid search after a pause);
-/// cards grouped by month, the selected one ringed in `primary`; pull to refresh; swipe right to curate, left to
-/// delete; a context menu with Open link, Copy link, Curate, Edit and Delete.
+/// On an iPhone (a compact width) it's one `NavigationStack`: the list, the selected record pushed on it, and linked
+/// records pushed on that, so swiping back goes back one screen at a time. On an iPad it's a `NavigationSplitView` with
+/// its own stack in the detail column.
 ///
 /// Selection is `LibraryModel.selectedID` and nothing else, so the model's rule applies wherever the list changes:
-/// curating the open record while the list shows only what needs curating opens the record that took its place. The
-/// list is not a selection list: a card is a button that sets `selectedID`, and the split view's compact column follows
-/// it (`preferredCompactColumn`), so the ring is the only selection mark, without the system's row highlight under it.
+/// curating the open record while the list shows only what needs curating opens the record that took its place. A card
+/// is a button that sets `selectedID`; on an iPhone the stack's first screen follows it, and going back to the list
+/// clears it, as the web's back does.
 public struct LibraryScreen: View {
     @Environment(LibraryModel.self) private var library
-    @State private var sheet: LibrarySheet?
-    @State private var detailPath: [RecordRoute] = []
-    @State private var compactColumn: NavigationSplitViewColumn = .sidebar
+    @State private var editor: EditorSession?
 
     public init() {}
 
     public var body: some View {
-        NavigationSplitView(preferredCompactColumn: $compactColumn) {
-            LibraryList(sheet: $sheet)
-                .navigationSplitViewColumnWidth(min: Metrics.listColumnMin, ideal: Metrics.listColumnIdeal,
-                                                max: Metrics.listColumnMax)
-        } detail: {
-            NavigationStack(path: $detailPath) {
-                DetailColumn(sheet: $sheet)
-                    .navigationDestination(for: RecordRoute.self) { route in
-                        DetailHost(id: route.id, library: library, sheet: $sheet) {
-                            if let index = detailPath.lastIndex(of: route) { detailPath.removeSubrange(index...) }
-                        }
-                    }
-            }
+        WidthSwitch {
+            StackLibrary(editor: $editor)
+        } regular: {
+            SplitLibrary(editor: $editor)
         }
-        .navigationSplitViewStyle(.balanced)
-        .onChange(of: library.selectedID) { _, selected in
-            // A new selection starts the detail column afresh; on a phone it opens the detail, and a selection that
-            // went away (the list emptied) goes back to the list.
-            detailPath = []
-            compactColumn = selected == nil ? .sidebar : .detail
-        }
-        .onChange(of: compactColumn) { _, column in
-            // Only collapsed navigation moves this binding: back to the list on a phone deselects, as the web does.
-            if column == .sidebar, library.selectedID != nil { library.selectedID = nil }
-        }
-        // On the split view, not a column: a detail that finds its record deleted elsewhere closes, and the library
-        // says so here whichever column is showing.
+        // Here, not in a column: a detail that finds its record deleted elsewhere closes, and the library says so
+        // whichever screen is showing.
         .actionErrorAlert(library.actionError) { library.clearActionError() }
-        .sheet(item: $sheet) { presented in
-            switch presented {
-            case .settings:
-                SettingsSheet()
-            case .editor(let session):
-                RecordEditorSheet(model: session.model) { record in
-                    // A new record opens; an edited one is already where it was.
-                    if session.model.isNew { library.selectedID = record.id }
-                }
+        // Every editor is presented here, above the navigation, never by a detail: a reload can move the selection
+        // while one is open (the record left the list), and a sheet goes with the screen that presented it, typed
+        // text and all.
+        .sheet(item: $editor) { session in
+            RecordEditorSheet(model: session.model) { record in
+                // A new record opens; an edited one is already where it was.
+                if session.model.isNew { library.selectedID = record.id }
             }
         }
         .task { await library.load() }
     }
 }
 
-/// What the library presents: Settings or an editor (New record, a card's Edit, or a detail's Edit). Every editor is
-/// presented here, above the split view, never by a detail: a reload can move the selection while one is open (the
-/// record left the list), and a sheet goes with the screen that presented it, typed text and all.
-enum LibrarySheet: Identifiable {
-    case settings
-    case editor(EditorSession)
+/// An iPhone's library: one stack whose first pushed screen is the selected record.
+private struct StackLibrary: View {
+    @Environment(LibraryModel.self) private var library
+    @Binding var editor: EditorSession?
+    @State private var path: [RecordRoute] = []
 
-    var id: AnyHashable {
-        switch self {
-        case .settings: AnyHashable("settings")
-        case .editor(let session): AnyHashable(session.id)
+    var body: some View {
+        NavigationStack(path: $path) {
+            LibraryList(editor: $editor)
+                .navigationDestination(for: RecordRoute.self) { route in
+                    DetailHost(id: route.id, library: library, editor: $editor) {
+                        // A linked record deleted from its own screen pops it. The first screen is the selection, which
+                        // the model moves to the record that took its place (and that replaces the screen below).
+                        if let index = path.lastIndex(of: route), index > 0 { path.removeSubrange(index...) }
+                    }
+                }
+        }
+        .onChange(of: library.selectedID) { _, selected in
+            guard let selected else {
+                path = []
+                return
+            }
+            guard path.first?.id != selected else { return }
+            if path.isEmpty {
+                path = [RecordRoute(id: selected)]
+            } else {
+                // The model moved the selection (a curate or delete that took the open record out of the list): the
+                // first screen becomes the new selection, under whatever linked records are open above it.
+                path[0] = RecordRoute(id: selected)
+            }
+        }
+        .onChange(of: path) { _, path in
+            // Back to the list clears the selection; popping a linked record leaves it alone.
+            let first = path.first?.id
+            if first != library.selectedID { library.selectedID = first }
         }
     }
 }
 
-// MARK: The list column
+/// An iPad's library: the list beside the selected record, with a stack of its own in the detail column.
+private struct SplitLibrary: View {
+    @Environment(LibraryModel.self) private var library
+    @Binding var editor: EditorSession?
+    @State private var detailPath: [RecordRoute] = []
+
+    var body: some View {
+        NavigationSplitView {
+            LibraryList(editor: $editor)
+                .navigationSplitViewColumnWidth(min: Metrics.listColumnMin, ideal: Metrics.listColumnIdeal,
+                                                max: Metrics.listColumnMax)
+        } detail: {
+            NavigationStack(path: $detailPath) {
+                DetailColumn(editor: $editor)
+                    .navigationDestination(for: RecordRoute.self) { route in
+                        DetailHost(id: route.id, library: library, editor: $editor) {
+                            if let index = detailPath.lastIndex(of: route) { detailPath.removeSubrange(index...) }
+                        }
+                    }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+        .onChange(of: library.selectedID) {
+            // A new selection starts the detail column afresh.
+            detailPath = []
+        }
+    }
+}
+
+// MARK: The list
 
 private struct LibraryList: View {
     @Environment(LibraryModel.self) private var library
-    @Binding var sheet: LibrarySheet?
+    @Binding var editor: EditorSession?
 
     var body: some View {
         @Bindable var library = library
         List {
+            if let error = library.state.error, !library.records.isEmpty {
+                StatusBanner(error: error) {
+                    Task { await library.refresh() }
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.margin, bottom: Space.metaGap, trailing: Space.margin))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            }
             ForEach(library.sections) { section in
                 if let heading = section.heading {
                     MonthHeader(heading)
@@ -103,7 +138,7 @@ private struct LibraryList: View {
                         .listRowBackground(Color.clear)
                 }
                 ForEach(section.records) { record in
-                    LibraryRow(record: record, sheet: $sheet)
+                    LibraryRow(record: record, editor: $editor)
                 }
             }
         }
@@ -114,9 +149,6 @@ private struct LibraryList: View {
         .contentMargins(.bottom, Space.monthGap, for: .scrollContent)
         .background(Palette.page)
         .overlay { LibraryPlaceholder() }
-        .safeAreaBar(edge: .top, spacing: 0) {
-            LibraryBar()
-        }
         .searchable(text: $library.query, prompt: Text("Search records"))
         .refreshable { await library.refresh() }
         .navigationTitle("Enchiridion")
@@ -126,17 +158,15 @@ private struct LibraryList: View {
                 LibraryTitle()
             }
             .sharedBackgroundVisibility(.hidden)
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    sheet = .settings
-                } label: {
-                    Label("Settings", systemImage: Symbol.settings)
-                }
-                .keyboardShortcut(",", modifiers: .command)
+            ToolbarItem(placement: .bottomBarOrAutomatic) {
+                FilterMenu()
             }
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarSpacer(.fixed, placement: .bottomBarOrAutomatic)
+            DefaultToolbarItem(kind: .search, placement: .bottomBarOrAutomatic)
+            ToolbarSpacer(.fixed, placement: .bottomBarOrAutomatic)
+            ToolbarItem(placement: .bottomBarOrAutomatic) {
                 Button {
-                    sheet = .editor(EditorSession(model: library.newRecordEditor()))
+                    editor = EditorSession(model: library.newRecordEditor())
                 } label: {
                     Label("New record", systemImage: Symbol.add)
                 }
@@ -146,11 +176,70 @@ private struct LibraryList: View {
     }
 }
 
+/// Filter and sort, in one menu: the type, Needs curation and Has media, then the order (Relevance only while
+/// searching). The button's glyph fills while anything hides records, and the count under the title says how many.
+private struct FilterMenu: View {
+    @Environment(LibraryModel.self) private var library
+
+    var body: some View {
+        @Bindable var library = library
+        Menu {
+            Picker(selection: $library.filters.type) {
+                Label("All records", systemImage: Symbol.allRecords).tag(RecordType?.none)
+                ForEach(RecordType.known, id: \.self) { type in
+                    Label(type.pluralName, systemImage: type.symbolName).tag(Optional(type))
+                }
+            } label: {
+                Text("Type")
+            }
+            .pickerStyle(.inline)
+            Section {
+                Toggle(isOn: $library.filters.needsCuration) {
+                    Label("Needs curation", systemImage: Symbol.needsCuration)
+                }
+                Toggle(isOn: $library.filters.hasMedia) {
+                    Label("Has media", systemImage: Symbol.image)
+                }
+            }
+            Picker(selection: sort) {
+                ForEach(LibraryModel.Sort.options(searching: library.isSearching), id: \.self) { sort in
+                    Text(verbatim: sort.title).tag(sort)
+                }
+            } label: {
+                Label("Sort by", systemImage: Symbol.sort)
+                Text(verbatim: library.filters.effectiveSort(searching: library.isSearching).title)
+            }
+            .pickerStyle(.menu)
+            if library.filters != LibraryModel.Filters() {
+                Section {
+                    Button(role: .destructive) {
+                        library.filters = LibraryModel.Filters()
+                    } label: {
+                        Label("Reset filters", systemImage: Symbol.reset)
+                    }
+                }
+            }
+        } label: {
+            Label("Filter and sort", systemImage: library.filters.isActive ? Symbol.filterOn : Symbol.filter)
+        }
+        .keepsMenuOpen()
+    }
+
+    /// The order as the menu shows it: the one in effect, so the default reads as checked.
+    private var sort: Binding<LibraryModel.Sort> {
+        Binding {
+            library.filters.effectiveSort(searching: library.isSearching)
+        } set: { sort in
+            library.filters.sort = sort
+        }
+    }
+}
+
 /// One card: a button that selects it, with the swipe actions, the context menu and the delete confirmation (anchored
 /// here, so on iPad it points at the card). VoiceOver offers the swipe actions as the card's actions.
 private struct LibraryRow: View {
     let record: ListRecord
-    @Binding var sheet: LibrarySheet?
+    @Binding var editor: EditorSession?
     @Environment(LibraryModel.self) private var library
     @Environment(\.openURL) private var openURL
     @State private var confirmingDelete = false
@@ -184,7 +273,7 @@ private struct LibraryRow: View {
             }
             curateButton
             Button {
-                sheet = .editor(EditorSession(model: library.editor(for: record)))
+                editor = EditorSession(model: library.editor(for: record))
             } label: {
                 Label("Edit", systemImage: Symbol.edit)
             }
@@ -264,74 +353,6 @@ private struct LibraryTitle: View {
     }
 }
 
-/// The filter chips, and below them a failed refresh when there are records to show anyway. The row scrolls sideways
-/// on a narrow phone; a chip turned on scrolls fully into view, so a selected filter is never cut off at the edge.
-private struct LibraryBar: View {
-    @Environment(LibraryModel.self) private var library
-
-    /// The chips' scroll ids.
-    private enum Chip: Hashable {
-        case all
-        case type(RecordType)
-        case needsCuration
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.metaGap) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    HStack(spacing: Space.chipGap) {
-                        FilterChip("All", isSelected: library.filters.type == nil) {
-                            library.filters.type = nil
-                        }
-                        .id(Chip.all)
-                        ForEach(RecordType.known, id: \.self) { type in
-                            FilterChip(type: type, isSelected: library.filters.type == type) {
-                                // A selected type's chip turns its filter off, as the web's toggles do.
-                                library.filters.type = library.filters.type == type ? nil : type
-                            }
-                            .id(Chip.type(type))
-                        }
-                        Palette.border.view
-                            .frame(width: Metrics.filterDivider.width, height: Metrics.filterDivider.height)
-                            .padding(.horizontal, Space.iconGap)
-                            .accessibilityHidden(true)
-                        FilterChip("Needs curation", systemImage: Symbol.needsCuration,
-                                   isSelected: library.filters.needsCuration) {
-                            library.filters.needsCuration.toggle()
-                        }
-                        .id(Chip.needsCuration)
-                    }
-                    .padding(.horizontal, Space.margin)
-                    .padding(.vertical, Metrics.filterBarPadding)
-                }
-                .scrollIndicators(.hidden)
-                .onChange(of: library.filters) { old, new in
-                    let turnedOn: Chip? = if new.needsCuration, !old.needsCuration {
-                        .needsCuration
-                    } else if let type = new.type, type != old.type {
-                        .type(type)
-                    } else {
-                        nil
-                    }
-                    guard let turnedOn else { return }
-                    withAnimation { proxy.scrollTo(turnedOn) }
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Filters")
-
-            if let error = library.state.error, !library.records.isEmpty {
-                StatusBanner(error: error) {
-                    Task { await library.refresh() }
-                }
-                .padding(.horizontal, Space.margin)
-                .padding(.bottom, Space.metaGap)
-            }
-        }
-    }
-}
-
 /// What the list shows when it has no cards: loading, a failed load (the not-allowed state for a 401 that names this
 /// device), an empty library, no search results, or filters that hide everything.
 private struct LibraryPlaceholder: View {
@@ -386,11 +407,11 @@ private struct LibraryPlaceholder: View {
 /// The selected record, or a note to pick one. A new selection is a new screen (`.id`), with its own model.
 private struct DetailColumn: View {
     @Environment(LibraryModel.self) private var library
-    @Binding var sheet: LibrarySheet?
+    @Binding var editor: EditorSession?
 
     var body: some View {
         if let id = library.selectedID {
-            DetailHost(id: id, library: library, sheet: $sheet, onDeleted: nil)
+            DetailHost(id: id, library: library, editor: $editor, onDeleted: nil)
                 .id(id)
         } else {
             EmptyMessage(title: "No record open", message: "Choose one from the list.")
@@ -401,24 +422,24 @@ private struct DetailColumn: View {
 }
 
 /// Owns one record's `RecordDetailModel` (made by the library, so its saves and deletes reach the rows) and shows it.
-/// Its Edit opens in the library's `sheet` (`LibrarySheet`).
+/// Its Edit opens in the library's editor sheet.
 private struct DetailHost: View {
     let id: Int
-    @Binding var sheet: LibrarySheet?
+    @Binding var editor: EditorSession?
     let onDeleted: (() -> Void)?
     @State private var model: RecordDetailModel
 
     /// The model is made here, once per screen: `@State` keeps the first and drops the ones later inits make.
-    init(id: Int, library: LibraryModel, sheet: Binding<LibrarySheet?>, onDeleted: (() -> Void)?) {
+    init(id: Int, library: LibraryModel, editor: Binding<EditorSession?>, onDeleted: (() -> Void)?) {
         self.id = id
-        _sheet = sheet
+        _editor = editor
         self.onDeleted = onDeleted
         _model = State(initialValue: library.detailModel(id: id))
     }
 
     var body: some View {
-        RecordDetailScreen(model: model, onDeleted: onDeleted) { editor in
-            sheet = .editor(EditorSession(model: editor))
+        RecordDetailScreen(model: model, onDeleted: onDeleted) { editorModel in
+            editor = EditorSession(model: editorModel)
         }
         .background { RowSync(id: id, model: model) }
     }
@@ -449,7 +470,6 @@ private struct RowSync: View {
 #Preview("Library") {
     LibraryScreen()
         .environment(LibraryModel(environment: .preview()))
-        .environment(ConnectionModel(environment: .preview()))
         .previewRoot()
 }
 #endif

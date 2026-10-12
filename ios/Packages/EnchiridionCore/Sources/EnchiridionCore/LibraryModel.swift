@@ -36,18 +36,58 @@ public final class LibraryModel {
         public var type: RecordType?
         /// Hide curated records.
         public var needsCuration: Bool
+        /// Only records with media attached (the web's "Media" checkbox: any media, not only images).
+        public var hasMedia: Bool
+        /// The order chosen; nil for the default (`Sort.default(searching:)`).
+        public var sort: Sort?
 
-        public init(type: RecordType? = nil, needsCuration: Bool = false) {
+        public init(type: RecordType? = nil, needsCuration: Bool = false, hasMedia: Bool = false, sort: Sort? = nil) {
             self.type = type
             self.needsCuration = needsCuration
+            self.hasMedia = hasMedia
+            self.sort = sort
         }
 
-        public var isActive: Bool { type != nil || needsCuration }
+        /// Whether anything hides rows. The order isn't a filter: it never hides anything.
+        public var isActive: Bool { type != nil || needsCuration || hasMedia }
 
         public func admits(_ record: ListRecord) -> Bool {
             if let type, record.type != type { return false }
             if needsCuration, record.isCurated { return false }
+            if hasMedia, record.media.isEmpty { return false }
             return true
+        }
+
+        /// The order in effect: the chosen one, else the default; relevance only while searching (the web's rule).
+        public func effectiveSort(searching: Bool) -> Sort {
+            guard let sort, searching || sort != .relevance else { return .default(searching: searching) }
+            return sort
+        }
+    }
+
+    /// The web index's sort menu.
+    public enum Sort: String, CaseIterable, Hashable, Sendable {
+        /// The search's own ranking; only while searching.
+        case relevance
+        case newest
+        case oldest
+        /// Title A–Z; untitled records last.
+        case title
+
+        public static func `default`(searching: Bool) -> Sort { searching ? .relevance : .newest }
+
+        /// The orders offered: relevance only while searching.
+        public static func options(searching: Bool) -> [Sort] {
+            searching ? allCases : allCases.filter { $0 != .relevance }
+        }
+
+        public var title: String {
+            switch self {
+            case .relevance: "Relevance"
+            case .newest: "Newest"
+            case .oldest: "Oldest"
+            case .title: "Title A–Z"
+            }
         }
     }
 
@@ -412,10 +452,12 @@ public final class LibraryModel {
     /// query's results for another's), so the successor rule doesn't apply.
     private func rebuild(sourceChanged: Bool = false) {
         let base = isSearching ? searchResults ?? [] : records
-        let next = Self.visible(base, filters: filters)
+        let next = Self.visible(base, filters: filters, searching: isSearching)
         let previousIDs = visibleRecords.map(\.id)
         visibleRecords = next
-        sections = Self.sections(next, grouped: !isSearching, timeZone: environment.timeZone)
+        // Months only while browsing in date order, as the web groups.
+        let grouped = !isSearching && filters.effectiveSort(searching: false) != .title
+        sections = Self.sections(next, grouped: grouped, timeZone: environment.timeZone)
         guard !sourceChanged else { return }
         let successor = Self.successor(of: selectedID, previous: previousIDs, next: next.map(\.id))
         if successor != selectedID { selectedID = successor }
@@ -460,9 +502,45 @@ public final class LibraryModel {
 
     // MARK: Pure parts
 
-    /// The rows `filters` admits, in their order (the web's IndexView filter).
-    public nonisolated static func visible(_ records: [ListRecord], filters: Filters) -> [ListRecord] {
-        filters.isActive ? records.filter(filters.admits) : records
+    /// The rows `filters` admits, in the order it asks for (the web's IndexView filter and sort). Newest while
+    /// browsing and relevance while searching keep the order the rows came in (the index arrives newest first); the
+    /// others sort, ties keeping that order.
+    public nonisolated static func visible(_ records: [ListRecord], filters: Filters,
+                                           searching: Bool = false) -> [ListRecord] {
+        let admitted = filters.isActive ? records.filter(filters.admits) : records
+        let created: (ListRecord) -> String = { $0.recordCreatedAt.raw }
+        switch filters.effectiveSort(searching: searching) {
+        case .relevance:
+            return admitted
+        case .newest:
+            return searching ? stableSorted(admitted) { created($0) > created($1) } : admitted
+        case .oldest:
+            return stableSorted(admitted) { created($0) < created($1) }
+        case .title:
+            return stableSorted(admitted) { a, b in
+                switch (Self.sortTitle(a), Self.sortTitle(b)) {
+                case let (a?, b?): a.localizedStandardCompare(b) == .orderedAscending
+                case (.some, nil): true
+                default: false
+                }
+            }
+        }
+    }
+
+    /// A row's title for sorting; nil when it has none, so untitled rows go last.
+    private nonisolated static func sortTitle(_ row: ListRecord) -> String? {
+        guard let title = row.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else { return nil }
+        return title
+    }
+
+    /// `rows` sorted by `isBefore`, rows it doesn't order keeping their order.
+    private nonisolated static func stableSorted(_ rows: [ListRecord],
+                                                 by isBefore: (ListRecord, ListRecord) -> Bool) -> [ListRecord] {
+        rows.enumerated().sorted { a, b in
+            if isBefore(a.element, b.element) { return true }
+            if isBefore(b.element, a.element) { return false }
+            return a.offset < b.offset
+        }.map(\.element)
     }
 
     /// Rows grouped by the local month of `recordCreatedAt` ("September 2026"), each group where its first row falls

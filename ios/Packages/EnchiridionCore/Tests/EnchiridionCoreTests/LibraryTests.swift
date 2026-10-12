@@ -74,6 +74,48 @@ struct FilterTests {
         #expect(LibraryModel.visible(rows, filters: .init(type: .artifact, needsCuration: true)).map(\.id) == [1])
         #expect(LibraryModel.visible(rows, filters: .init(type: "unknown")).isEmpty)
     }
+
+    @Test func hasMediaKeepsRowsWithAnyMedia() {
+        let rows = [Fixture.row(1), Fixture.row(2, media: [Fixture.media(1, recordID: 2)]), Fixture.row(3)]
+        #expect(LibraryModel.visible(rows, filters: .init(hasMedia: true)).map(\.id) == [2])
+        #expect(LibraryModel.Filters(hasMedia: true).isActive)
+        #expect(!LibraryModel.Filters(sort: .title).isActive)
+    }
+}
+
+struct SortTests {
+    /// Newest first, as the index arrives; 3 and 4 share a timestamp; 5 is untitled.
+    private let rows = [
+        Fixture.row(1, title: "banana", created: "2026-10-02 12:00:00"),
+        Fixture.row(2, title: "Apple", created: "2026-10-01 12:00:00"),
+        Fixture.row(3, title: "cherry", created: "2026-09-14 15:00:00"),
+        Fixture.row(4, title: "apple pie", created: "2026-09-14 15:00:00"),
+        Fixture.row(5, title: "  ", created: "2026-09-01 15:00:00"),
+    ]
+
+    @Test func browsingDefaultsToNewestAndKeepsTheIndexOrder() {
+        #expect(LibraryModel.visible(rows, filters: .init()).map(\.id) == [1, 2, 3, 4, 5])
+        #expect(LibraryModel.Filters().effectiveSort(searching: false) == .newest)
+    }
+
+    @Test func oldestReversesDatesKeepingTiesInOrder() {
+        #expect(LibraryModel.visible(rows, filters: .init(sort: .oldest)).map(\.id) == [5, 3, 4, 2, 1])
+    }
+
+    @Test func titleSortsCaseInsensitivelyWithUntitledLast() {
+        #expect(LibraryModel.visible(rows, filters: .init(sort: .title)).map(\.id) == [2, 4, 1, 3, 5])
+    }
+
+    @Test func relevanceIsOnlyForSearches() {
+        #expect(LibraryModel.Filters().effectiveSort(searching: true) == .relevance)
+        #expect(LibraryModel.Filters(sort: .relevance).effectiveSort(searching: false) == .newest)
+        #expect(LibraryModel.Sort.options(searching: false) == [.newest, .oldest, .title])
+        #expect(LibraryModel.Sort.options(searching: true).first == .relevance)
+        // Results keep their ranking under relevance, and newest sorts them by date.
+        let ranked = [rows[3], rows[0], rows[2]]
+        #expect(LibraryModel.visible(ranked, filters: .init(), searching: true).map(\.id) == [4, 1, 3])
+        #expect(LibraryModel.visible(ranked, filters: .init(sort: .newest), searching: true).map(\.id) == [1, 4, 3])
+    }
 }
 
 struct SectionTests {

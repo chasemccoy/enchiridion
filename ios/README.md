@@ -72,7 +72,7 @@ There is nothing to pair and no token to enter. The API recognizes devices throu
 
 The API checks devices only while `~/.enchiridion/devices` exists on voyager.
 
-**Without the file**, the API is open, as it always was. Settings › Connection then reads "Open: Enchiridion isn't checking devices".
+**Without the file**, the API is open, as it always was.
 
 **With the file** (even an empty one), only these can reach the API:
 
@@ -130,20 +130,18 @@ curl -s https://enchiridion-api.chsmc.tools/info   # {"name":"enchiridion","auth
 curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device you ran it on
 ```
 
-**Settings › Connection** in the app shows the server, how the phone is signed in (for example "Signed in as vern through Tailscale") and the device's name and ID. None of it can be edited.
-
 ## Using it
 
 - **Library.**
   - Pull to refresh.
-  - The chips filter by type, and **Needs curation** hides curated records.
+  - The bottom bar holds the filter menu (type, **Needs curation**, **Has media**, and the sort: newest, oldest, title, or relevance while searching), search, and **+** for a new record.
   - Search runs hybrid search as you type.
   - Swipe a card to curate or delete it, or long-press for Open link, Copy link, Curate and Delete.
-  - **+** makes a new record.
   - On iPad the record opens beside the list.
 - **Record.**
-  - The content, the metadata (summary, URL, published date, notes) and the linked records, grouped by how they're linked. Tap a linked record to open it.
-  - The Curated switch, Edit and Delete are under the metadata.
+  - The content, a Details card (summary, link, published date, notes) and the linked records, a card per kind of link. Tap a linked record to open it; swiping back returns one screen at a time.
+  - **Edit** is at the top. The bottom bar has **Curate**, **Open link**, **Share** and **Delete**.
+  - Links open in an in-app browser sheet.
 - **Sharing.**
   - Share a page from Safari. Select text first to save it as the record's content; the page's description becomes the summary.
   - Edit the title, add a note if you like, and tap **Save to Enchiridion**.
@@ -176,7 +174,7 @@ A Debug build can point at another API. Release builds always use production.
 
   It reaches both targets' Info.plists as `EnchiridionServer`. A launch argument still wins for the app. Delete the line (or the file) to go back to production.
 
-  Written as `http://localhost:4399`, the value arrives cut to `http:`. Like any value that isn't an http(s) address, that sends the build to `enchiridion-server-misconfigured.invalid` instead of production: every request fails, and the app's Settings shows that host under Server.
+  Written as `http://localhost:4399`, the value arrives cut to `http:`. Like any value that isn't an http(s) address, that sends the build to `enchiridion-server-misconfigured.invalid` instead of production: every request fails, and the app shows it can't reach voyager.
 
 The Simulator on voyager runs on voyager's own network, so it reaches production as voyager itself.
 
@@ -188,7 +186,7 @@ The Simulator on voyager runs on voyager's own network, so it reaches production
 
 ## Device checks for the first install
 
-1. **First run.** With checking on and the phone not yet listed, the app shows the not-listed screen with the phone's name and ID. Add the ID to the file; a pull to refresh then loads the library. Settings reads "Signed in as vern through Tailscale".
+1. **First run.** With checking on and the phone not yet listed, the app shows the not-listed screen with the phone's name and ID. Add the ID to the file; a pull to refresh then loads the library.
 2. **Tailscale off.** Turn Tailscale off. The library says "Tailscale is off. Turn it on to reach Enchiridion." with Retry, never the not-listed screen.
 3. **Share from Safari.** Select a paragraph and share to Enchiridion. The card shows the domain and title. Add a note and save: the card reads "Saved to Enchiridion" and closes. The record appears in the web app with the URL, the selection as its content, the description as its summary and the note as its notes.
 4. **Share while offline.** Share with Tailscale off. The card fails with a message, Retry and Copy link. Turn Tailscale on and tap Retry: the share is saved once.

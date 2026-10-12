@@ -31,12 +31,50 @@ extension View {
         #endif
     }
 
+    /// A menu stays open while its toggles and pickers change (iOS), so several filters can be set at once.
+    func keepsMenuOpen() -> some View {
+        #if canImport(UIKit)
+        menuActionDismissBehavior(.disabled)
+        #else
+        self
+        #endif
+    }
+
     /// Dragging a scroll view down takes the keyboard down with it (iOS).
     func dismissesKeyboardInteractively() -> some View {
         #if canImport(UIKit)
         scrollDismissesKeyboard(.interactively)
         #else
         self
+        #endif
+    }
+}
+
+extension ToolbarItemPlacement {
+    /// The bottom toolbar, where iOS puts Liquid Glass controls; macOS has none, so the automatic place.
+    static var bottomBarOrAutomatic: ToolbarItemPlacement {
+        #if canImport(UIKit)
+        .bottomBar
+        #else
+        .automatic
+        #endif
+    }
+}
+
+/// `compact` on a narrow iOS width (an iPhone, a narrow iPad split), `regular` otherwise (and always on macOS, which
+/// has no size classes).
+struct WidthSwitch<Compact: View, Regular: View>: View {
+    @ViewBuilder let compact: () -> Compact
+    @ViewBuilder let regular: () -> Regular
+    #if canImport(UIKit)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    #endif
+
+    var body: some View {
+        #if canImport(UIKit)
+        if sizeClass == .compact { compact() } else { regular() }
+        #else
+        regular()
         #endif
     }
 }

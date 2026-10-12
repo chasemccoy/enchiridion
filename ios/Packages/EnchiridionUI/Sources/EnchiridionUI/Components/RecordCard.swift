@@ -2,7 +2,7 @@ import EnchiridionKit
 import SwiftUI
 
 /// A record in the list, as the web's `RecordCard` draws it: `surface` fill, a 0.5 pt `border`, 12 pt radius, 12 pt
-/// padding, slots 6 pt apart, and a faint drop shadow. Selected, the shadow gives way to a 2 pt inset `primary` ring;
+/// padding, slots 6 pt apart, no drop shadow (a hairline is enough on iOS). Selected, a 2 pt inset `primary` ring;
 /// the background and the border stay as they are.
 ///
 /// Slots, top to bottom, each only when there is something to show: the parent chip (`showsParent`, for search
@@ -55,11 +55,7 @@ public struct RecordCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Space.cardPadding)
-        .background {
-            shape
-                .fill(Palette.surface)
-                .shadow(color: .black.opacity(isSelected ? 0 : 0.05), radius: 1, y: 1)
-        }
+        .background(Palette.surface, in: shape)
         .overlay { shape.strokeBorder(Palette.border, lineWidth: Metrics.cardBorder) }
         .overlay {
             if isSelected {

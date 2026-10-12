@@ -43,7 +43,7 @@ struct StatusBanner: View {
                     Button(action: retry) {
                         Label("Retry", systemImage: Symbol.retry)
                     }
-                    .buttonStyle(.raised)
+                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -73,7 +73,7 @@ struct EmptyMessage: View {
             }
             if let action {
                 Button(action.title, action: action.run)
-                    .buttonStyle(.raised)
+                    .buttonStyle(.bordered)
                     .padding(.top, Space.iconGap)
             }
         }
@@ -124,15 +124,16 @@ struct PressDimButtonStyle: ButtonStyle {
     }
 }
 
-/// A pressable row (a linked record): no fill at rest, `elevated` while pressed, the card radius.
+/// A pressable row in a grouped card (a linked record, the Link row): no fill at rest, `elevated` while pressed, edge
+/// to edge (the card clips it to its corners), as a list cell highlights.
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background {
                 if configuration.isPressed {
-                    Radius.shape(Radius.card).fill(Palette.elevated)
+                    Palette.elevated.view
                 }
             }
-            .contentShape(Radius.shape(Radius.card))
+            .contentShape(Rectangle())
     }
 }

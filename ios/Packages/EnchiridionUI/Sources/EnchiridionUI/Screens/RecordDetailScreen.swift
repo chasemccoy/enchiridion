@@ -5,8 +5,8 @@ import SwiftUI
 /// One record, as the web's `RecordDetail` shows it, read-only with Edit for changes: the badge row (Needs curating,
 /// the type, the source unless manual, the captured date, the id), the title in the serif, the byline (from the parent,
 /// by the creator, at the domain), the record's images, its content as Markdown (single newlines kept as line breaks),
-/// the metadata rows (Summary, URL with an open button, Published, Notes), Edit, Delete record and the Curated switch,
-/// then "Linked records" grouped by predicate. In a column at most 680 pt wide, centered.
+/// a Details card (Summary, Link, Published, Notes), then "Linked records", a card per predicate. In a column at most
+/// 680 pt wide, centered. Edit is in the navigation bar; Curate, Open, Share and Delete are in the bottom bar.
 ///
 /// Links (a linked record, the parent, the creator) push a `RecordRoute`; the stack this screen sits in registers its
 /// destination (`LibraryScreen` does). `onDeleted` runs once a delete from here succeeds: a pushed screen pops itself
@@ -37,8 +37,7 @@ public struct RecordDetailScreen: View {
         Group {
             if let detail = model.detail {
                 ScrollView {
-                    DetailContent(detail: detail, model: model, edit: edit, confirmingDelete: $confirmingDelete,
-                                  titleScrolledAway: $titleScrolledAway)
+                    DetailContent(detail: detail, model: model, titleScrolledAway: $titleScrolledAway)
                 }
                 .refreshable { await model.refresh() }
             } else if let error = model.state.error {
@@ -54,6 +53,11 @@ public struct RecordDetailScreen: View {
         // The serif title is the screen's heading; the bar shows it only once it has scrolled away.
         .navigationTitle(Text(verbatim: titleScrolledAway ? model.record.map(Self.barTitle) ?? "" : ""))
         .inlineNavigationTitle()
+        .toolbar {
+            if let record = model.record {
+                DetailToolbar(record: record, model: model, edit: edit, confirmingDelete: $confirmingDelete)
+            }
+        }
         .task { await model.load() }
         .onChange(of: model.isDeleted) { _, deleted in
             if deleted { onDeleted?() }
@@ -102,8 +106,6 @@ public struct RecordDetailScreen: View {
 private struct DetailContent: View {
     let detail: RecordDetail
     let model: RecordDetailModel
-    let edit: () -> Void
-    @Binding var confirmingDelete: Bool
     @Binding var titleScrolledAway: Bool
 
     var body: some View {
@@ -124,8 +126,7 @@ private struct DetailContent: View {
                 MarkdownText(content, size: .regular)
                     .textSelection(.enabled)
             }
-            MetadataSheet(record: record)
-            ActionsRow(model: model, edit: edit, confirmingDelete: $confirmingDelete)
+            DetailsCard(record: record)
             LinkedRecords(groups: model.linkGroups)
         }
         .frame(maxWidth: Metrics.detailWidth, alignment: .leading)
@@ -289,10 +290,64 @@ private struct DetailImage: View {
     }
 }
 
-/// Summary, URL (with a button that opens it), Published and Notes, each only when the record has it.
-private struct MetadataSheet: View {
+/// The bar items: Edit up top; Curate, Open, Share and Delete in the bottom bar, where iOS draws them in Liquid Glass.
+/// Curate fills once the record is curated (the badge row says "Needs curating" until then). Everything waits while a
+/// curate or delete is in flight.
+private struct DetailToolbar: ToolbarContent {
     let record: Record
+    let model: RecordDetailModel
+    let edit: () -> Void
+    @Binding var confirmingDelete: Bool
     @Environment(\.openURL) private var openURL
+
+    var body: some ToolbarContent {
+        let link = RecordURL.web(record.url)
+        ToolbarItem(placement: .primaryAction) {
+            Button("Edit", action: edit)
+                .disabled(model.isWorking)
+        }
+        ToolbarItem(placement: .bottomBarOrAutomatic) {
+            Button {
+                Task { await model.setCurated(!record.isCurated) }
+            } label: {
+                Label(record.isCurated ? "Curated" : "Curate",
+                      systemImage: record.isCurated ? Symbol.curated : Symbol.curate)
+            }
+            .tint(record.isCurated ? Palette.primary : nil)
+            .disabled(model.isWorking)
+            .accessibilityValue(record.isCurated ? "Curated" : "Needs curating")
+        }
+        ToolbarSpacer(.flexible, placement: .bottomBarOrAutomatic)
+        if let link {
+            ToolbarItem(placement: .bottomBarOrAutomatic) {
+                Button {
+                    openURL(link)
+                } label: {
+                    Label("Open link", systemImage: Symbol.browser)
+                }
+            }
+            ToolbarItem(placement: .bottomBarOrAutomatic) {
+                ShareLink(item: link) {
+                    Label("Share", systemImage: Symbol.share)
+                }
+            }
+        }
+        ToolbarItem(placement: .bottomBarOrAutomatic) {
+            Button(role: .destructive) {
+                confirmingDelete = true
+            } label: {
+                Label("Delete record", systemImage: Symbol.delete)
+            }
+            .tint(Palette.error)
+            .disabled(model.isWorking)
+        }
+    }
+}
+
+/// Summary, Link, Published and Notes, each only when the record has it: a grouped card, each label above its value
+/// (there's no room for a label column on a phone). The link opens in the in-app browser.
+private struct DetailsCard: View {
+    let record: Record
 
     var body: some View {
         let summary = record.summary.nonBlank
@@ -300,145 +355,133 @@ private struct MetadataSheet: View {
         let published = record.contentCreatedAt?.text(.published)
         let notes = record.notes.nonBlank
         if summary != nil || url != nil || published != nil || notes != nil {
-            VStack(alignment: .leading, spacing: 0) {
-                if let summary {
-                    MetadataRow("Summary", systemImage: Symbol.summary, text: summary)
-                }
-                if let url {
-                    MetadataRow("URL", systemImage: Symbol.url) {
-                        HStack(alignment: .firstTextBaseline, spacing: Space.metaGap) {
-                            Text(verbatim: url)
-                                .lineLimit(3)
-                                .truncationMode(.middle)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            if let link = RecordURL.web(url) {
-                                Button {
-                                    openURL(link)
-                                } label: {
-                                    Image(systemName: Symbol.openURL)
-                                }
-                                .buttonStyle(PressDimButtonStyle())
-                                .foregroundStyle(Palette.primary)
-                                .accessibilityLabel("Open source URL")
-                            }
+            VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
+                GroupedCardLabel(text: "Details")
+                GroupedCard {
+                    if let summary {
+                        DetailRow("Summary", systemImage: Symbol.summary) {
+                            Text(verbatim: summary).textSelection(.enabled)
+                        }
+                    }
+                    if let url {
+                        LinkRow(url: url)
+                    }
+                    if let published {
+                        DetailRow("Published", systemImage: Symbol.published) {
+                            Text(verbatim: published)
+                        }
+                    }
+                    if let notes {
+                        DetailRow("Notes", systemImage: Symbol.notes) {
+                            Text(verbatim: notes).textSelection(.enabled)
                         }
                     }
                 }
-                if let published {
-                    MetadataRow("Published", systemImage: Symbol.published, text: published)
-                }
-                if let notes {
-                    MetadataRow("Notes", systemImage: Symbol.notes, text: notes)
-                }
             }
         }
     }
 }
 
-/// Edit and Delete record (raised buttons), then the Curated switch in `primary`. All wait while a curate or delete
-/// is in flight.
-private struct ActionsRow: View {
-    let model: RecordDetailModel
-    let edit: () -> Void
-    @Binding var confirmingDelete: Bool
+/// A Details row: a small muted label with its symbol, the value under it.
+private struct DetailRow<Value: View>: View {
+    let label: String
+    let systemImage: String
+    let value: Value
+    @ScaledMetric(relativeTo: .caption) private var iconSize = Metrics.metadataIcon
+
+    init(_ label: String, systemImage: String, @ViewBuilder value: () -> Value) {
+        self.label = label
+        self.systemImage = systemImage
+        self.value = value()
+    }
 
     var body: some View {
-        FlowLayout(spacing: Space.actions, lineSpacing: Space.actionLines) {
-            Button {
-                edit()
-            } label: {
-                Label("Edit", systemImage: Symbol.edit)
+        VStack(alignment: .leading, spacing: Space.iconGap) {
+            HStack(spacing: Space.iconGap) {
+                Image(systemName: systemImage)
+                    .font(.system(size: iconSize))
+                    .foregroundStyle(Palette.textDimmed)
+                    .accessibilityHidden(true)
+                Text(verbatim: label)
+                    .font(Typography.metadataLabel)
+                    .foregroundStyle(Palette.textMuted)
             }
-            .buttonStyle(.raised)
-            Button(role: .destructive) {
-                confirmingDelete = true
-            } label: {
-                Label("Delete record", systemImage: Symbol.delete)
-            }
-            .buttonStyle(.raised)
-            Toggle(isOn: curated) {
-                Text("Curated")
-                    .font(Typography.toggleLabel)
-                    .foregroundStyle(Palette.text)
-            }
-            .toggleStyle(.switch)
-            .tint(Palette.primary)
-            .fixedSize()
-            .padding(.leading, Space.iconGap)
+            value
+                .font(Typography.metadataValue)
+                .foregroundStyle(Palette.text)
+                .wrapsFully()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .disabled(model.isWorking)
+        .padding(Metrics.groupedRowPadding)
+        .accessibilityElement(children: .combine)
     }
+}
 
-    private var curated: Binding<Bool> {
-        Binding {
-            model.record?.isCurated ?? false
-        } set: { isCurated in
-            Task { await model.setCurated(isCurated) }
+/// The Link row: the address in `primary`, tapping it opens the in-app browser. An address that isn't a web link
+/// shows as plain, selectable text.
+private struct LinkRow: View {
+    let url: String
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        if let link = RecordURL.web(url) {
+            Button {
+                openURL(link)
+            } label: {
+                HStack(alignment: .center, spacing: Space.metaGap) {
+                    DetailRow("Link", systemImage: Symbol.url) {
+                        Text(verbatim: url)
+                            .foregroundStyle(Palette.primary)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                    }
+                    .padding(.trailing, -Metrics.groupedRowPadding.trailing)
+                    Image(systemName: Symbol.browser)
+                        .font(Typography.count.weight(.semibold))
+                        .foregroundStyle(Palette.textDimmed)
+                        .padding(.trailing, Metrics.groupedRowPadding.trailing)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            .accessibilityHint("Opens the page")
+        } else {
+            DetailRow("Link", systemImage: Symbol.url) {
+                Text(verbatim: url).textSelection(.enabled)
+            }
         }
     }
 }
 
-/// "Linked records": a group per predicate as it reads from this record ("created by", "tagged with"), its label
-/// beside the rows when the column is wide and above them when it isn't (the web stacks them on narrow screens), a
-/// hairline between groups. Each row opens its record.
+/// "Linked records": a grouped card per predicate as it reads from this record ("Created by", "Tagged with"), its
+/// label above it. Each row opens its record.
 private struct LinkedRecords: View {
     let groups: [LinkGroup]
-    @State private var wide = false
 
     var body: some View {
         if !groups.isEmpty {
-            VStack(alignment: .leading, spacing: Space.linked) {
+            VStack(alignment: .leading, spacing: Space.detailGap) {
                 Text("Linked records")
                     .font(Typography.sectionHeading)
                     .foregroundStyle(Palette.text)
                     .accessibilityAddTraits(.isHeader)
-                ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                    if index > 0 {
-                        Palette.border.view
-                            .frame(height: Metrics.formRule)
+                ForEach(groups) { group in
+                    VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
+                        GroupedCardLabel(text: group.label)
+                        GroupedCard {
+                            ForEach(group.links) { link in
+                                NavigationLink(value: RecordRoute(id: link.recordID)) {
+                                    LinkedRecordRow(link: link)
+                                }
+                                .buttonStyle(RowButtonStyle())
+                            }
+                        }
                     }
-                    LinkGroupView(group: group, wide: wide)
                 }
             }
-            .padding(.top, Space.detailGap)
-            .onGeometryChange(for: Bool.self) { proxy in
-                proxy.size.width >= Metrics.wideDetail
-            } action: { isWide in
-                wide = isWide
-            }
+            .padding(.top, Space.metaGap)
         }
-    }
-}
-
-private struct LinkGroupView: View {
-    let group: LinkGroup
-    let wide: Bool
-    @ScaledMetric(relativeTo: .caption) private var labelWidth = Metrics.metadataLabelWidth
-
-    var body: some View {
-        let layout = wide
-            ? AnyLayout(HStackLayout(alignment: .top, spacing: Space.metaGap))
-            : AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
-        layout {
-            Text(verbatim: group.label)
-                .font(Typography.groupLabel)
-                .foregroundStyle(Palette.textMuted)
-                .padding(.top, wide ? Metrics.linkRowPadding.top : 0)
-                .frame(width: wide ? labelWidth : nil, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(group.links) { link in
-                    NavigationLink(value: RecordRoute(id: link.recordID)) {
-                        LinkedRecordRow(link: link)
-                    }
-                    .buttonStyle(RowButtonStyle())
-                }
-            }
-            // The rows' padding hangs into the margin, so their text lines up with the label.
-            .padding(.horizontal, -Metrics.linkRowPadding.leading)
-        }
-        .padding(.vertical, Space.badgeGap)
     }
 }
 
@@ -467,7 +510,7 @@ private struct LinkedRecordRow: View {
                 .foregroundStyle(Palette.textDimmed)
                 .accessibilityHidden(true)
         }
-        .padding(Metrics.linkRowPadding)
+        .padding(Metrics.groupedRowPadding)
         .contentShape(Rectangle())
     }
 }

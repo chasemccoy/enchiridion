@@ -1,3 +1,4 @@
+import EnchiridionKit
 import SwiftUI
 
 // Tokens only the screens use, kept beside them so the theme files stay the shared vocabulary. Views still take every
@@ -41,6 +42,9 @@ extension Metrics {
     static let linkRowPadding = EdgeInsets(top: 7, leading: 10, bottom: 7, trailing: 10)
     /// The detail is wide enough to set linked-record groups beside their label column, as the web does above 768 px.
     static let wideDetail: CGFloat = 520
+    /// A grouped card row's padding, and the gap between a group's caption and its card.
+    static let groupedRowPadding = EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14)
+    static let groupedCaptionGap: CGFloat = 6
     /// The tallest a detail image gets before it is scaled down to fit.
     static let detailImageMaxHeight: CGFloat = 420
     /// The share card's preview icon square, and its widest the card gets on iPad.
@@ -60,4 +64,27 @@ extension Symbol {
     static let saved = "checkmark.circle.fill"
     /// A save that failed.
     static let failure = "exclamationmark.triangle"
+    /// The filter and sort menu: outlined at rest, filled while a filter hides records.
+    static let filter = "line.3.horizontal.decrease"
+    static let filterOn = "line.3.horizontal.decrease.circle.fill"
+    static let allRecords = "square.stack"
+    static let sort = "arrow.up.arrow.down"
+    static let reset = "arrow.counterclockwise"
+    /// The detail's bar: curate (filled once curated), open in the browser, share.
+    static let curated = "checkmark.circle.fill"
+    static let browser = "safari"
+    static let share = "square.and.arrow.up"
+    static let more = "ellipsis"
+}
+
+extension RecordType {
+    /// The type as a filter names it: "Artifacts", "Concepts", "Entities".
+    var pluralName: String {
+        switch self {
+        case .artifact: "Artifacts"
+        case .concept: "Concepts"
+        case .entity: "Entities"
+        default: displayName
+        }
+    }
 }

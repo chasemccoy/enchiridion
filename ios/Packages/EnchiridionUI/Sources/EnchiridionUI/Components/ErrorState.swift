@@ -61,7 +61,7 @@ public struct ErrorState: View {
                     Button(action: retry) {
                         Label("Retry", systemImage: Symbol.retry)
                     }
-                    .buttonStyle(.raised)
+                    .buttonStyle(.bordered)
                     .padding(.top, Space.iconGap)
                 }
             }

@@ -23,8 +23,8 @@ This is how the iPhone and iPad client is built.
 | Package | Imports | Holds |
 |---|---|---|
 | `EnchiridionKit` | Foundation | Wire types, `EnchiridionClient` (an actor over an injected `HTTPTransport`), `EnchiridionError`, `Slug`, `DBTimestamp`, the predicate vocabulary |
-| `EnchiridionCore` | Foundation, Observation, Kit | `AppEnvironment`, `Server`, and the `@MainActor @Observable` models: `LibraryModel`, `RecordDetailModel`, `RecordEditorModel`, `ConnectionModel`, `ShareComposeModel`. Also slug planning and share input. |
-| `EnchiridionUI` | SwiftUI, Kit, Core | The theme (`Palette`, `Typography`, `Radius`, `Space`, `Metrics`, `FontRegistry`), the components (`RecordCard`, `Badge`, `MonthHeader`, `NotAllowedView`, `ErrorState`, …) and the screens (`EnchiridionRootView`, `LibraryScreen`, `RecordDetailScreen`, `RecordEditorSheet`, `SettingsSheet`, `ShareComposeView`) |
+| `EnchiridionCore` | Foundation, Observation, Kit | `AppEnvironment`, `Server`, and the `@MainActor @Observable` models: `LibraryModel`, `RecordDetailModel`, `RecordEditorModel`, `ShareComposeModel`. Also slug planning and share input. |
+| `EnchiridionUI` | SwiftUI, Kit, Core | The theme (`Palette`, `Typography`, `Radius`, `Space`, `Metrics`, `FontRegistry`), the components (`RecordCard`, `Badge`, `MonthHeader`, `NotAllowedView`, `ErrorState`, …) and the screens (`EnchiridionRootView`, `LibraryScreen`, `RecordDetailScreen`, `RecordEditorSheet`, `ShareComposeView`) |
 
 Dependencies point one way: Kit ← Core ← UI ← targets. Each package has `swift-tools-version: 6.4` and `platforms: [.iOS(.v27), .macOS(.v27)]`.
 
@@ -102,10 +102,9 @@ Dependencies point one way: Kit ← Core ← UI ← targets. Each package has `s
 ```
 EnchiridionApp (target)            FontRegistry.register(bundle: .main); AppEnvironment.live(server:)
   └ EnchiridionRootView(environment:)     owns the models in @State, passes them down with .environment(model)
-      ├ LibraryModel ── detailModel(id:) ──▶ RecordDetailModel ── makeEditor() ──▶ RecordEditorModel
-      │      ▲                                     │                                   │
-      │      └──────────── RecordChange (.created / .updated / .deleted) ◀─────────────┘
-      └ ConnectionModel (Settings)
+      └ LibraryModel ── detailModel(id:) ──▶ RecordDetailModel ── makeEditor() ──▶ RecordEditorModel
+             ▲                                     │                                   │
+             └──────────── RecordChange (.created / .updated / .deleted) ◀─────────────┘
 ```
 
 **The environment.** `AppEnvironment` is a `Sendable` struct holding everything a model touches outside itself:
@@ -141,19 +140,23 @@ Tests use stub transports and a manual clock.
 - A row with a curate or delete in flight (`workingIDs`) takes no other action: the model refuses it and the card's actions are disabled.
 - A record deleted elsewhere answers a curate, an edit or a detail's load with 404 (the server refuses to update an id no row has, and ids are never reused). The row leaves, an open detail closes, and the record is said to be gone where the user will see it:
   - From the list (a swipe, the context menu), the library's alert says it.
-  - From a detail (its Curated switch, or loading it: a row the phone still lists after a delete on the web), the detail reports `.vanished`: it closes, and the library's alert (on `LibraryScreen`, outside the split view's columns) says it.
+  - From a detail (its Curate button, or loading it: a row the phone still lists after a delete on the web), the detail reports `.vanished`: it closes, and the library's alert (on `LibraryScreen`, above the navigation) says it.
   - From an editor, the sheet stays up with "That record couldn't be found." inline and the typed text still there. It reports `.deleted` when it closes (`RecordEditorModel.close()`, from the sheet's `onDisappear`); only then does the row leave and the detail it was opened from close.
-- **Every editor is presented by `LibraryScreen`**, above the split view: New record, a card's Edit, and a detail's Edit (`RecordDetailScreen`'s `onEdit`). A reload can move the selection while an editor is open (the record left the list: curated on the web while the list shows what needs curating, say), and a sheet goes with the screen that presented it, typed text and all. A detail's editor reports through its detail while that is still shown, and straight to the library once it isn't (`RecordDetailModel.makeEditor()`).
+- **Every editor is presented by `LibraryScreen`**, above the navigation: New record, a card's Edit, and a detail's Edit (`RecordDetailScreen`'s `onEdit`). A reload can move the selection while an editor is open (the record left the list: curated on the web while the list shows what needs curating, say), and a sheet goes with the screen that presented it, typed text and all. A detail's editor reports through its detail while that is still shown, and straight to the library once it isn't (`RecordDetailModel.makeEditor()`).
 
 **Coming back to the foreground.** `EnchiridionRootView` reloads the index when the app becomes active after a failed load (a 401 included, because the not-allowed state has no Retry of its own) or after 15 minutes in the background. After a shorter time in the background (a share from Safari, say) it calls `refreshIfNewer()`, which asks for `ListQuery.newest` alone and reloads only when that record isn't in the index yet. Nothing pushes new records to the phone.
 
 ### The library
 
-**Index and filters.** `LibraryModel` loads the whole index once, as the web does. `visibleRecords` applies the web IndexView's filters:
+**Index, filters and sort.** `LibraryModel` loads the whole index once, as the web does. `visibleRecords` applies the web IndexView's filters and sort (`LibraryModel.Filters`):
 - `type`: one type, or all;
-- `needsCuration`: hides curated records.
+- `needsCuration`: hides curated records;
+- `hasMedia`: keeps records with any media attached;
+- `sort`: newest (the index's own order), oldest, title A–Z (untitled last), or relevance (the search's ranking, offered only while searching). Nil means the default: relevance while searching, newest otherwise. Sorts are stable.
 
-**Sections.** Records are grouped by the local month of `recordCreatedAt` ("September 2026"). A section shows its count, " (N)", only when it has more than 4 records. Rows whose timestamp won't parse go into a trailing "Undated" section. While searching there is a single flat section with no header.
+**Sections.** Records are grouped by the local month of `recordCreatedAt` ("September 2026"). A section shows its count, " (N)", only when it has more than 4 records. Rows whose timestamp won't parse go into a trailing "Undated" section. While searching, or sorted by title, there is a single flat section with no header (the web's rule).
+
+**Navigation.** On an iPhone (a compact width) `LibraryScreen` is one `NavigationStack`: the list, the selected record pushed on it, linked records pushed on that, so back goes one screen at a time. The stack's first screen follows `selectedID` (a model-moved selection replaces it, under any linked records above), and popping back to the list clears it. On an iPad it's a `NavigationSplitView` whose detail column has its own stack. The list's bottom bar holds the filter and sort menu, search and New record; a detail's has Curate, Open link, Share and Delete, with Edit in the navigation bar. Links open in an in-app Safari sheet (`inAppBrowser()`, which takes over `openURL` at the root).
 
 **The count** (`countText`) reads as the web's: "567 records", "12 of 567 records", "8 results", "Searching…", "Search failed. Try again.". It is nil, and the title shows no count, until an index has loaded.
 
@@ -205,26 +208,13 @@ The rule is a pure function, `LibraryModel.successor(of:previous:next:)`, tested
 - A 401 without a device reads "Enchiridion couldn't tell which device this is. Is Tailscale on?" instead.
 - Being offline, Tailscale being off, or voyager restarting never looks like the not-allowed state. Those show `ErrorState` with the error's message and Retry.
 
-**`ConnectionModel`** feeds Settings › Connection from `GET /me`:
-- **Server:** the host, e.g. `enchiridion-api.chsmc.tools`.
-- **Status line** (`StatusText`):
-
-  | Scheme | Text |
-  |---|---|
-  | `tailscale` | "Signed in as vern through Tailscale" |
-  | `local` | "Signed in on this Mac" |
-  | `open` | "Open: Enchiridion isn't checking devices" |
-
-  After a failure, the line shows the failure instead.
-- **Device:** the device's name and id.
-
-A 401 clears `me` and takes the device from the error body. Any other failure keeps the last `me`.
+**Who you are.** `GET /me` says how voyager sees the device (`scheme`, `device`, `user`); the app doesn't call it. Its only identity screen is the not-allowed state, which takes the device from the 401's body.
 
 **Overriding the server.** Release builds always use `Server.production`. DEBUG builds may point elsewhere:
 - the app with the launch argument `-EnchiridionServer <origin>` (`Server.fromArguments`);
 - the app and the share extension, which never receives launch arguments, with the `EnchiridionServer` Info.plist key (`Server.fromInfoDictionary`). project.yml sets it from the `ENCHIRIDION_SERVER` build setting, empty in `Config/Base.xcconfig` and set in the gitignored `Config/Local.xcconfig`. The launch argument wins for the app.
 
-Only an override that is absent, empty or unexpanded means production. One that is set but isn't an http(s) address (the `http:` an xcconfig leaves of `http://localhost:4399`, a typo, a bare `-EnchiridionServer`) gives `Server.misconfigured`, `https://enchiridion-server-misconfigured.invalid`: a reserved name that never resolves, so every request fails and Settings' Server row shows it. A build meant for a sandbox never quietly writes to the live database.
+Only an override that is absent, empty or unexpanded means production. One that is set but isn't an http(s) address (the `http:` an xcconfig leaves of `http://localhost:4399`, a typo, a bare `-EnchiridionServer`) gives `Server.misconfigured`, `https://enchiridion-server-misconfigured.invalid`: a reserved name that never resolves, so every request fails and the app says it can't reach voyager. A build meant for a sandbox never quietly writes to the live database.
 
 ## Editing and slug rules
 
