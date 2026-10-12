@@ -297,7 +297,7 @@ App Intents in the app target (`iOS/Shortcuts.swift`), no entitlement needed, ov
 
 ## Widget
 
-`Widget/EnchiridionWidget.swift`, the `EnchiridionWidget` extension: one `AppIntentConfiguration` widget (small, medium, Lock Screen rectangular) whose configuration intent has Curated only (on by default). Its timeline is 12 entries an hour apart from one index load (`RecordShortcuts.sample`, client role `widget`, 10 s), then `.atEnd`; nothing to show waits 6 h, a failure shows the error's message and tries again in 30 min. A tap opens `enchiridion://record/<id>`. It talks to the server itself (no App Groups to borrow the app's data), so it shows nothing while Tailscale is off. The serif comes from the extension's own bundle, as the share card's does.
+`Widget/EnchiridionWidget.swift`, the `EnchiridionWidget` extension: one `AppIntentConfiguration` widget (small, medium, Lock Screen rectangular) whose configuration intent has Curated only (on by default). Its timeline is 12 entries an hour apart from one index load (`RecordShortcuts.sampleRetrying`, client role `widget`, 10 s a request), then `.atEnd`. A refresh runs in the background, sometimes before the phone's Tailscale tunnel is back, so a network failure is tried 3 times 3 s apart before it counts. Nothing to show waits 6 h; a failure shows the error's message with a Try again button (`ReloadRecordWidget`, an intent whose run reloads the timeline) and tries again on its own in 15 min. A tap opens `enchiridion://record/<id>`. It talks to the server itself (no App Groups to borrow the app's data), so it shows nothing while Tailscale is off. The serif comes from the extension's own bundle, as the share card's does.
 
 ## Targets (`project.yml`)
 

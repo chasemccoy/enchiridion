@@ -269,6 +269,31 @@ struct RecordShortcutsTests {
         #expect(await transport.requests.first?.headers["X-Enchiridion-Client"]?.hasSuffix(" widget") == true)
     }
 
+    @Test func aSampleRetriesWhileTheNetworkIsDown() async throws {
+        let calls = Mutex(0)
+        let transport = StubTransport { _ in
+            let call = calls.withLock { $0 += 1; return $0 }
+            if call < 3 { throw URLError(.timedOut) }
+            return .json([Fixture.row(1, title: "One", curated: true)])
+        }
+        let shortcuts = RecordShortcuts(environment: .test(transport), role: .widget)
+        #expect(try await shortcuts.sampleRetrying(5, pause: .zero).map(\.id) == [1])
+        #expect(calls.withLock { $0 } == 3)
+    }
+
+    @Test func aSampleGivesUpAfterItsAttemptsAndOnLastingErrors() async {
+        let calls = Mutex(0)
+        let down = StubTransport { _ in calls.withLock { $0 += 1 }; throw URLError(.cannotConnectToHost) }
+        await #expect(throws: EnchiridionError.unreachable) {
+            try await RecordShortcuts(environment: .test(down)).sampleRetrying(5, attempts: 2, pause: .zero)
+        }
+        #expect(calls.withLock { $0 } == 2)
+        let refused = StubTransport { _ in .raw(#"{"message":"no","device":null}"#, status: 401) }
+        await #expect(throws: EnchiridionError.unauthorized(device: nil)) {
+            try await RecordShortcuts(environment: .test(refused)).sampleRetrying(5)
+        }
+    }
+
     @Test @MainActor func savingALinkMakesAnArtifact() async throws {
         let saved = Fixture.record(42, slug: "tiny-internets", title: "Tiny internets", url: "https://example.com/tiny")
         let transport = StubTransport { request in

@@ -43,6 +43,14 @@ struct RandomRecordWidget: Widget {
     }
 }
 
+/// The widget's Try again: running any intent from a widget's button reloads its timeline.
+struct ReloadRecordWidget: AppIntent {
+    static let title: LocalizedStringResource = "Reload random record"
+    static let isDiscoverable = false
+
+    func perform() async throws -> some IntentResult { .result() }
+}
+
 /// What a widget shows: a record, else why there's none.
 struct RecordWidgetEntry: TimelineEntry {
     struct Shown: Hashable {
@@ -57,6 +65,8 @@ struct RecordWidgetEntry: TimelineEntry {
     var date: Date
     var record: Shown?
     var message: String?
+    /// A failed load: the widget offers Try again.
+    var canRetry = false
 
     static let sample = RecordWidgetEntry(
         date: .now,
@@ -92,7 +102,7 @@ struct RandomRecordProvider: AppIntentTimelineProvider {
         let now = Date.now
         do {
             let rows = try await RecordShortcuts(environment: .shareExtension(server: Self.server), role: .widget)
-                .sample(Self.hours, curatedOnly: configuration.curatedOnly)
+                .sampleRetrying(Self.hours, curatedOnly: configuration.curatedOnly)
             guard !rows.isEmpty else {
                 let entry = RecordWidgetEntry(date: now, message: "Nothing to show yet.")
                 return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(6 * 3600)))
@@ -102,9 +112,9 @@ struct RandomRecordProvider: AppIntentTimelineProvider {
             }
             return Timeline(entries: entries, policy: .atEnd)
         } catch {
-            // Tailscale off, voyager restarting: say so, and try again in a while.
-            let entry = RecordWidgetEntry(date: now, message: RecordShortcuts.message(for: error))
-            return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(30 * 60)))
+            // Tailscale off, voyager restarting: say so (with Try again), and try again on its own in a while.
+            let entry = RecordWidgetEntry(date: now, message: RecordShortcuts.message(for: error), canRetry: true)
+            return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(15 * 60)))
         }
     }
 
@@ -140,10 +150,20 @@ struct RecordWidgetView: View {
                     card(record)
                 }
             } else {
-                Text(verbatim: entry.message ?? "Nothing to show yet.")
-                    .font(Typography.stateMessage)
-                    .foregroundStyle(Palette.textMuted)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                VStack(alignment: .leading, spacing: Space.metaGap) {
+                    Text(verbatim: entry.message ?? "Nothing to show yet.")
+                        .font(Typography.stateMessage)
+                        .foregroundStyle(Palette.textMuted)
+                    Spacer(minLength: 0)
+                    if entry.canRetry, family != .accessoryRectangular {
+                        Button(intent: ReloadRecordWidget()) {
+                            Label("Try again", systemImage: Symbol.retry)
+                                .font(Typography.byline)
+                        }
+                        .tint(Palette.primary)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .widgetURL(entry.record.map { DeepLink.record($0.id) })

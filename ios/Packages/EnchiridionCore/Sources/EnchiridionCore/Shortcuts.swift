@@ -6,8 +6,10 @@ import Foundation
 public struct RecordShortcuts: Sendable {
     private let client: EnchiridionClient
     private let fallbackSlug: @Sendable () -> String
+    private let environment: AppEnvironment
 
     public init(environment: AppEnvironment, role: ClientRole = .app) {
+        self.environment = environment
         client = environment.client(role: role)
         fallbackSlug = environment.fallbackSlug
     }
@@ -47,6 +49,23 @@ public struct RecordShortcuts: Sendable {
                        using shuffle: @Sendable ([ListRecord]) -> [ListRecord] = { $0.shuffled() })
         async throws -> [ListRecord] {
         Array(shuffle(try await candidates(curatedOnly: curatedOnly)).prefix(count))
+    }
+
+    /// `sample`, tried up to `attempts` times `pause` apart while the failure is the network's (`isTransient`): a
+    /// widget refreshing in the background may run before the phone's Tailscale tunnel is back up. Anything else
+    /// throws at once.
+    public func sampleRetrying(_ count: Int, curatedOnly: Bool = true, attempts: Int = 3,
+                               pause: Duration = .seconds(3)) async throws -> [ListRecord] {
+        var attempt = 1
+        while true {
+            do {
+                return try await sample(count, curatedOnly: curatedOnly)
+            } catch {
+                guard attempt < attempts, EnchiridionError.classify(error)?.isTransient == true else { throw error }
+                attempt += 1
+                try await environment.sleep(for: pause)
+            }
+        }
     }
 
     private func candidates(curatedOnly: Bool) async throws -> [ListRecord] {
