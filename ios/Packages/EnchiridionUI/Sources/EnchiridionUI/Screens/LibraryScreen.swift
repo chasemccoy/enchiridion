@@ -118,14 +118,7 @@ private struct LibraryList: View {
     var body: some View {
         @Bindable var library = library
         List {
-            if let error = library.state.error, !library.records.isEmpty {
-                StatusBanner(error: error) {
-                    Task { await library.refresh() }
-                }
-                .listRowInsets(EdgeInsets(top: 0, leading: Space.margin, bottom: Space.metaGap, trailing: Space.margin))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-            }
+            RefreshFailureRow()
             ForEach(library.sections) { section in
                 if let heading = section.heading {
                     MonthHeader(heading)
@@ -150,7 +143,13 @@ private struct LibraryList: View {
         .background(Palette.page)
         .overlay { LibraryPlaceholder() }
         .searchable(text: $library.query, prompt: Text("Search records"))
-        .refreshable { await library.refresh() }
+        .refreshable {
+            // A refresh that answers in a blink makes the system's spinner vanish and the list stall before it
+            // retracts; held for a moment, it retracts in one smooth movement, as in the system's own apps.
+            async let minimum: Void? = try? Task.sleep(for: .milliseconds(700))
+            await library.refresh()
+            _ = await minimum
+        }
         // No system title: the wordmark at the leading edge is the title.
         .navigationTitle("")
         .inlineNavigationTitle()
@@ -178,6 +177,23 @@ private struct LibraryList: View {
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
+        }
+    }
+}
+
+/// A failed refresh above rows still worth showing. A view of its own, so the load state changing during a refresh
+/// redraws only this, never the list.
+private struct RefreshFailureRow: View {
+    @Environment(LibraryModel.self) private var library
+
+    var body: some View {
+        if let error = library.state.error, !library.records.isEmpty {
+            StatusBanner(error: error) {
+                Task { await library.refresh() }
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: Space.margin, bottom: Space.metaGap, trailing: Space.margin))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
         }
     }
 }

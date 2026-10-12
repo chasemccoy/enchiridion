@@ -224,8 +224,11 @@ public final class LibraryModel {
         await task.value
     }
 
+    /// Loads the index. A refresh of rows already on screen changes only what differs: the state stays `.loaded` and an
+    /// unchanged answer assigns nothing, so the list isn't redrawn (and pull to refresh retracts smoothly) when nothing
+    /// changed.
     private func fetchIndex() async {
-        state = .loading
+        if state != .loaded || records.isEmpty { state = .loading }
         fetchingIndex = true
         changesDuringLoad = []
         defer {
@@ -234,8 +237,9 @@ public final class LibraryModel {
         }
         do {
             let fetched = try await client.list(.index)
-            records = withPendingCurations(Self.replay(changesDuringLoad, onto: fetched))
-            state = .loaded
+            let rows = withPendingCurations(Self.replay(changesDuringLoad, onto: fetched))
+            if rows != records { records = rows }
+            if state != .loaded { state = .loaded }
             rebuild()
         } catch {
             guard let error = EnchiridionError.classify(error) else {
@@ -454,10 +458,12 @@ public final class LibraryModel {
         let base = isSearching ? searchResults ?? [] : records
         let next = Self.visible(base, filters: filters, searching: isSearching)
         let previousIDs = visibleRecords.map(\.id)
-        visibleRecords = next
+        // Only what changed is assigned: an assignment redraws every view that reads it, equal or not.
+        if next != visibleRecords { visibleRecords = next }
         // Months only while browsing in date order, as the web groups.
         let grouped = !isSearching && filters.effectiveSort(searching: false) != .title
-        sections = Self.sections(next, grouped: grouped, timeZone: environment.timeZone)
+        let nextSections = Self.sections(next, grouped: grouped, timeZone: environment.timeZone)
+        if nextSections != sections { sections = nextSections }
         guard !sourceChanged else { return }
         let successor = Self.successor(of: selectedID, previous: previousIDs, next: next.map(\.id))
         if successor != selectedID { selectedID = successor }
