@@ -12,3 +12,5 @@ backup/
 **/dist/
 # Claude Test runs and specs (generated; specs are saved by its own tooling)
 .claude-test/
+# The iOS app has its own formatting and gates (ios/scripts/test.sh)
+ios/

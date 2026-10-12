@@ -1,0 +1,17 @@
+// Shared build settings for every target and configuration. Nothing here is secret.
+// The production server is a Swift constant, Server.production (EnchiridionCore).
+
+DEVELOPMENT_TEAM = 756EWAN4G2
+CODE_SIGN_STYLE = Automatic
+IPHONEOS_DEPLOYMENT_TARGET = 27.0
+MARKETING_VERSION = 0.1
+CURRENT_PROJECT_VERSION = 1
+
+// Another API for DEBUG builds of both the app and the share extension (the EnchiridionServer Info.plist key);
+// empty means production, and Release builds ignore it. `//` starts a comment in an xcconfig, so write the address
+// with an empty `$()` between the slashes, e.g. in Local.xcconfig:
+//   ENCHIRIDION_SERVER = http:/$()/localhost:4399
+ENCHIRIDION_SERVER =
+
+// Optional machine-local overrides (gitignored): another DEVELOPMENT_TEAM, ENCHIRIDION_SERVER.
+#include? "Local.xcconfig"

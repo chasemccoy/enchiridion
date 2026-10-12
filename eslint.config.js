@@ -12,6 +12,9 @@ export default defineConfig([
       '**/dist/**',
       // Claude Test run folders hold generated live-page scripts and specs.
       '.claude-test/**',
+      // The iOS app (Swift, XcodeGen YAML, a share-extension preprocessing script)
+      // has its own gates in ios/scripts/test.sh.
+      'ios/**',
       // Scratch playground, exempt from lint (and from type checking — see
       // tsconfig.app.json) so experiments can't redden the real gates.
       'app/design-lab/**',

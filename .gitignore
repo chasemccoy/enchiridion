@@ -31,3 +31,12 @@ components.d.ts
 .claude
 /uploads
 app/design-lab/
+# iOS app (ios/): generated Xcode project and build output
+ios/*.xcodeproj
+ios/**/.build/
+ios/**/.build-*/
+ios/build/
+ios/**/DerivedData/
+ios/**/.swiftpm/
+ios/Config/Local.xcconfig
+*.xcresult

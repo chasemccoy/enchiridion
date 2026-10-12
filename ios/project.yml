@@ -1,0 +1,128 @@
+# XcodeGen 2.46.0 spec for the Enchiridion iPhone and iPad app and its share extension (ios/ARCHITECTURE.md,
+# "Targets"). Generate with `xcodegen generate` in ios/; never commit Enchiridion.xcodeproj. The two Info.plists are
+# written from the `properties` below and committed. No entitlements: the free team gets no App Groups or keychain
+# group, and the app needs neither (the share extension saves straight to the server).
+name: Enchiridion
+options:
+  bundleIdPrefix: org.chsmc
+  deploymentTarget:
+    iOS: "27.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"                      # Swift 6 language mode on the 6.4 compiler
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # TARGETED_DEVICE_FAMILY is set on each target: XcodeGen's iOS platform preset writes it at target level, which
+    # would override a project-level value. The team and signing style live only in Config/Base.xcconfig: a value
+    # here would be an explicit project setting, which outranks the xcconfig, so Local.xcconfig couldn't override it.
+
+packages:
+  EnchiridionKit:
+    path: Packages/EnchiridionKit
+  EnchiridionCore:
+    path: Packages/EnchiridionCore
+  EnchiridionUI:
+    path: Packages/EnchiridionUI
+
+targets:
+  Enchiridion:
+    type: application
+    platform: iOS
+    sources:
+      - path: iOS
+      # Martina Plantijn, the web app's serif, referenced in place (never copied: it is Klim-licensed, README.md
+      # "Fonts"). Copied to the bundle's root, where FontRegistry.register(bundle:) looks for it.
+      - path: ../app/public/fonts/martina-plantijn/regular.woff2
+        group: Fonts
+        buildPhase: resources
+      - path: ../app/public/fonts/martina-plantijn/medium.woff2
+        group: Fonts
+        buildPhase: resources
+    dependencies:
+      - package: EnchiridionKit
+      - package: EnchiridionCore
+      - package: EnchiridionUI
+      - target: EnchiridionShare
+        embed: true
+    info:
+      path: iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Enchiridion
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CADisableMinimumFrameDurationOnPhone: true
+        ITSAppUsesNonExemptEncryption: false
+        EnchiridionServer: $(ENCHIRIDION_SERVER)   # read by DEBUG builds only (Config/Base.xcconfig)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.chsmc.enchiridion
+        PRODUCT_NAME: Enchiridion
+        TARGETED_DEVICE_FAMILY: "1,2"         # iPhone and iPad
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+  EnchiridionShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+      - path: ../app/public/fonts/martina-plantijn/regular.woff2
+        group: Fonts
+        buildPhase: resources
+      - path: ../app/public/fonts/martina-plantijn/medium.woff2
+        group: Fonts
+        buildPhase: resources
+    dependencies:
+      - package: EnchiridionKit
+      - package: EnchiridionCore
+      - package: EnchiridionUI
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Enchiridion          # the name under the icon in the share sheet
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        EnchiridionServer: $(ENCHIRIDION_SERVER)   # read by DEBUG builds only (Config/Base.xcconfig)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionJavaScriptPreprocessingFile: Preprocess
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.chsmc.enchiridion.share
+        PRODUCT_NAME: EnchiridionShare        # so $(PRODUCT_MODULE_NAME).ShareViewController resolves
+        TARGETED_DEVICE_FAMILY: "1,2"
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+schemes:
+  Enchiridion:
+    build:
+      targets:
+        Enchiridion: all
+        EnchiridionShare: all
+    # Run builds Release, so the phone gets an optimized build that always talks to Server.production. To develop
+    # against another server, switch Run to Debug and pass `-EnchiridionServer <origin>` (README.md, "Development").
+    run:
+      config: Release
