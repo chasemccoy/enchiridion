@@ -1,6 +1,7 @@
 import EnchiridionCore
 import EnchiridionKit
 import EnchiridionUI
+import LinkPresentation
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -51,6 +52,18 @@ final class ShareViewController: UIViewController {
         host(ShareComposeView(model: model,
                               onDone: { [weak self] in self?.complete() },
                               onCancel: { [weak self] in self?.cancel() }))
+        if let url = input.url, input.title == nil {
+            Task { if let title = await Self.pageTitle(url) { model.suggestTitle(title) } }
+        }
+    }
+
+    /// The page's title from its metadata, for a share that came without one (an app that shares only the link).
+    /// LinkPresentation loads the page itself; the card is usable meanwhile, and a title typed first is kept.
+    private static func pageTitle(_ url: URL) async -> String? {
+        let provider = LPMetadataProvider()
+        provider.timeout = 8
+        provider.shouldFetchSubresources = false
+        return try? await provider.startFetchingMetadata(for: url).title
     }
 
     /// Nothing usable came from the share sheet: say so briefly, then close.
@@ -105,7 +118,8 @@ final class ShareViewController: UIViewController {
         let url = await first(.url) { await object(URL.self, from: $0) }
         let text = await first(.plainText) { await object(String.self, from: $0) }
             ?? items.lazy.compactMap { $0.attributedContentText?.string }.first { !$0.isEmpty }
-        return ShareInput.from(javaScript: javaScript, url: url, text: text)
+        let itemTitle = items.lazy.compactMap { $0.attributedTitle?.string }.first { !$0.isEmpty }
+        return ShareInput.from(javaScript: javaScript, url: url, text: text, itemTitle: itemTitle)
     }
 
     /// A URL or a string, through the provider's object interface.

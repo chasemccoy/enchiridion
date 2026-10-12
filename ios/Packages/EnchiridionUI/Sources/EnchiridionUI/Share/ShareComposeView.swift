@@ -32,7 +32,6 @@ public struct ShareComposeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: Field?
     @State private var path: [LinkPickerStep] = []
-    @State private var search: RecordSearchModel?
 
     private enum Field: Hashable {
         case title, content, summary, url, note
@@ -100,9 +99,7 @@ public struct ShareComposeView: View {
             .navigationDestination(for: LinkPickerStep.self) { step in
                 switch step {
                 case .record:
-                    if let search {
-                        RecordLinkSearch(search: search, path: $path)
-                    }
+                    RecordLinkSearch(search: model.linkSearch, path: $path)
                 case .predicate(let row):
                     LinkPredicatePicker(target: row) { predicate in
                         model.draft.link(PendingLink(row, predicate: predicate))
@@ -184,7 +181,6 @@ public struct ShareComposeView: View {
                 }
                 PendingLinks(draft: $model.draft) {
                     focus = nil
-                    if search == nil { search = model.makeSearch() }
                     path = [.record]
                 }
             }

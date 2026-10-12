@@ -28,7 +28,20 @@ public struct ShareInput: Equatable, Sendable {
     /// A web URL item that comes with text keeps the text too: one line becomes the title (an app sharing a page's
     /// name), several lines the selection. Plain text that is just a web URL is shared as that URL; a URL that isn't
     /// a web page (`mailto:`) is shared as text.
-    public static func from(javaScript: [String: String]?, url: URL?, text: String?) -> ShareInput? {
+    ///
+    /// `itemTitle` is the share item's own title (`NSExtensionItem.attributedTitle`): a page's title when Safari's
+    /// preprocessing didn't give one or didn't run (another app, Safari View Controller).
+    public static func from(javaScript: [String: String]?, url: URL?, text: String?,
+                            itemTitle: String? = nil) -> ShareInput? {
+        var input = interpret(javaScript: javaScript, url: url, text: text)
+        if input?.url != nil, input?.title == nil, let itemTitle = nonEmpty(itemTitle),
+           webURL(itemTitle) == nil {
+            input?.title = itemTitle
+        }
+        return input
+    }
+
+    private static func interpret(javaScript: [String: String]?, url: URL?, text: String?) -> ShareInput? {
         if let javaScript, let page = webURL(javaScript["url"]) {
             return ShareInput(url: page, title: nonEmpty(javaScript["title"]),
                               selection: nonEmpty(javaScript["selection"]),
@@ -161,10 +174,14 @@ public final class ShareComposeModel {
 
     @ObservationIgnored private let creation: RecordCreation
     @ObservationIgnored private let environment: AppEnvironment
+    @ObservationIgnored private var titleSuggested = false
+    /// The link picker's search, on the extension's client.
+    @ObservationIgnored public let linkSearch: RecordSearchModel
 
     public init(input: ShareInput, environment: AppEnvironment) {
         self.input = input
         self.environment = environment
+        linkSearch = RecordSearchModel(environment: environment, role: .share)
         draft = ShareDraft(input)
         creation = RecordCreation(client: environment.client(role: .share), fallback: environment.fallbackSlug)
     }
@@ -179,9 +196,14 @@ public final class ShareComposeModel {
         draft.hasContent && (state == .editing || state.error != nil)
     }
 
-    /// A search for the card's link picker, on the extension's client.
-    public func makeSearch() -> RecordSearchModel {
-        RecordSearchModel(environment: environment, role: .share)
+    /// Fills in a title found after the card opened (the page's metadata, fetched by the extension), unless one is
+    /// there already or the card has moved on. Only once, so a title cleared on purpose stays cleared.
+    public func suggestTitle(_ title: String) {
+        guard !titleSuggested, state == .editing,
+              draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let title = ShareInput.nonEmpty(title) else { return }
+        titleSuggested = true
+        draft.title = ShareDraft.oneLine(title)
     }
 
     /// The record saved but some links didn't: Retry adds them.

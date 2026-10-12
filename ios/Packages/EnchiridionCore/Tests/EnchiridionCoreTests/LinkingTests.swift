@@ -112,3 +112,35 @@ struct RecordSearchModelTests {
         #expect(search.results.isEmpty)
     }
 }
+
+@MainActor
+struct ShareTitleTests {
+    private let page = URL(string: "https://example.com/tiny")!
+
+    @Test func theItemsOwnTitleFillsInForAMissingOne() {
+        #expect(ShareInput.from(javaScript: nil, url: page, text: nil, itemTitle: " Tiny internets ")
+            == ShareInput(url: page, title: "Tiny internets"))
+        #expect(ShareInput.from(javaScript: nil, url: page, text: "From the page", itemTitle: "From the item")?.title
+            == "From the page")
+        #expect(ShareInput.from(javaScript: nil, url: page, text: nil, itemTitle: page.absoluteString)?.title == nil,
+                "a title that is only the link isn't one")
+        #expect(ShareInput.from(javaScript: nil, url: nil, text: "A thought", itemTitle: "Notes")
+            == ShareInput(text: "A thought"))
+    }
+
+    @Test func aFetchedTitleFillsABlankTitleOnce() {
+        let model = ShareComposeModel(input: ShareInput(url: page), environment: .test(StubTransport { _ in .notFound }))
+        model.suggestTitle("  Tiny\ninternets ")
+        #expect(model.draft.title == "Tiny internets")
+        model.draft.title = ""
+        model.suggestTitle("Again")
+        #expect(model.draft.title == "", "a title cleared on purpose stays cleared")
+    }
+
+    @Test func aFetchedTitleNeverReplacesOneTyped() {
+        let model = ShareComposeModel(input: ShareInput(url: page), environment: .test(StubTransport { _ in .notFound }))
+        model.draft.title = "Mine"
+        model.suggestTitle("The page's")
+        #expect(model.draft.title == "Mine")
+    }
+}

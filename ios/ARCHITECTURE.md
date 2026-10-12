@@ -256,15 +256,16 @@ A save in the editor has `Timings.editorDeadline` (30 s) for all its requests to
    - the JavaScript results (`public.property-list`, via the legacy `loadItem`, the only API that returns that dictionary);
    - a URL;
    - plain text, or the item's attributed text.
-3. **Interpreting them.** `ShareInput.from(javaScript:url:text:)` decides what was shared:
+3. **Interpreting them.** `ShareInput.from(javaScript:url:text:itemTitle:)` decides what was shared:
    - Safari's results with a web URL win.
    - Otherwise a web URL. Extra text that differs from the URL becomes the title if it's one line, or the selection if it's several.
+   - A web share still without a title takes the share item's own (`NSExtensionItem.attributedTitle`, the `itemTitle` argument). Failing that, the extension fetches the page's metadata (`LPMetadataProvider`, 8 s) once the card is up and hands its title to `ShareComposeModel.suggestTitle(_:)`, which fills a blank title only, once, and only while editing, so nothing typed is overwritten.
    - Otherwise text. Text that is exactly one web URL counts as a URL share.
    - With nothing usable, the extension shows "Nothing to share" and closes after 1.5 s.
 4. **The card.** `ShareComposeView` over `ShareComposeModel` (client role `share`, 10 s timeout) shows:
    - a preview row: the domain, then the page's title as shared (else its path); "Text" for a text share;
    - the web's add form, filled from the share (`ShareDraft`): the title in the serif, the type (segmented), the content (the selection or shared text), Details (summary, link, notes) and Curated;
-   - Links: the pending links (`ShareDraft.links`, one per target: `link(_:)` replaces), each with a relationship menu (`Predicate.linkOptions`, the canonical predicates) and remove, then **Add link**. Add link pushes the web's two-step picker on the card's stack: `RecordLinkSearch` (a `RecordSearchModel` from `makeSearch()`, hybrid search after the debounce) and then `LinkPredicatePicker`;
+   - Links: the pending links (`ShareDraft.links`, one per target: `link(_:)` replaces), each with a relationship menu (`Predicate.linkOptions`, the canonical predicates) and remove, then **Add link**. Add link pushes the web's two-step picker on the card's stack: `RecordLinkSearch` (the model's `linkSearch`, a `RecordSearchModel`, hybrid search after the debounce) and then `LinkPredicatePicker`;
    - **Save** in the bar and a **Save to Enchiridion** button.
 5. **Saving** creates this record:
 
