@@ -233,10 +233,16 @@ private struct TypeLine: View {
     let record: RecordWidgetEntry.Shown
 
     var body: some View {
-        Label(record.typeName, systemImage: record.symbolName)
-            .font(Typography.byline)
-            .foregroundStyle(Palette.textMuted)
-            .lineLimit(1)
+        // A Label's system gap is wide at this size: the icon sits as close as a badge's does.
+        HStack(spacing: Space.iconGap) {
+            Image(systemName: record.symbolName)
+                .imageScale(.small)
+                .accessibilityHidden(true)
+            Text(verbatim: record.typeName)
+        }
+        .font(Typography.byline)
+        .foregroundStyle(Palette.textMuted)
+        .lineLimit(1)
     }
 }
 
