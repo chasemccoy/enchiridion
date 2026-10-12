@@ -6,8 +6,8 @@ import SwiftUI
 import UIKit
 import WidgetKit
 
-// The Home Screen and Lock Screen widget: a record from the library at random, a new one each hour, opening it on a
-// tap (`enchiridion://record/<id>`). One index load picks the hours' records (`RecordShortcuts.sampleRetrying`); the
+// The Home Screen and Lock Screen widget: a record from the library at random, a new one every 15 minutes (or 30, or
+// an hour), opening it on a tap (`enchiridion://record/<id>`). One index load picks the next records (`RecordShortcuts.sampleRetrying`); the
 // medium and large sizes also fetch each record's first image, downsampled (`WidgetContent.thumbnail`), and show its
 // summary and content (ios/ARCHITECTURE.md, "Widget"). Glue only, like the other targets.
 
@@ -25,13 +25,33 @@ struct EnchiridionWidgets: WidgetBundle {
     }
 }
 
-/// The widget's options: curated records only (the default), or anything.
+/// How often the widget moves to its next record. Moving along a timeline costs nothing; only loading a new one counts
+/// against WidgetKit's daily refresh budget.
+enum RecordInterval: Int, AppEnum {
+    case quarterHour = 15
+    case halfHour = 30
+    case hour = 60
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Interval"
+    static let caseDisplayRepresentations: [RecordInterval: DisplayRepresentation] = [
+        .quarterHour: "15 minutes",
+        .halfHour: "30 minutes",
+        .hour: "Hour",
+    ]
+
+    var seconds: TimeInterval { TimeInterval(rawValue * 60) }
+}
+
+/// The widget's options: curated records only (the default), or anything; and how often it changes.
 struct RandomRecordConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Random record"
-    static let description = IntentDescription("A record from Enchiridion, a new one each hour.")
+    static let description = IntentDescription("A record from Enchiridion, a new one every few minutes.")
 
     @Parameter(title: "Curated only", default: true)
     var curatedOnly: Bool
+
+    @Parameter(title: "New record every", default: .quarterHour)
+    var interval: RecordInterval
 }
 
 struct RandomRecordWidget: Widget {
@@ -42,7 +62,7 @@ struct RandomRecordWidget: Widget {
                 .containerBackground(for: .widget) { Palette.page.view }
         }
         .configurationDisplayName("Random record")
-        .description("A record from Enchiridion, a new one each hour.")
+        .description("A record from Enchiridion, a new one every few minutes.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryRectangular])
     }
 }
@@ -101,9 +121,12 @@ extension RecordWidgetEntry.Shown {
 }
 
 struct RandomRecordProvider: AppIntentTimelineProvider {
-    /// Records per load: one an hour. Fewer for the sizes that fetch an image per record, so a refresh stays short.
-    static func hours(_ family: WidgetFamily) -> Int {
-        imageSize(family) == nil ? 12 : 6
+    /// Records per load: 12 hours' worth, at most 48. At most 12 for the sizes that fetch an image per record, so a
+    /// refresh stays short and its images stay small in memory. Either way, a few loads a day, far inside the budget
+    /// (iOS gives a widget roughly 40 to 70).
+    static func count(_ family: WidgetFamily, interval: RecordInterval) -> Int {
+        let halfDay = Int(12 * 3600 / interval.seconds)
+        return min(halfDay, imageSize(family) == nil ? 48 : 12)
     }
 
     /// The longest side, in pixels, of a size's image; nil for the sizes without one.
@@ -127,15 +150,16 @@ struct RandomRecordProvider: AppIntentTimelineProvider {
         let now = Date.now
         do {
             let rows = try await RecordShortcuts(environment: .shareExtension(server: Self.server), role: .widget)
-                .sampleRetrying(Self.hours(context.family), curatedOnly: configuration.curatedOnly,
+                .sampleRetrying(Self.count(context.family, interval: configuration.interval),
+                                curatedOnly: configuration.curatedOnly,
                                 imagesEvery: Self.imageSize(context.family) != nil)
             guard !rows.isEmpty else {
                 let entry = RecordWidgetEntry(date: now, message: "Nothing to show yet.")
                 return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(6 * 3600)))
             }
             let images = await Self.images(for: rows, maxPixelSize: Self.imageSize(context.family))
-            let entries = rows.enumerated().map { hour, row in
-                RecordWidgetEntry(date: now.addingTimeInterval(Double(hour) * 3600),
+            let entries = rows.enumerated().map { index, row in
+                RecordWidgetEntry(date: now.addingTimeInterval(Double(index) * configuration.interval.seconds),
                                   record: .init(row, image: images[row.id]))
             }
             return Timeline(entries: entries, policy: .atEnd)
