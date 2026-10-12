@@ -44,12 +44,12 @@ public struct RecordShortcuts: Sendable {
     }
 
     /// Up to `count` different records picked at random, in the order picked: the widget's day of records from one
-    /// request. With `imagesEvery`, every other pick is a record with an image while there are any (few records have
+    /// request, of one `type` when given. With `imagesEvery`, every other pick is a record with an image while there are any (few records have
     /// one, so a plain draw would rarely show a picture).
-    public func sample(_ count: Int, curatedOnly: Bool = true, imagesEvery: Bool = false,
+    public func sample(_ count: Int, curatedOnly: Bool = true, type: RecordType? = nil, imagesEvery: Bool = false,
                        using shuffle: @Sendable ([ListRecord]) -> [ListRecord] = { $0.shuffled() })
         async throws -> [ListRecord] {
-        let shuffled = shuffle(try await candidates(curatedOnly: curatedOnly))
+        let shuffled = shuffle(try await candidates(curatedOnly: curatedOnly, type: type))
         return imagesEvery ? Self.alternatingImages(shuffled, count: count) : Array(shuffled.prefix(count))
     }
 
@@ -72,12 +72,13 @@ public struct RecordShortcuts: Sendable {
     /// `sample`, tried up to `attempts` times `pause` apart while the failure is the network's (`isTransient`): a
     /// widget refreshing in the background may run before the phone's Tailscale tunnel is back up. Anything else
     /// throws at once.
-    public func sampleRetrying(_ count: Int, curatedOnly: Bool = true, imagesEvery: Bool = false, attempts: Int = 3,
+    public func sampleRetrying(_ count: Int, curatedOnly: Bool = true, type: RecordType? = nil,
+                               imagesEvery: Bool = false, attempts: Int = 3,
                                pause: Duration = .seconds(3)) async throws -> [ListRecord] {
         var attempt = 1
         while true {
             do {
-                return try await sample(count, curatedOnly: curatedOnly, imagesEvery: imagesEvery)
+                return try await sample(count, curatedOnly: curatedOnly, type: type, imagesEvery: imagesEvery)
             } catch {
                 guard attempt < attempts, EnchiridionError.classify(error)?.isTransient == true else { throw error }
                 attempt += 1
@@ -86,9 +87,10 @@ public struct RecordShortcuts: Sendable {
         }
     }
 
-    private func candidates(curatedOnly: Bool) async throws -> [ListRecord] {
+    private func candidates(curatedOnly: Bool, type: RecordType? = nil) async throws -> [ListRecord] {
         var query = ListQuery.index
         query.filters.isCurated = curatedOnly ? true : nil
+        query.filters.type = type
         return try await client.list(query)
     }
 

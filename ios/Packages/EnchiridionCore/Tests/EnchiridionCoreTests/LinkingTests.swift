@@ -267,6 +267,9 @@ struct RecordShortcutsTests {
         #expect(try await shortcuts.sample(3, using: { $0.reversed() }).map(\.id) == [5, 4, 3])
         #expect(try await shortcuts.sample(9).count == 5)
         #expect(await transport.requests.first?.headers["X-Enchiridion-Client"]?.hasSuffix(" widget") == true)
+        _ = try await shortcuts.sample(1, type: .artifact)
+        let filters = await transport.requests.last?.json()["filters"] as? [String: Any]
+        #expect(filters?["type"] as? String == "artifact")
     }
 
     @Test func imagesComeEveryOtherPickWhileTheyLast() {

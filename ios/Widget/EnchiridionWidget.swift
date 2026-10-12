@@ -6,7 +6,7 @@ import SwiftUI
 import UIKit
 import WidgetKit
 
-// The Home Screen and Lock Screen widget: a record from the library at random, a new one every 15 minutes (or 30, or
+// The Home Screen and Lock Screen widget: an artifact from the library at random, a new one every 15 minutes (or 30, or
 // an hour), opening it on a tap (`enchiridion://record/<id>`). One index load picks the next records (`RecordShortcuts.sampleRetrying`); the
 // medium and large sizes also fetch each record's first image, downsampled (`WidgetContent.thumbnail`), and show its
 // summary and content (ios/ARCHITECTURE.md, "Widget"). Glue only, like the other targets.
@@ -152,6 +152,7 @@ struct RandomRecordProvider: AppIntentTimelineProvider {
             let rows = try await RecordShortcuts(environment: .shareExtension(server: Self.server), role: .widget)
                 .sampleRetrying(Self.count(context.family, interval: configuration.interval),
                                 curatedOnly: configuration.curatedOnly,
+                                type: .artifact,
                                 imagesEvery: Self.imageSize(context.family) != nil)
             guard !rows.isEmpty else {
                 let entry = RecordWidgetEntry(date: now, message: "Nothing to show yet.")
