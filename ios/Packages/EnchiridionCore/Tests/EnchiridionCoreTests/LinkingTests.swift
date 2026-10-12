@@ -261,6 +261,14 @@ struct RecordShortcutsTests {
         #expect(try await shortcuts.random(using: { $0.last })?.id == 2)
     }
 
+    @Test func aSampleIsDistinctAndCapped() async throws {
+        let transport = StubTransport { _ in .json((1 ... 5).map { Fixture.row($0, title: "R\($0)", curated: true) }) }
+        let shortcuts = RecordShortcuts(environment: .test(transport), role: .widget)
+        #expect(try await shortcuts.sample(3, using: { $0.reversed() }).map(\.id) == [5, 4, 3])
+        #expect(try await shortcuts.sample(9).count == 5)
+        #expect(await transport.requests.first?.headers["X-Enchiridion-Client"]?.hasSuffix(" widget") == true)
+    }
+
     @Test @MainActor func savingALinkMakesAnArtifact() async throws {
         let saved = Fixture.record(42, slug: "tiny-internets", title: "Tiny internets", url: "https://example.com/tiny")
         let transport = StubTransport { request in

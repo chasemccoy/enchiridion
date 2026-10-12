@@ -36,7 +36,8 @@ The app is signed automatically with the free Personal Team (`756EWAN4G2`).
 
 ### What the free team allows
 
-- **App IDs.** The first install registers two: `org.chsmc.enchiridion` and `org.chsmc.enchiridion.share`. A free team may register 10 App IDs in any 7 days, and familiar and faulkner already use 3 each, so this makes 8 of 10. Each new ID counts against that limit, so don't rename bundle IDs or add targets casually.
+- **App IDs.** The first install registered two: `org.chsmc.enchiridion` and `org.chsmc.enchiridion.share`. The widget adds a third, `org.chsmc.enchiridion.widget`, the first time a build with it is installed. A free team may register 10 App IDs in any 7 days, and familiar and faulkner already use 3 each. Each new ID counts against that limit, so don't rename bundle IDs or add targets casually.
+- **The widget is a trial.** If installing fails with a message about the number of apps or App IDs, the widget extension is what tipped it: say so, and it comes out of `project.yml` (or wait out the 7 days for an App ID limit).
 - **Apps per device.** A free team may have **3 apps** installed on one device. familiar and faulkner already take 2, so Enchiridion takes the last slot.
   - To install a fourth app, delete one of the three first.
   - Keep **Offload Unused Apps** off (Settings › Apps › App Store). An offloaded app still counts toward the 3.
@@ -46,7 +47,7 @@ The app is signed automatically with the free Personal Team (`756EWAN4G2`).
 
 Work on the app can happen anywhere (including on voyager), but the phone is installed from the MacBook. The project file is generated, so after a pull Xcode only sees new files or target changes once it's regenerated. Two pieces take care of that:
 
-- **`scripts/xcode.sh`** regenerates `Enchiridion.xcodeproj` when anything XcodeGen reads has changed (`project.yml`, `Config/*.xcconfig`, the file list of `iOS/` and `ShareExtension/`, or the XcodeGen version), then opens it. It's cheap when nothing changed, so it's fine to use as the everyday way to open the project. `--pull` pulls first; `--force` regenerates regardless; `--no-open` skips opening Xcode.
+- **`scripts/xcode.sh`** regenerates `Enchiridion.xcodeproj` when anything XcodeGen reads has changed (`project.yml`, `Config/*.xcconfig`, the file list of `iOS/`, `ShareExtension/` and `Widget/`, or the XcodeGen version), then opens it. It's cheap when nothing changed, so it's fine to use as the everyday way to open the project. `--pull` pulls first; `--force` regenerates regardless; `--no-open` skips opening Xcode.
 - **The git hooks** from `scripts/install-hooks.sh` run `xcode.sh --no-open --quiet` after every pull (merge or rebase) and branch switch. An open Xcode reloads the regenerated project by itself. The hooks never fail a pull: if XcodeGen is missing they print the reason and the pull completes.
 
 Changes inside `Packages/` never need a regeneration: Xcode reads the Swift packages directly.
@@ -150,7 +151,7 @@ curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device
   - "Open a record in Enchiridion": asks which (searching as you type or say it), then opens it.
   - "Save a link to Enchiridion": saves a URL (with an optional title and note) without opening the app; the page's own title is fetched when none is given.
   - `enchiridion://record/<id>` opens a record from anywhere (an Open URL action, a note).
-  - For the Home Screen, add a Shortcuts widget showing these actions.
+- **Widget.** Long-press the Home Screen › Edit › Add Widget › Enchiridion: a random curated record (small or medium, or on the Lock Screen), a new one each hour; tap it to open the record. Edit the widget to include uncurated records.
 - **Sharing.**
   - Share a page from Safari. Select text first to save it as the record's content; the page's description becomes the summary.
   - The card is the web's add form: title, type, content, and Details (summary, link, notes), plus Curated. Everything is filled from the share and editable.
@@ -183,7 +184,7 @@ A Debug build can point at another API. Release builds always use production.
   ENCHIRIDION_SERVER = http:/$()/localhost:4399
   ```
 
-  It reaches both targets' Info.plists as `EnchiridionServer`. A launch argument still wins for the app. Delete the line (or the file) to go back to production.
+  It reaches every target's Info.plist as `EnchiridionServer`. A launch argument still wins for the app. Delete the line (or the file) to go back to production.
 
   Written as `http://localhost:4399`, the value arrives cut to `http:`. Like any value that isn't an http(s) address, that sends the build to `enchiridion-server-misconfigured.invalid` instead of production: every request fails, and the app shows it can't reach voyager.
 

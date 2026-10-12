@@ -2,7 +2,7 @@ import Foundation
 
 /// Who is calling, for `X-Enchiridion-Client` and the timeout.
 public enum ClientRole: String, Hashable, Sendable {
-    case app, share
+    case app, share, widget
 }
 
 /// The HTTP client for Enchiridion's Express API, over an injected transport.
@@ -31,11 +31,11 @@ public actor EnchiridionClient {
             self.timeout = timeout ?? Self.timeout(for: role)
         }
 
-        /// 30 s for the app; 10 s for the share extension, which the system ends if it lingers.
+        /// 30 s for the app; 10 s for the share extension and the widget, which the system ends if they linger.
         public static func timeout(for role: ClientRole) -> Duration {
             switch role {
             case .app: .seconds(30)
-            case .share: .seconds(10)
+            case .share, .widget: .seconds(10)
             }
         }
 

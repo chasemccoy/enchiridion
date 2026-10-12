@@ -8,8 +8,8 @@
 #   (none)    the gates and the package steps
 #   --gates   just the static gates (seconds)
 #   --build   also `xcodegen generate` (first, so the gates check the Info.plists project.yml makes now) and a build of
-#             the whole app (both targets) for the iPhone 18 Pro simulator with signing off: for a change to iOS/,
-#             ShareExtension/, Config/ or project.yml
+#             the whole app (all three targets) for the iPhone 18 Pro simulator with signing off: for a change to iOS/,
+#             ShareExtension/, Widget/, Config/ or project.yml
 set -uo pipefail
 zmodload zsh/datetime zsh/stat
 cd "$(dirname "$0")/.."
@@ -95,7 +95,7 @@ static_gates() {
     "$(swift_grep '\.(foregroundStyle|foregroundColor|background|fill|stroke|strokeBorder|tint|listRowBackground|shadow)\([[:space:]]*\.(primary|secondary|tertiary|quaternary)\b|Color\.(primary|secondary|accentColor)\b|HierarchicalShapeStyle\.|\.fill\.(primary|secondary|tertiary|quaternary)\b' $ui \
       | grep -vE '^[^:]+:[0-9]+:[[:space:]]*///')"
 
-  local plists=(iOS/Info.plist ShareExtension/Info.plist) lint="" file
+  local plists=(iOS/Info.plist ShareExtension/Info.plist Widget/Info.plist) lint="" file
   for file in $plists; do
     if [[ ! -f "$file" ]]; then lint+="$file is missing (xcodegen generate writes it)"$'\n'; continue; fi
     plutil -lint -s "$file" >/dev/null 2>&1 || lint+="$(plutil -lint "$file" 2>&1)"$'\n'
@@ -131,6 +131,7 @@ static_gates() {
     expect $share $rule.NSExtensionActivationSupportsWebPageWithMaxCount 1
     expect $share $rule.NSExtensionActivationSupportsText true
   fi
+  [[ -f Widget/Info.plist ]] && expect Widget/Info.plist NSExtension.NSExtensionPointIdentifier com.apple.widgetkit-extension
   [[ -f ShareExtension/Preprocess.js ]] || keys+="ShareExtension/Preprocess.js is missing"$'\n'
   [[ -f iOS/Assets.xcassets/AppIcon.appiconset/AppIcon.png ]] || keys+="the 1024 pt AppIcon.png is missing"$'\n'
   for file in regular medium; do
@@ -140,7 +141,7 @@ static_gates() {
   gate "the required Info.plist keys and resources" "${keys%$'\n'}"
 
   # The free team gets no App Groups or keychain groups, and nothing here needs an entitlement.
-  gate "no entitlements files" "$(find iOS ShareExtension Config -name '*.entitlements' 2>/dev/null)"
+  gate "no entitlements files" "$(find iOS ShareExtension Widget Config -name '*.entitlements' 2>/dev/null)"
 
   if (( ${#gate_failures[@]} )); then
     failed+=("Static gates")
@@ -186,12 +187,12 @@ report_step() {  # report_step <name>
 generated=""
 if [[ -n "$build" ]]; then
   echo "▸ xcodegen generate"
-  for file in iOS/Info.plist ShareExtension/Info.plist; do
+  for file in iOS/Info.plist ShareExtension/Info.plist Widget/Info.plist; do
     [[ -f "$file" ]] && cp "$file" "$LOGS/${file:h}.plist.before"
   done
   if xcodegen generate >"$LOGS/xcodegen.log" 2>&1; then
     generated=1
-    for file in iOS/Info.plist ShareExtension/Info.plist; do
+    for file in iOS/Info.plist ShareExtension/Info.plist Widget/Info.plist; do
       cmp -s "$file" "$LOGS/${file:h}.plist.before" 2>/dev/null \
         || echo "  $file changed with project.yml: review and commit it"
     done

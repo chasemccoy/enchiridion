@@ -11,7 +11,7 @@ This is how the iPhone and iPad client is built.
 
 - **The server is the only copy.** Nothing is persisted on the device, and nothing is cached on its disk. Every screen loads from the API, and every change is a request. Record images, which SwiftUI's `AsyncImage` loads through `URLSession.shared`, are cached in memory only: both targets call `URLCache.keepMediaInMemory()` at launch, which empties the shared cache and replaces it with a memory-only one. A failed request leaves the screen as it was, with the error shown; only a record found deleted elsewhere closes its screen, and then the library says so ("Curating and deleting").
 - **No pairing, no tokens.** The API's address is a constant, `Server.production` = `https://enchiridion-api.chsmc.tools`. voyager knows the device through Tailscale.
-- **Thin targets.** Anything that decides something lives in a package and is tested with `swift test` on the Mac. The app and extension targets hold only glue: `@main`, font registration, the memory-only media cache, `NSItemProvider`, the extension context.
+- **Thin targets.** Anything that decides something lives in a package and is tested with `swift test` on the Mac. The app and extension targets hold only glue: `@main`, font registration, the memory-only media cache, `NSItemProvider`, the extension context, App Intents and the widget's timeline.
 - **Platform-neutral packages.**
   - EnchiridionKit and EnchiridionCore import no UI framework.
   - EnchiridionUI is SwiftUI. It touches UIKit or AppKit only under `Sources/EnchiridionUI/Platform/`.
@@ -293,7 +293,11 @@ App Intents in the app target (`iOS/Shortcuts.swift`), no entitlement needed, ov
 - `OpenRecordIntent` (an `OpenIntent`): opens `enchiridion://record/<id>` (`DeepLink`, registered in the app's `CFBundleURLTypes`), which the root view's `onOpenURL` turns into `LibraryModel.selectedID`.
 - `RandomRecordIntent`: a random record from the index query (curated only by default), said as its title and summary and returned for the next action.
 - `SaveLinkIntent`: creates an artifact as the share card would with nothing edited (`RecordCreation`, so idempotent by slug), the title fetched with LinkPresentation when none is given.
-- `EnchiridionShortcuts` gives each Siri phrases. A Home Screen widget would need a widget extension, a new target, which the free team's limits rule out for now (README, "What the free team allows"); the Shortcuts app's own widget runs these instead.
+- `EnchiridionShortcuts` gives each Siri phrases.
+
+## Widget
+
+`Widget/EnchiridionWidget.swift`, the `EnchiridionWidget` extension: one `AppIntentConfiguration` widget (small, medium, Lock Screen rectangular) whose configuration intent has Curated only (on by default). Its timeline is 12 entries an hour apart from one index load (`RecordShortcuts.sample`, client role `widget`, 10 s), then `.atEnd`; nothing to show waits 6 h, a failure shows the error's message and tries again in 30 min. A tap opens `enchiridion://record/<id>`. It talks to the server itself (no App Groups to borrow the app's data), so it shows nothing while Tailscale is off. The serif comes from the extension's own bundle, as the share card's does.
 
 ## Targets (`project.yml`)
 
@@ -302,17 +306,18 @@ Generate the project with `xcodegen generate` (XcodeGen 2.46.0). The `.xcodeproj
 | Target | Bundle id | Sources | Notes |
 |---|---|---|---|
 | `Enchiridion` (application) | `org.chsmc.enchiridion` | `iOS/` | Device family 1,2: portrait on iPhone, all orientations on iPad. `UILaunchScreen: {}`, `ITSAppUsesNonExemptEncryption: false`. `AppIcon` (1024 pt, single size, upscaled from `../app/public/pwa-512.png`). `AccentColor` (#2a78d6 light, #6da7ec dark). Embeds the extension. URL scheme `enchiridion` (`DeepLink`). |
+| `EnchiridionWidget` (app extension) | `org.chsmc.enchiridion.widget` | `Widget/` | `com.apple.widgetkit-extension`. Links WidgetKit and SwiftUI. `APPLICATION_EXTENSION_API_ONLY`. A trial on the free team (README, "What the free team allows"). |
 | `EnchiridionShare` (app extension) | `org.chsmc.enchiridion.share` | `ShareExtension/` | `com.apple.share-services`. Principal class `$(PRODUCT_MODULE_NAME).ShareViewController`. Activates for one web URL, one web page, or text. Preprocessing file `Preprocess`. `APPLICATION_EXTENSION_API_ONLY`. |
 
 **Shared settings.**
-- Both targets depend on all three packages.
-- Both bundle Martina Plantijn's `regular.woff2` and `medium.woff2`, referenced in place from `../app/public/fonts/martina-plantijn/` and copied to the bundle's root.
+- Every target depends on all three packages.
+- Each bundles Martina Plantijn's `regular.woff2` and `medium.woff2`, referenced in place from `../app/public/fonts/martina-plantijn/` and copied to the bundle's root.
 - `FontRegistry.register(bundle:)` registers the fonts at runtime with CoreText, since `UIAppFonts` documents only TrueType and OpenType. If registration fails, the app uses New York.
   - Failures are logged as errors under subsystem `org.chsmc.enchiridion`, category `fonts`. DEBUG builds also log a notice, `Martina Plantijn registered: …`, which confirms the serif. In the Simulator, read its own log store (the Mac's `log show` never sees the Simulator's apps, and in zsh `log` is a builtin): `xcrun simctl spawn booted log show --last 1h --predicate 'subsystem == "org.chsmc.enchiridion"'`. On a device, use Console.app with the phone selected.
 - `Config/Base.xcconfig` sets the team `756EWAN4G2`, automatic signing, iOS 27.0, `MARKETING_VERSION` 0.1, `CURRENT_PROJECT_VERSION` 1 and an empty `ENCHIRIDION_SERVER`, and includes the optional, gitignored `Local.xcconfig`. project.yml sets none of these: a project-level setting there would outrank the xcconfig, and `Local.xcconfig` couldn't override it.
 - Both Info.plists carry `EnchiridionServer: $(ENCHIRIDION_SERVER)`, which only DEBUG builds read.
 
-**Scheme.** The `Enchiridion` scheme builds both targets. Run uses Release.
+**Scheme.** The `Enchiridion` scheme builds all three targets. Run uses Release.
 
 **Free team.**
 - No entitlements, no App Groups, no keychain group, no push.

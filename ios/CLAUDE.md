@@ -30,7 +30,7 @@ scripts/xcode.sh --no-open                                                # rege
 
 - **No simulator boots and no UI tests.** No app unit-test target. No screenshots unless Chase asks.
 - **Package-only changes:** run `scripts/test.sh`.
-- **Changes to `iOS/`, `ShareExtension/`, `Config/` or `project.yml`:** run `scripts/test.sh --build`, at most once per change.
+- **Changes to `iOS/`, `ShareExtension/`, `Widget/`, `Config/` or `project.yml`:** run `scripts/test.sh --build`, at most once per change.
 - **Device behaviour** is checked by hand on Chase's iPhone (README, "Device checks for the first install").
 
 ## Hands off production
@@ -64,7 +64,7 @@ voyager is the production server.
 - **Thin targets.** Anything that decides something lives in a package and is tested with `swift test`.
 - **Free team (`756EWAN4G2`).**
   - No entitlements, no App Groups, no push, no test targets.
-  - Never add targets or rename the bundle ids (`org.chsmc.enchiridion`, `.share`): each new App ID counts toward the 10 per 7 days, and the app takes the last of the 3 app slots on the phone.
+  - Never add targets or rename the bundle ids (`org.chsmc.enchiridion`, `.share`, `.widget`) without Chase asking: each new App ID counts toward the 10 per 7 days, and the app takes the last of the 3 app slots on the phone. The widget (added 2026-10-12 at Chase's request) is the trial of whether an extension also takes a slot.
 
 ## Style
 

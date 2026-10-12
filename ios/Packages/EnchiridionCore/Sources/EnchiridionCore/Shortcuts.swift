@@ -7,8 +7,8 @@ public struct RecordShortcuts: Sendable {
     private let client: EnchiridionClient
     private let fallbackSlug: @Sendable () -> String
 
-    public init(environment: AppEnvironment) {
-        client = environment.client(role: .app)
+    public init(environment: AppEnvironment, role: ClientRole = .app) {
+        client = environment.client(role: role)
         fallbackSlug = environment.fallbackSlug
     }
 
@@ -38,9 +38,21 @@ public struct RecordShortcuts: Sendable {
     public func random(curatedOnly: Bool = true,
                        using pick: @Sendable ([ListRecord]) -> ListRecord? = { $0.randomElement() })
         async throws -> ListRecord? {
+        pick(try await candidates(curatedOnly: curatedOnly))
+    }
+
+    /// Up to `count` different records picked at random, in the order picked: the widget's day of records from one
+    /// request.
+    public func sample(_ count: Int, curatedOnly: Bool = true,
+                       using shuffle: @Sendable ([ListRecord]) -> [ListRecord] = { $0.shuffled() })
+        async throws -> [ListRecord] {
+        Array(shuffle(try await candidates(curatedOnly: curatedOnly)).prefix(count))
+    }
+
+    private func candidates(curatedOnly: Bool) async throws -> [ListRecord] {
         var query = ListQuery.index
         query.filters.isCurated = curatedOnly ? true : nil
-        return pick(try await client.list(query))
+        return try await client.list(query)
     }
 
     /// Saves a link as a new artifact, as the share card would with nothing edited: the title given, else the one
