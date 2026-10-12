@@ -142,7 +142,7 @@ private struct LibraryList: View {
         .contentMargins(.bottom, Space.monthGap, for: .scrollContent)
         .background(Palette.page)
         .overlay { LibraryPlaceholder() }
-        .searchable(text: $library.query, prompt: Text("Search by meaning or title"))
+        .searchable(text: $library.query, prompt: Text("Search records"))
         .refreshable {
             // A refresh that answers in a blink makes the system's spinner vanish and the list stall before it
             // retracts; held for a moment, it retracts in one smooth movement, as in the system's own apps.
