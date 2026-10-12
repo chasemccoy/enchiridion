@@ -151,11 +151,17 @@ private struct LibraryList: View {
         .overlay { LibraryPlaceholder() }
         .searchable(text: $library.query, prompt: Text("Search records"))
         .refreshable { await library.refresh() }
-        .navigationTitle("Enchiridion")
+        // No system title: the wordmark at the leading edge is the title.
+        .navigationTitle("")
         .inlineNavigationTitle()
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                LibraryTitle()
+            // Nothing else lives up top, so the wordmark and the count share one line: no second line of title.
+            ToolbarItem(placement: .navigation) {
+                LibraryWordmark()
+            }
+            .sharedBackgroundVisibility(.hidden)
+            ToolbarItem(placement: .primaryAction) {
+                LibraryCount()
             }
             .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .bottomBarOrAutomatic) {
@@ -327,29 +333,35 @@ private struct LibraryRow: View {
     }
 }
 
-/// The wordmark, with the count under it in the web's words ("567 records", "12 of 567 records", "8 results",
-/// "Searching…"); a failed search's count reads in `error`. No count until an index has loaded.
-private struct LibraryTitle: View {
+/// The serif wordmark, at the bar's leading edge.
+private struct LibraryWordmark: View {
+    var body: some View {
+        Text("Enchiridion")
+            .font(Typography.wordmark)
+            .foregroundStyle(Palette.text)
+            .lineLimit(1)
+            .fixedSize()
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// The count at the bar's trailing edge, in the web's words ("567 records", "12 of 567 records", "8 results",
+/// "Searching…"); a failed search's count reads in `error`. Nothing until an index has loaded.
+private struct LibraryCount: View {
     @Environment(LibraryModel.self) private var library
 
     var body: some View {
-        let searchFailed = library.isSearching && library.searchState.error != nil
-        VStack(spacing: 0) {
-            Text("Enchiridion")
-                .font(Typography.wordmark)
-                .foregroundStyle(Palette.text)
-            if let count = library.countText {
-                Text(verbatim: count)
-                    .font(Typography.count)
-                    .monospacedDigit()
-                    .foregroundStyle(searchFailed ? Palette.error : Palette.textDimmed)
-                    .contentTransition(.numericText())
-                    .animation(.default, value: count)
-            }
+        if let count = library.countText {
+            let searchFailed = library.isSearching && library.searchState.error != nil
+            Text(verbatim: count)
+                .font(Typography.count)
+                .monospacedDigit()
+                .foregroundStyle(searchFailed ? Palette.error : Palette.textDimmed)
+                .lineLimit(1)
+                .fixedSize()
+                .contentTransition(.numericText())
+                .animation(.default, value: count)
         }
-        .lineLimit(1)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
     }
 }
 
