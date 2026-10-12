@@ -151,7 +151,7 @@ curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device
   - "Open a record in Enchiridion": asks which (searching as you type or say it), then opens it.
   - "Save a link to Enchiridion": saves a URL (with an optional title and note) without opening the app; the page's own title is fetched when none is given.
   - `enchiridion://record/<id>` opens a record from anywhere (an Open URL action, a note).
-- **Widget.** Long-press the Home Screen › Edit › Add Widget › Enchiridion: a random curated record (small or medium, or on the Lock Screen), a new one each hour; tap it to open the record. Edit the widget to include uncurated records.
+- **Widget.** Long-press the Home Screen › Edit › Add Widget › Enchiridion: a random curated record (small, medium or large, or on the Lock Screen), a new one each hour; medium and large add the summary, the content and the record's image (every other hour is a record with one); tap it to open the record. Edit the widget to include uncurated records.
 - **Sharing.**
   - Share a page from Safari. Select text first to save it as the record's content; the page's description becomes the summary.
   - The card is the web's add form: title, type, content, and Details (summary, link, notes), plus Curated. Everything is filled from the share and editable.

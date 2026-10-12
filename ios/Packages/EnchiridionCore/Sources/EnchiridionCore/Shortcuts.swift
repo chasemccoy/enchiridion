@@ -44,22 +44,40 @@ public struct RecordShortcuts: Sendable {
     }
 
     /// Up to `count` different records picked at random, in the order picked: the widget's day of records from one
-    /// request.
-    public func sample(_ count: Int, curatedOnly: Bool = true,
+    /// request. With `imagesEvery`, every other pick is a record with an image while there are any (few records have
+    /// one, so a plain draw would rarely show a picture).
+    public func sample(_ count: Int, curatedOnly: Bool = true, imagesEvery: Bool = false,
                        using shuffle: @Sendable ([ListRecord]) -> [ListRecord] = { $0.shuffled() })
         async throws -> [ListRecord] {
-        Array(shuffle(try await candidates(curatedOnly: curatedOnly)).prefix(count))
+        let shuffled = shuffle(try await candidates(curatedOnly: curatedOnly))
+        return imagesEvery ? Self.alternatingImages(shuffled, count: count) : Array(shuffled.prefix(count))
+    }
+
+    /// `rows` in order, but with a record that has an image at every even position while any are left.
+    static func alternatingImages(_ rows: [ListRecord], count: Int) -> [ListRecord] {
+        var pictured = rows.filter(\.hasImage)[...]
+        var plain = rows.filter { !$0.hasImage }[...]
+        var picked: [ListRecord] = []
+        while picked.count < count, !(pictured.isEmpty && plain.isEmpty) {
+            let wantsImage = picked.count.isMultiple(of: 2)
+            if wantsImage, let next = pictured.popFirst() ?? plain.popFirst() {
+                picked.append(next)
+            } else if let next = plain.popFirst() ?? pictured.popFirst() {
+                picked.append(next)
+            }
+        }
+        return picked
     }
 
     /// `sample`, tried up to `attempts` times `pause` apart while the failure is the network's (`isTransient`): a
     /// widget refreshing in the background may run before the phone's Tailscale tunnel is back up. Anything else
     /// throws at once.
-    public func sampleRetrying(_ count: Int, curatedOnly: Bool = true, attempts: Int = 3,
+    public func sampleRetrying(_ count: Int, curatedOnly: Bool = true, imagesEvery: Bool = false, attempts: Int = 3,
                                pause: Duration = .seconds(3)) async throws -> [ListRecord] {
         var attempt = 1
         while true {
             do {
-                return try await sample(count, curatedOnly: curatedOnly)
+                return try await sample(count, curatedOnly: curatedOnly, imagesEvery: imagesEvery)
             } catch {
                 guard attempt < attempts, EnchiridionError.classify(error)?.isTransient == true else { throw error }
                 attempt += 1
@@ -83,4 +101,9 @@ public struct RecordShortcuts: Sendable {
         let creation = RecordCreation(client: client, fallback: fallbackSlug)
         return try await creation.create(draft.input(slug: ""), base: draft.slugBase)
     }
+}
+
+extension ListRecord {
+    /// It has an image among its media.
+    public var hasImage: Bool { media.contains(where: \.isImage) }
 }

@@ -269,6 +269,19 @@ struct RecordShortcutsTests {
         #expect(await transport.requests.first?.headers["X-Enchiridion-Client"]?.hasSuffix(" widget") == true)
     }
 
+    @Test func imagesComeEveryOtherPickWhileTheyLast() {
+        func row(_ id: Int, image: Bool) -> ListRecord {
+            var row = Fixture.row(id, title: "R\(id)", curated: true)
+            if image { row.media = [Fixture.media(id * 10, recordID: id)] }
+            return row
+        }
+        let rows = [row(1, image: false), row(2, image: false), row(3, image: true), row(4, image: false),
+                    row(5, image: true)]
+        #expect(RecordShortcuts.alternatingImages(rows, count: 5).map(\.id) == [3, 1, 5, 2, 4])
+        #expect(RecordShortcuts.alternatingImages(rows, count: 2).map(\.id) == [3, 1])
+        #expect(RecordShortcuts.alternatingImages(Array(rows.prefix(2)), count: 4).map(\.id) == [1, 2])
+    }
+
     @Test func aSampleRetriesWhileTheNetworkIsDown() async throws {
         let calls = Mutex(0)
         let transport = StubTransport { _ in
