@@ -79,6 +79,13 @@ public actor EnchiridionClient {
         return try await perform(request("GET", "/search/hybrid", query: items), as: [ListRecord].self)
     }
 
+    /// `GET /record/:id/similar`: records near this one by embedding, most similar first, linked ones left out. Empty
+    /// when the record has no embedding yet.
+    public func similar(id: Int, limit: Int = 8) async throws -> [SimilarRecord] {
+        try await perform(request("GET", "/record/\(id)/similar", query: [URLQueryItem(name: "limit", value: String(limit))]),
+                          as: [SimilarRecord].self)
+    }
+
     /// `GET /record/:id`. A missing record throws `.notFound`.
     public func record(id: Int) async throws -> RecordDetail {
         try await perform(request("GET", "/record/\(id)"), as: RecordDetail.self)

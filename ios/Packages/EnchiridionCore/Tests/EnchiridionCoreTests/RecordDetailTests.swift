@@ -86,12 +86,15 @@ struct RecordDetailModelTests {
         #expect(model.record?.title == "Tiny internets")
         #expect(model.detail?.creator?.title == "Ada")
         #expect(model.linkGroups.count == 6)
-        #expect(Set(await transport.routes) == ["GET /record/5", "GET /record/5/links"])
+        await model.settled()
+        let loads = { await transport.routes.filter { $0 != "GET /record/5/similar" } }
+        #expect(Set(await loads()) == ["GET /record/5", "GET /record/5/links"])
+        #expect(await transport.routes.contains("GET /record/5/similar"), "suggestions load beside it")
 
         await model.load()
-        #expect(await transport.routes.count == 2, "loaded once")
+        #expect(await loads().count == 2, "loaded once")
         await model.refresh()
-        #expect(await transport.routes.count == 4)
+        #expect(await loads().count == 4)
     }
 
     @Test func aMissingRecord() async {

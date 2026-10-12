@@ -92,6 +92,18 @@ import Testing
         #expect(request.url?.path == "/record/812")
     }
 
+    @Test func similarRecords() async throws {
+        let body = #"[{"record":{"id":646,"slug":"spencer-chang","type":"entity","title":"Spencer Chang","url":"https://spencer.place","isCurated":true,"summary":null,"content":null,"notes":null,"source":"manual","recordCreatedAt":"2025-07-29 22:28:42","recordUpdatedAt":"2025-11-16 23:37:17","contentCreatedAt":null,"contentUpdatedAt":null},"score":0.499,"reasons":["50% similar by content"]}]"#
+        let transport = StubTransport(StubResponse(json: body))
+        let similar = try await EnchiridionClient.test(transport).similar(id: 1, limit: 5)
+        #expect(similar.map(\.id) == [646])
+        #expect(similar.first?.record.type == .entity)
+        #expect(similar.first?.reasons == ["50% similar by content"])
+        let request = try #require(await transport.last())
+        #expect(request.url?.path == "/record/1/similar")
+        #expect(request.url?.query == "limit=5")
+    }
+
     @Test func missingRecordByID() async {
         let transport = StubTransport(.text("Record with id 99999999 not found", status: 404))
         await #expect(throws: EnchiridionError.notFound) {

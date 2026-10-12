@@ -78,6 +78,10 @@ extension Symbol {
     /// A pending link on the share card: its relationship menu, and removing it.
     static let relationship = "chevron.up.chevron.down"
     static let removeLink = "xmark.circle.fill"
+    /// A detail's "Add link", and linking a similar record.
+    static let addLink = "link.badge.plus"
+    /// A linked record's "Remove link".
+    static let unlink = "minus.circle"
 }
 
 extension RecordType {

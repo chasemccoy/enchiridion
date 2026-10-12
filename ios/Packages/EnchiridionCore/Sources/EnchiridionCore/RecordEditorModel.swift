@@ -129,6 +129,12 @@ public final class RecordEditorModel {
     /// The draft as the editor opened, for "discard changes?".
     public let initial: RecordDraft
     public private(set) var state: SaveState = .editing
+    /// A new record's links, added once it's saved (an edit's links are changed on the detail, one at a time).
+    public var links: [PendingLink] = []
+    /// Links that couldn't be added after the create: the sheet says so, and `retryLinks()` adds just these.
+    public private(set) var failedLinks: [PendingLink] = []
+    /// The link picker's search.
+    @ObservationIgnored public let linkSearch: RecordSearchModel
     /// The fields of an update that failed and may have landed: every later save sends them again, whatever the draft
     /// holds, and the sheet treats them as changes until one lands.
     private var attempted: Set<RecordInput.Field> = []
@@ -151,10 +157,11 @@ public final class RecordEditorModel {
         self.onChange = onChange
         client = environment.client(role: .app)
         creation = RecordCreation(client: client, fallback: environment.fallbackSlug)
+        linkSearch = RecordSearchModel(environment: environment)
     }
 
     public var isNew: Bool { draft.isNew }
-    public var hasChanges: Bool { draft != initial }
+    public var hasChanges: Bool { draft != initial || !links.isEmpty }
     /// An edit's update failed in a way that may have landed: the server may hold something the draft no longer does,
     /// so Save stays on and closing asks first, even with no change left in the draft.
     public var hasUnsettledEdit: Bool { !attempted.isEmpty }
@@ -196,6 +203,7 @@ public final class RecordEditorModel {
         createUnconfirmed = creation.isUnconfirmed
         switch outcome {
         case .success(let record):
+            if isNew { failedLinks = await PendingLink.send(links, from: record.id, client: client) }
             state = .saved(record)
             return record
         case .failure(let error):
@@ -204,6 +212,12 @@ public final class RecordEditorModel {
             state = failure.map(SaveState.failed) ?? .editing
             return nil
         }
+    }
+
+    /// Adds the links that failed after the create, again.
+    public func retryLinks() async {
+        guard case .saved(let record) = state, !failedLinks.isEmpty else { return }
+        failedLinks = await PendingLink.send(failedLinks, from: record.id, client: client)
     }
 
     /// Creates `draft`, or sends an edit's update (its changes and any earlier attempt's fields), and reports it.

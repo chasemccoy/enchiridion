@@ -139,11 +139,7 @@ public struct ShareDraft: Hashable, Sendable {
 
     /// Adds a link, or changes how an already linked record is linked.
     public mutating func link(_ link: PendingLink) {
-        if let index = links.firstIndex(where: { $0.id == link.id }) {
-            links[index] = link
-        } else {
-            links.append(link)
-        }
+        links.link(link)
     }
 
     static func oneLine(_ text: String) -> String {
@@ -216,21 +212,7 @@ public final class ShareComposeModel {
     /// harmless to send twice).
     public func retryLinks() async {
         guard case .saved(let record) = state, !failedLinks.isEmpty else { return }
-        failedLinks = await Self.addLinks(failedLinks, to: record.id, client: environment.client(role: .share))
-    }
-
-    /// Sends each link; returns the ones that failed.
-    private static func addLinks(_ links: [PendingLink], to recordID: Int,
-                                 client: EnchiridionClient) async -> [PendingLink] {
-        var failed: [PendingLink] = []
-        for link in links {
-            do {
-                _ = try await client.putLink(link.input(sourceID: recordID))
-            } catch {
-                failed.append(link)
-            }
-        }
-        return failed
+        failedLinks = await PendingLink.send(failedLinks, from: record.id, client: environment.client(role: .share))
     }
 
     /// Saves the record; `state` ends `.saved` or `.failed`. Callable again after a failure (Retry).
@@ -260,7 +242,7 @@ public final class ShareComposeModel {
         mayHaveSaved = creation.isUnconfirmed
         switch outcome {
         case .success(let record):
-            failedLinks = await Self.addLinks(draft.links, to: record.id, client: environment.client(role: .share))
+            failedLinks = await PendingLink.send(draft.links, from: record.id, client: environment.client(role: .share))
             state = .saved(record)
         case .failure(let error) where timedOut:
             state = .failed(EnchiridionError.classify(error) ?? .unreachable)

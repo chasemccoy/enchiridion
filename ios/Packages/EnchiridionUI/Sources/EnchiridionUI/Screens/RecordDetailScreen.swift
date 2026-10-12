@@ -1,11 +1,13 @@
 import EnchiridionCore
 import EnchiridionKit
+import struct EnchiridionKit.Predicate
 import SwiftUI
 
 /// One record, as the web's `RecordDetail` shows it, read-only with Edit for changes: the badge row (Needs curating,
 /// the type, the source unless manual, the captured date, the id), the title in the serif, the byline (from the parent,
 /// by the creator, at the domain), the record's images, its content as Markdown (single newlines kept as line breaks),
-/// a Details card (Summary, Link, Published, Notes), then "Linked records", a card per predicate. In a column at most
+/// a Details card (Summary, Link, Published, Notes), then "Linked records", a card per predicate, with Add link and a
+/// row's Remove link, then "Similar records", each with a menu to link it. In a column at most
 /// 680 pt wide, centered. Edit is in the navigation bar; Curate, Open, Share and Delete are in the bottom bar.
 ///
 /// Links (a linked record, the parent, the creator) push a `RecordRoute`; the stack this screen sits in registers its
@@ -22,6 +24,7 @@ public struct RecordDetailScreen: View {
     let onDeleted: (() -> Void)?
     let onEdit: ((RecordEditorModel) -> Void)?
     @State private var editor: EditorSession?
+    @State private var linking: LinkSession?
     @State private var confirmingDelete = false
     @State private var titleScrolledAway = false
     @Environment(\.scenePhase) private var scenePhase
@@ -37,7 +40,9 @@ public struct RecordDetailScreen: View {
         Group {
             if let detail = model.detail {
                 ScrollView {
-                    DetailContent(detail: detail, model: model, titleScrolledAway: $titleScrolledAway)
+                    DetailContent(detail: detail, model: model, titleScrolledAway: $titleScrolledAway) {
+                        linking = LinkSession(search: model.makeLinkSearch())
+                    }
                 }
                 .refreshable { await model.refresh() }
             } else if let error = model.state.error {
@@ -67,6 +72,11 @@ public struct RecordDetailScreen: View {
         }
         .sheet(item: $editor) { session in
             RecordEditorSheet(model: session.model)
+        }
+        .sheet(item: $linking) { session in
+            LinkPickerSheet(search: session.search) { row, predicate in
+                Task { await model.addLink(to: row.id, predicate: predicate) }
+            }
         }
         .confirmationDialog("Delete this record?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete record", role: .destructive) {
@@ -107,6 +117,7 @@ private struct DetailContent: View {
     let detail: RecordDetail
     let model: RecordDetailModel
     @Binding var titleScrolledAway: Bool
+    let addLink: () -> Void
 
     var body: some View {
         let record = detail.record
@@ -127,7 +138,8 @@ private struct DetailContent: View {
                     .textSelection(.enabled)
             }
             DetailsCard(record: record)
-            LinkedRecords(groups: model.linkGroups)
+            LinkedRecords(model: model, addLink: addLink)
+            SimilarRecords(model: model)
         }
         .frame(maxWidth: Metrics.detailWidth, alignment: .leading)
         .padding(.horizontal, Space.margin)
@@ -455,33 +467,127 @@ private struct LinkRow: View {
 }
 
 /// "Linked records": a grouped card per predicate as it reads from this record ("Created by", "Tagged with"), its
-/// label above it. Each row opens its record.
+/// label above it, then "Add link". Each row opens its record; its context menu removes the link.
 private struct LinkedRecords: View {
-    let groups: [LinkGroup]
+    let model: RecordDetailModel
+    let addLink: () -> Void
 
     var body: some View {
-        if !groups.isEmpty {
-            VStack(alignment: .leading, spacing: Space.detailGap) {
+        VStack(alignment: .leading, spacing: Space.detailGap) {
+            HStack(alignment: .firstTextBaseline) {
                 Text("Linked records")
                     .font(Typography.sectionHeading)
                     .foregroundStyle(Palette.text)
                     .accessibilityAddTraits(.isHeader)
-                ForEach(groups) { group in
-                    VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
-                        GroupedCardLabel(text: group.label)
-                        GroupedCard {
-                            ForEach(group.links) { link in
-                                NavigationLink(value: RecordRoute(id: link.recordID)) {
-                                    LinkedRecordRow(link: link)
-                                }
-                                .buttonStyle(RowButtonStyle())
+                Spacer(minLength: Space.metaGap)
+                Button(action: addLink) {
+                    Label("Add link", systemImage: Symbol.addLink)
+                        .font(Typography.toggleLabel)
+                }
+                .buttonStyle(.borderless)
+                .tint(Palette.primary)
+                .disabled(model.isLinking)
+            }
+            ForEach(model.linkGroups) { group in
+                VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
+                    GroupedCardLabel(text: group.label)
+                    GroupedCard {
+                        ForEach(group.links) { link in
+                            NavigationLink(value: RecordRoute(id: link.recordID)) {
+                                LinkedRecordRow(link: link)
                             }
+                            .buttonStyle(RowButtonStyle())
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    Task { await model.removeLink(link) }
+                                } label: {
+                                    Label("Remove link", systemImage: Symbol.unlink)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.top, Space.metaGap)
+    }
+}
+
+/// "Similar records": the server's nearest records by embedding that aren't linked yet, each opening its record, with
+/// a menu to link it ("Related to", "About"…). Hidden when there are none (or they couldn't load).
+private struct SimilarRecords: View {
+    let model: RecordDetailModel
+
+    var body: some View {
+        let similar = model.similar
+        if !similar.isEmpty {
+            VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
+                Text("Similar records")
+                    .font(Typography.sectionHeading)
+                    .foregroundStyle(Palette.text)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.bottom, Space.metaGap)
+                GroupedCard {
+                    ForEach(similar) { item in
+                        HStack(spacing: 0) {
+                            NavigationLink(value: RecordRoute(id: item.id)) {
+                                SimilarRecordRow(item: item)
+                            }
+                            .buttonStyle(RowButtonStyle())
+                            Menu {
+                                Section("Link as") {
+                                    ForEach(Predicate.linkOptions, id: \.self) { predicate in
+                                        Button(predicate.menuName) {
+                                            Task { await model.addLink(to: item.id, predicate: predicate) }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: Symbol.addLink)
+                                    .font(Typography.linkTitle)
+                                    .foregroundStyle(Palette.primary)
+                                    .padding(Metrics.groupedRowPadding)
+                                    .contentShape(Rectangle())
+                            }
+                            .disabled(model.isLinking)
+                            .accessibilityLabel(Text(verbatim: "Link \(item.record.title.nonBlank ?? item.record.slug)"))
                         }
                     }
                 }
             }
             .padding(.top, Space.metaGap)
         }
+    }
+}
+
+/// A similar record: its type's symbol, its title, and why it's similar ("50% similar by content").
+private struct SimilarRecordRow: View {
+    let item: SimilarRecord
+
+    var body: some View {
+        HStack(alignment: .center, spacing: Space.metaGap) {
+            Image(systemName: item.record.type.symbolName)
+                .font(Typography.count)
+                .foregroundStyle(Palette.textDimmed)
+                .frame(width: 20)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: item.record.title.nonBlank ?? item.record.content.nonBlank ?? item.record.slug)
+                    .font(Typography.linkTitle)
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(2)
+                if let reason = item.reasons.first {
+                    Text(verbatim: reason)
+                        .font(Typography.note)
+                        .foregroundStyle(Palette.textMuted)
+                }
+            }
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(Metrics.groupedRowPadding)
+        .padding(.trailing, -Metrics.groupedRowPadding.trailing)
+        .contentShape(Rectangle())
     }
 }
 

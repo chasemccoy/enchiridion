@@ -10,6 +10,113 @@ enum LinkPickerStep: Hashable {
     case predicate(ListRecord)
 }
 
+extension View {
+    /// Registers the two "Add link" steps on the stack this view sits in: `path` holds them. Choosing a relationship
+    /// calls `choose` and pops back to where the picker started.
+    func linkPickerDestinations(search: RecordSearchModel, path: Binding<[LinkPickerStep]>,
+                                choose: @escaping (ListRecord, Predicate) -> Void) -> some View {
+        navigationDestination(for: LinkPickerStep.self) { step in
+            switch step {
+            case .record:
+                RecordLinkSearch(search: search, path: path)
+            case .predicate(let row):
+                LinkPredicatePicker(target: row) { predicate in
+                    choose(row, predicate)
+                    path.wrappedValue = []
+                }
+            }
+        }
+    }
+}
+
+/// "Add link" as a sheet of its own, for a screen whose stack can't take the steps (a record's detail): the search,
+/// then the relationship, with Cancel. `choose` runs, then the sheet closes.
+struct LinkPickerSheet: View {
+    let search: RecordSearchModel
+    let choose: (ListRecord, Predicate) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var path: [LinkPickerStep] = []
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            RecordLinkSearch(search: search, path: $path)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .cancel) { dismiss() }
+                    }
+                }
+                .navigationDestination(for: LinkPickerStep.self) { step in
+                    if case .predicate(let row) = step {
+                        LinkPredicatePicker(target: row) { predicate in
+                            choose(row, predicate)
+                            dismiss()
+                        }
+                    }
+                }
+        }
+        .enchiridionRoot()
+    }
+}
+
+/// The links a new record will get (the share card, the new-record editor): each target with its relationship (a menu to change it) and a remove button, then
+/// "Add link".
+struct PendingLinks: View {
+    @Binding var links: [PendingLink]
+    let add: () -> Void
+
+    var body: some View {
+        FormSection("Links") {
+            ForEach(links) { link in
+                HStack(spacing: Space.metaGap) {
+                    VStack(alignment: .leading, spacing: Space.metaLineGap) {
+                        Menu {
+                            Picker("Relationship", selection: predicate(of: link)) {
+                                ForEach(Predicate.linkOptions, id: \.self) { predicate in
+                                    Text(verbatim: predicate.menuName).tag(predicate)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: Space.iconGap) {
+                                Text(verbatim: link.predicate.menuName)
+                                Image(systemName: Symbol.relationship)
+                                    .imageScale(.small)
+                            }
+                            .font(Typography.metadataLabel)
+                            .foregroundStyle(Palette.textMuted)
+                        }
+                        .accessibilityLabel(Text(verbatim: "Relationship: \(link.predicate.menuName)"))
+                        LinkTargetRow(title: link.title, slug: link.slug, type: link.type)
+                    }
+                    Button(role: .destructive) {
+                        links.removeAll { $0.id == link.id }
+                    } label: {
+                        Image(systemName: Symbol.removeLink)
+                            .foregroundStyle(Palette.textDimmed)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(verbatim: "Remove link to \(link.displayTitle)"))
+                }
+            }
+            Button(action: add) {
+                Label("Add link", systemImage: Symbol.add)
+                    .font(Typography.toggleLabel)
+                    .foregroundStyle(Palette.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func predicate(of link: PendingLink) -> Binding<Predicate> {
+        Binding(get: { link.predicate }, set: { predicate in
+            var changed = link
+            changed.predicate = predicate
+            links.link(changed)
+        })
+    }
+}
+
 /// "Add link", step one: search for the record to link to. Results come from hybrid search as you type; picking one
 /// pushes \`LinkPredicatePicker\`.
 struct RecordLinkSearch: View {

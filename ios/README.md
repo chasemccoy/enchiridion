@@ -135,13 +135,22 @@ curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device
 - **Library.**
   - Pull to refresh.
   - The bottom bar holds the filter menu (type, **Needs curation**, **Has media**, and the sort: newest, oldest, title, or relevance while searching), search, and **+** for a new record.
-  - Search runs hybrid search as you type.
+  - Search runs hybrid search as you type: matches by meaning (semantic, from the records' embeddings) fused with matches on the words, as the web's search does. "Essays about small websites" finds them without those words in the title.
   - Swipe a card to curate or delete it, or long-press for Open link, Copy link, Curate and Delete.
   - On iPad the record opens beside the list.
 - **Record.**
   - The content, a Details card (summary, link, published date, notes) and the linked records, a card per kind of link. Tap a linked record to open it; swiping back returns one screen at a time.
   - **Edit** is at the top. The bottom bar has **Curate**, **Open link**, **Share** and **Delete**.
+  - **Add link** (beside Linked records) searches for a record, then asks how it's linked. Long-press a linked record for **Remove link**.
+  - **Similar records** lists records close in meaning that aren't linked yet. Tap one to open it, or its link button to link it.
   - Links open in an in-app browser sheet.
+- **New record.** The editor has a Links section like the share card's; the links are added once the record saves.
+- **Siri and Shortcuts.** No setup: the actions appear in the Shortcuts app under Enchiridion.
+  - "Show me something from Enchiridion": a random curated record, read out, and handed to the next action.
+  - "Open a record in Enchiridion": asks which (searching as you type or say it), then opens it.
+  - "Save a link to Enchiridion": saves a URL (with an optional title and note) without opening the app; the page's own title is fetched when none is given.
+  - `enchiridion://record/<id>` opens a record from anywhere (an Open URL action, a note).
+  - For the Home Screen, add a Shortcuts widget showing these actions.
 - **Sharing.**
   - Share a page from Safari. Select text first to save it as the record's content; the page's description becomes the summary.
   - The card is the web's add form: title, type, content, and Details (summary, link, notes), plus Curated. Everything is filled from the share and editable.

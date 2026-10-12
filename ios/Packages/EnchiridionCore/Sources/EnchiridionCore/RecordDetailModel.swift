@@ -90,6 +90,16 @@ public final class RecordDetailModel {
     public private(set) var links: LinksBundle?
     /// `links` grouped for "Linked records": `linkGroups(_:)`.
     public private(set) var linkGroups: [LinkGroup] = []
+    /// Records near this one by embedding and not linked to it yet (`GET /record/:id/similar`), most similar first.
+    /// Empty until they load, and when they can't: suggestions never fail the detail. Ones linked since (here, or
+    /// before the links loaded) are left out as they're read.
+    public var similar: [SimilarRecord] {
+        let linked = linkedIDs
+        return suggestions.filter { !linked.contains($0.id) && $0.id != id }
+    }
+    private var suggestions: [SimilarRecord] = []
+    /// A link being added or removed.
+    public private(set) var isLinking = false
     /// A curate or delete in flight.
     public private(set) var isWorking = false
     /// Set once the record is gone (`delete()` succeeded, or it was found deleted elsewhere): the screen closes.
@@ -101,6 +111,7 @@ public final class RecordDetailModel {
     @ObservationIgnored private let client: EnchiridionClient
     @ObservationIgnored private let onChange: RecordChangeHandler?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
+    @ObservationIgnored private var similarTask: Task<Void, Never>?
     /// Moves on every change made to the record here (a curate, an edit), so a load that was out meanwhile knows its
     /// answer may be older than what is shown.
     @ObservationIgnored private var changeGeneration = 0
@@ -145,9 +156,30 @@ public final class RecordDetailModel {
         return task
     }
 
-    /// Waits until no load is out, including one a row change started: tests.
+    /// Waits until no load is out, including one a row change started, and the suggestions: tests.
     func settled() async {
         while let loadTask { await loadTask.value }
+        await similarTask?.value
+    }
+
+    /// How many suggestions the detail shows.
+    public nonisolated static let similarLimit = 6
+
+    /// Loads the suggestions again, beside the record's own load (never holding it up).
+    private func loadSimilar() {
+        similarTask?.cancel()
+        let client = client
+        let id = id
+        similarTask = Task { [weak self] in
+            guard let found = try? await client.similar(id: id, limit: Self.similarLimit), !Task.isCancelled,
+                  let self else { return }
+            self.suggestions = found
+        }
+    }
+
+    /// The records this one links to or from.
+    private var linkedIDs: Set<Int> {
+        Set(linkGroups.flatMap(\.links).map(\.recordID))
     }
 
     /// The library's row for this record changed (nil: it isn't listed now). Once the row has settled and says
@@ -171,6 +203,7 @@ public final class RecordDetailModel {
     /// so the row leaves, this screen closes and the library says so.
     private func fetch() async {
         state = .loading
+        loadSimilar()
         let generation = changeGeneration
         do {
             async let detail = client.record(id: id)
@@ -256,6 +289,54 @@ public final class RecordDetailModel {
             if let error = EnchiridionError.classify(error) { actionError = error }
             return false
         }
+    }
+
+    /// A search for "Add link": this record and the ones it's linked with left out.
+    public func makeLinkSearch() -> RecordSearchModel {
+        let search = RecordSearchModel(environment: environment)
+        search.excludedIDs = linkedIDs.union([id])
+        return search
+    }
+
+    /// Links this record to `target` (`PUT /link`, which stores the canonical direction), then reloads its links (so a
+    /// suggestion it was leaves the suggestions). A failure sets `actionError`.
+    @discardableResult
+    public func addLink(to target: Int, predicate: Predicate) async -> Bool {
+        guard !isLinking, !isDeleted else { return false }
+        isLinking = true
+        defer { isLinking = false }
+        do {
+            _ = try await client.putLink(LinkInput(sourceId: id, targetId: target, predicate: predicate))
+            await reloadLinks()
+            return true
+        } catch {
+            if let error = EnchiridionError.classify(error) { actionError = error }
+            return false
+        }
+    }
+
+    /// Removes a link (`DELETE /link/:id`), then reloads the links. A failure sets `actionError`.
+    @discardableResult
+    public func removeLink(_ linked: LinkedRecord) async -> Bool {
+        guard !isLinking, !isDeleted else { return false }
+        isLinking = true
+        defer { isLinking = false }
+        do {
+            try await client.deleteLink(id: linked.linkID)
+            await reloadLinks()
+            return true
+        } catch {
+            if let error = EnchiridionError.classify(error) { actionError = error }
+            return false
+        }
+    }
+
+    /// The links alone, after this screen changed them. A failure keeps the ones shown less the change: the next
+    /// refresh brings them right.
+    private func reloadLinks() async {
+        guard let loaded = try? await client.links(id: id) else { return }
+        links = loaded
+        linkGroups = Self.linkGroups(loaded)
     }
 
     public func clearActionError() {

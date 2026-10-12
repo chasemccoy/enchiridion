@@ -3,7 +3,8 @@ import EnchiridionKit
 import SwiftUI
 
 /// Creates a record or edits one, as a sheet titled "New record" or "Edit record": Title, Type (segmented), URL,
-/// Summary, Content (Markdown, multi-line), Notes and Curated, in plain sections on the page color. Cancel and Save
+/// Summary, Content (Markdown, multi-line), Notes and Curated, and for a new record Links (the share card's: pushed
+/// search, then the relationship; added once the record saves, with an alert naming any that failed), in plain sections on the page color. Cancel and Save
 /// sit in the bar; Save waits until the draft has something in it and, for an edit, until something changed (or an
 /// update that failed may have landed: `hasUnsettledEdit`). A failed save reads inline at the top and leaves every
 /// field as typed, so Save again retries (a create whose answer was lost is looked up by its slug first, so a retry
@@ -17,6 +18,8 @@ public struct RecordEditorSheet: View {
     let onSaved: ((Record) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var confirmingDiscard = false
+    @State private var path: [LinkPickerStep] = []
+    @State private var linksFailed = false
     @FocusState private var focus: Field?
 
     private enum Field: Hashable {
@@ -30,7 +33,7 @@ public struct RecordEditorSheet: View {
 
     public var body: some View {
         @Bindable var model = model
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.formSection) {
                     if let error = model.state.error {
@@ -80,6 +83,12 @@ public struct RecordEditorSheet: View {
                         Toggle("Curated", isOn: $model.draft.isCurated)
                             .tint(Palette.primary)
                     }
+                    if model.isNew {
+                        PendingLinks(links: $model.links) {
+                            focus = nil
+                            path = [.record]
+                        }
+                    }
                 }
                 .textFieldStyle(.plain)
                 .disabled(model.state.isSaving)
@@ -90,6 +99,9 @@ public struct RecordEditorSheet: View {
             }
             .dismissesKeyboardInteractively()
             .background(Palette.page)
+            .linkPickerDestinations(search: model.linkSearch, path: $path) { row, predicate in
+                model.links.link(PendingLink(row, predicate: predicate))
+            }
             .navigationTitle(model.isNew ? "New record" : "Edit record")
             .inlineNavigationTitle()
             .toolbar {
@@ -106,6 +118,18 @@ public struct RecordEditorSheet: View {
                             .keyboardShortcut("s", modifiers: .command)
                     }
                 }
+            }
+            .alert("Saved, but some links weren't added", isPresented: $linksFailed) {
+                Button("Retry") {
+                    Task {
+                        await model.retryLinks()
+                        if model.failedLinks.isEmpty { dismiss() } else { linksFailed = true }
+                    }
+                }
+                Button("Done", role: .cancel) { dismiss() }
+            } message: {
+                Text(verbatim: model.failedLinks.map { "\($0.predicate.menuName) \($0.displayTitle)" }
+                    .joined(separator: "\n"))
             }
             .confirmationDialog("Discard your changes?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
                 Button("Discard changes", role: .destructive) { dismiss() }
@@ -154,7 +178,7 @@ public struct RecordEditorSheet: View {
         Task {
             guard let record = await model.save() else { return }
             onSaved?(record)
-            dismiss()
+            if model.failedLinks.isEmpty { dismiss() } else { linksFailed = true }
         }
     }
 }

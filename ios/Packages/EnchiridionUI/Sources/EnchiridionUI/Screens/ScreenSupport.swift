@@ -14,6 +14,12 @@ struct EditorSession: Identifiable {
     var id: ObjectIdentifier { ObjectIdentifier(model) }
 }
 
+/// A record search presented as "Add link": the sheet's item.
+struct LinkSession: Identifiable {
+    let search: RecordSearchModel
+    var id: ObjectIdentifier { ObjectIdentifier(search) }
+}
+
 enum RecordURL {
     /// A record's `url` as something `openURL` can open: an http(s) address as stored, or a bare `example.com/page`
     /// with https assumed (the web's links do the same through the browser); nil for anything else (`WebAddress`,

@@ -158,10 +158,12 @@ Tests use stub transports and a manual clock.
 
 **Navigation.** On an iPhone (a compact width) `LibraryScreen` is one `NavigationStack`: the list, the selected record pushed on it, linked records pushed on that, so back goes one screen at a time. The stack's first screen follows `selectedID` (a model-moved selection replaces it, under any linked records above), and popping back to the list clears it. On an iPad it's a `NavigationSplitView` whose detail column has its own stack. The list's bottom bar holds the filter and sort menu, search and New record; a detail's has Curate, Open link, Share and Delete, with Edit in the navigation bar. Links open in an in-app Safari sheet (`inAppBrowser()`, which takes over `openURL` at the root).
 
+**Links on a detail.** "Linked records" has **Add link**, which presents `LinkPickerSheet` (the share card's two steps in a sheet of their own, over `RecordDetailModel.makeLinkSearch()`, which leaves out the record and the ones linked already) and calls `addLink(to:predicate:)`: `PUT /link` from this record, then the links alone reload. A linked row's context menu has Remove link (`removeLink(_:)`, `DELETE /link/:id`). Either failure sets `actionError`. **Similar records** below it come from `GET /record/:id/similar` (6, loaded beside the record and never holding it up or failing it; already-linked ones are left out as they're read), each with a menu to link it. A new record's editor has the share card's Links section (`RecordEditorModel.links`, sent after the create, `failedLinks` and `retryLinks()` as the card's, with an alert naming any that failed); an edit's links are changed on the detail.
+
 **The count** (`countText`) reads as the web's: "567 records", "12 of 567 records", "8 results", "Searching…", "Search failed. Try again.". It is nil, and the title shows no count, until an index has loaded.
 
 **Search.**
-- Typing waits 250 ms for a pause, then runs a hybrid search.
+- Typing waits 250 ms for a pause, then runs a hybrid search (`GET /search/hybrid`): the server fuses the text match with semantic search over the records' embeddings by reciprocal rank, so it is semantic search that also finds exact names and domains. The link pickers and Shortcuts search the same way.
 - The previous results stay on screen while a refined query loads.
 - Clearing the field returns to the index at once.
 - `refresh()` searches again immediately, for what the field holds now (text typed while the index reloaded included).
@@ -284,13 +286,22 @@ A save in the editor has `Timings.editorDeadline` (30 s) for all its requests to
 
 There is no outbox. Without App Groups the app can't see anything the extension parks, so a share is saved now or the card says it wasn't (or that it couldn't confirm it).
 
+## Shortcuts
+
+App Intents in the app target (`iOS/Shortcuts.swift`), no entitlement needed, over EnchiridionCore's `RecordShortcuts` on the app's own server (`AppServer.url`):
+- `RecordEntity` and its `EntityStringQuery`: by id, by hybrid search, the 20 newest as suggestions.
+- `OpenRecordIntent` (an `OpenIntent`): opens `enchiridion://record/<id>` (`DeepLink`, registered in the app's `CFBundleURLTypes`), which the root view's `onOpenURL` turns into `LibraryModel.selectedID`.
+- `RandomRecordIntent`: a random record from the index query (curated only by default), said as its title and summary and returned for the next action.
+- `SaveLinkIntent`: creates an artifact as the share card would with nothing edited (`RecordCreation`, so idempotent by slug), the title fetched with LinkPresentation when none is given.
+- `EnchiridionShortcuts` gives each Siri phrases. A Home Screen widget would need a widget extension, a new target, which the free team's limits rule out for now (README, "What the free team allows"); the Shortcuts app's own widget runs these instead.
+
 ## Targets (`project.yml`)
 
 Generate the project with `xcodegen generate` (XcodeGen 2.46.0). The `.xcodeproj` is gitignored; the two Info.plists are generated from `project.yml` and committed.
 
 | Target | Bundle id | Sources | Notes |
 |---|---|---|---|
-| `Enchiridion` (application) | `org.chsmc.enchiridion` | `iOS/` | Device family 1,2: portrait on iPhone, all orientations on iPad. `UILaunchScreen: {}`, `ITSAppUsesNonExemptEncryption: false`. `AppIcon` (1024 pt, single size, upscaled from `../app/public/pwa-512.png`). `AccentColor` (#2a78d6 light, #6da7ec dark). Embeds the extension. |
+| `Enchiridion` (application) | `org.chsmc.enchiridion` | `iOS/` | Device family 1,2: portrait on iPhone, all orientations on iPad. `UILaunchScreen: {}`, `ITSAppUsesNonExemptEncryption: false`. `AppIcon` (1024 pt, single size, upscaled from `../app/public/pwa-512.png`). `AccentColor` (#2a78d6 light, #6da7ec dark). Embeds the extension. URL scheme `enchiridion` (`DeepLink`). |
 | `EnchiridionShare` (app extension) | `org.chsmc.enchiridion.share` | `ShareExtension/` | `com.apple.share-services`. Principal class `$(PRODUCT_MODULE_NAME).ShareViewController`. Activates for one web URL, one web page, or text. Preprocessing file `Preprocess`. `APPLICATION_EXTENSION_API_ONLY`. |
 
 **Shared settings.**

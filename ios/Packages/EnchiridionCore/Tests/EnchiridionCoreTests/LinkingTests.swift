@@ -144,3 +144,154 @@ struct ShareTitleTests {
         #expect(model.draft.title == "Mine")
     }
 }
+
+@MainActor
+struct DetailLinkingTests {
+    private nonisolated static let detail = RecordDetail(record: Fixture.record(5, slug: "tiny", title: "Tiny"))
+
+    /// Record 5, linked to 7; the server suggests 7 (linked meanwhile), 8 and 9.
+    private func server(failPut: Bool = false) -> StubTransport {
+        let linked = Mutex([7])
+        return StubTransport { request in
+            switch request.route {
+            case "GET /record/5":
+                return .json(Self.detail)
+            case "GET /record/5/links":
+                let targets = linked.withLock { $0 }
+                return .json(LinksBundle(id: 5, outgoingLinks: targets.map {
+                    .init(link: Fixture.link($0 * 10, from: 5, to: $0, .relatedTo), target: .init(title: "R\($0)", slug: "r\($0)"))
+                }))
+            case "GET /record/5/similar":
+                return .json([7, 8, 9].map { SimilarRecord(record: Fixture.record($0, title: "R\($0)"), score: 0.5) })
+            case "PUT /link":
+                if failPut { return .raw(#"{"message":"boom"}"#, status: 500) }
+                let target = request.json()["targetId"] as? Int ?? 0
+                linked.withLock { $0.append(target) }
+                return .json(Fixture.link(target * 10, from: 5, to: target, .relatedTo))
+            case "DELETE /link/70":
+                linked.withLock { $0.removeAll { $0 == 7 } }
+                return .json([Fixture.link(70, from: 5, to: 7, .relatedTo)])
+            default:
+                return .notFound
+            }
+        }
+    }
+
+    @Test func suggestionsLeaveOutLinkedRecords() async {
+        let model = RecordDetailModel(id: 5, environment: .test(server()))
+        await model.load()
+        await model.settled()
+        #expect(model.similar.map(\.id) == [8, 9])
+    }
+
+    @Test func linkingASuggestionMovesItToTheLinks() async {
+        let model = RecordDetailModel(id: 5, environment: .test(server()))
+        await model.load()
+        await model.settled()
+        #expect(await model.addLink(to: 8, predicate: .about))
+        #expect(model.similar.map(\.id) == [9])
+        #expect(model.linkGroups.flatMap(\.links).map(\.recordID) == [7, 8])
+        #expect(model.makeLinkSearch().excludedIDs == [5, 7, 8])
+    }
+
+    @Test func removingALink() async {
+        let model = RecordDetailModel(id: 5, environment: .test(server()))
+        await model.load()
+        let linked = try! #require(model.linkGroups.first?.links.first)
+        #expect(await model.removeLink(linked))
+        #expect(model.linkGroups.isEmpty)
+    }
+
+    @Test func aFailedLinkSaysSo() async {
+        let model = RecordDetailModel(id: 5, environment: .test(server(failPut: true)))
+        await model.load()
+        #expect(await model.addLink(to: 8, predicate: .about) == false)
+        #expect(model.actionError != nil)
+        #expect(!model.isLinking)
+    }
+}
+
+@MainActor
+struct EditorLinkingTests {
+    @Test func aNewRecordsLinksFollowItsCreate() async {
+        let saved = Fixture.record(42, slug: "tiny", title: "Tiny")
+        let failing = Mutex(true)
+        let transport = StubTransport { request in
+            switch request.route {
+            case "GET /record/slug/tiny": return .notFound
+            case "PUT /record": return .json(saved)
+            case "PUT /link":
+                let target = request.json()["targetId"] as? Int ?? 0
+                if target == 4, failing.withLock({ $0 }) {
+                    failing.withLock { $0 = false }
+                    return .raw(#"{"message":"boom"}"#, status: 500)
+                }
+                return .json(Fixture.link(1, from: 42, to: target, .createdBy))
+            default: return .notFound
+            }
+        }
+        let model = RecordEditorModel(environment: .test(transport))
+        model.draft.title = "Tiny"
+        #expect(!model.hasChanges || model.draft.title == "Tiny")
+        model.links.link(PendingLink(Fixture.row(7, title: "Ada", type: .entity), predicate: .createdBy))
+        model.links.link(PendingLink(Fixture.row(4, title: "Essay"), predicate: .hasFormat))
+        #expect(await model.save() == saved)
+        #expect(model.failedLinks.map(\.targetID) == [4])
+        await model.retryLinks()
+        #expect(model.failedLinks.isEmpty)
+        let creates = await transport.routes.filter { $0 == "PUT /record" }
+        #expect(creates.count == 1, "a links retry never creates again")
+    }
+
+    @Test func pendingLinksCountAsChanges() {
+        let model = RecordEditorModel(environment: .test(StubTransport { _ in .notFound }))
+        #expect(!model.hasChanges)
+        model.links.link(PendingLink(Fixture.row(7, title: "Ada"), predicate: .createdBy))
+        #expect(model.hasChanges)
+    }
+}
+
+struct RecordShortcutsTests {
+    @Test func randomPicksFromCuratedRecords() async throws {
+        let transport = StubTransport { request in
+            #expect(request.json()["filters"].flatMap { ($0 as? [String: Any])?["isCurated"] as? Bool } == true)
+            return .json([Fixture.row(1, title: "One", curated: true), Fixture.row(2, title: "Two", curated: true)])
+        }
+        let shortcuts = RecordShortcuts(environment: .test(transport))
+        #expect(try await shortcuts.random(using: { $0.last })?.id == 2)
+    }
+
+    @Test @MainActor func savingALinkMakesAnArtifact() async throws {
+        let saved = Fixture.record(42, slug: "tiny-internets", title: "Tiny internets", url: "https://example.com/tiny")
+        let transport = StubTransport { request in
+            switch request.route {
+            case "GET /record/slug/tiny-internets": return .notFound
+            case "PUT /record":
+                let body = request.json()
+                #expect(body["type"] as? String == "artifact")
+                #expect(body["notes"] as? String == "Read later")
+                #expect(body["url"] as? String == "https://example.com/tiny")
+                return .json(saved)
+            default: return .notFound
+            }
+        }
+        let record = try await RecordShortcuts(environment: .test(transport))
+            .save(url: URL(string: "https://example.com/tiny")!, title: " Tiny internets ", note: "Read later")
+        #expect(record == saved)
+    }
+}
+
+struct DeepLinkTests {
+    @Test func recordLinksRoundTrip() {
+        #expect(DeepLink.record(812).absoluteString == "enchiridion://record/812")
+        #expect(DeepLink.recordID(from: DeepLink.record(812)) == 812)
+        #expect(DeepLink.recordID(from: URL(string: "ENCHIRIDION://Record/7")!) == 7)
+    }
+
+    @Test func anythingElseIsNotARecord() {
+        for link in ["enchiridion://record/", "enchiridion://record/abc", "enchiridion://record/0",
+                     "enchiridion://record/1/2", "enchiridion://search/1", "https://example.com/record/1"] {
+            #expect(DeepLink.recordID(from: URL(string: link)!) == nil, "\(link)")
+        }
+    }
+}

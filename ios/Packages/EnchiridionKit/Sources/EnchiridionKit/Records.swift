@@ -455,3 +455,19 @@ func displayDomain(_ url: String) -> String? {
     let lowered = host.lowercased()
     return lowered.hasPrefix("www.") ? String(lowered.dropFirst(4)) : lowered
 }
+
+/// A row of `GET /record/:id/similar`: a record near the asked one by embedding, records already linked to it left
+/// out, with the cosine similarity (`score`) and the server's reasons ("50% similar by content").
+public struct SimilarRecord: Codable, Hashable, Sendable, Identifiable {
+    public var record: Record
+    public var score: Double
+    public var reasons: [String]
+
+    public init(record: Record, score: Double, reasons: [String] = []) {
+        self.record = record
+        self.score = score
+        self.reasons = reasons
+    }
+
+    public var id: Int { record.id }
+}

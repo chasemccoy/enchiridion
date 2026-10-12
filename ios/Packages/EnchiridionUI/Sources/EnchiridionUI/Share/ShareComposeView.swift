@@ -96,16 +96,8 @@ public struct ShareComposeView: View {
                 }
             }
             .inlineNavigationTitle()
-            .navigationDestination(for: LinkPickerStep.self) { step in
-                switch step {
-                case .record:
-                    RecordLinkSearch(search: model.linkSearch, path: $path)
-                case .predicate(let row):
-                    LinkPredicatePicker(target: row) { predicate in
-                        model.draft.link(PendingLink(row, predicate: predicate))
-                        path = []
-                    }
-                }
+            .linkPickerDestinations(search: model.linkSearch, path: $path) { row, predicate in
+                model.draft.link(PendingLink(row, predicate: predicate))
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: saved)
@@ -179,7 +171,7 @@ public struct ShareComposeView: View {
                         .font(Typography.toggleLabel)
                         .tint(Palette.primary)
                 }
-                PendingLinks(draft: $model.draft) {
+                PendingLinks(links: $model.draft.links) {
                     focus = nil
                     path = [.record]
                 }
@@ -231,65 +223,6 @@ private struct DetailField<Field: View>: View {
                 .accessibilityHidden(true)
             field()
         }
-    }
-}
-
-/// The links the record will get: each target with its relationship (a menu to change it) and a remove button, then
-/// "Add link".
-private struct PendingLinks: View {
-    @Binding var draft: ShareDraft
-    let add: () -> Void
-
-    var body: some View {
-        FormSection("Links") {
-            ForEach(draft.links) { link in
-                HStack(spacing: Space.metaGap) {
-                    VStack(alignment: .leading, spacing: Space.metaLineGap) {
-                        Menu {
-                            Picker("Relationship", selection: predicate(of: link)) {
-                                ForEach(Predicate.linkOptions, id: \.self) { predicate in
-                                    Text(verbatim: predicate.menuName).tag(predicate)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: Space.iconGap) {
-                                Text(verbatim: link.predicate.menuName)
-                                Image(systemName: Symbol.relationship)
-                                    .imageScale(.small)
-                            }
-                            .font(Typography.metadataLabel)
-                            .foregroundStyle(Palette.textMuted)
-                        }
-                        .accessibilityLabel(Text(verbatim: "Relationship: \(link.predicate.menuName)"))
-                        LinkTargetRow(title: link.title, slug: link.slug, type: link.type)
-                    }
-                    Button(role: .destructive) {
-                        draft.links.removeAll { $0.id == link.id }
-                    } label: {
-                        Image(systemName: Symbol.removeLink)
-                            .foregroundStyle(Palette.textDimmed)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(verbatim: "Remove link to \(link.displayTitle)"))
-                }
-            }
-            Button(action: add) {
-                Label("Add link", systemImage: Symbol.add)
-                    .font(Typography.toggleLabel)
-                    .foregroundStyle(Palette.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func predicate(of link: PendingLink) -> Binding<Predicate> {
-        Binding(get: { link.predicate }, set: { predicate in
-            var changed = link
-            changed.predicate = predicate
-            draft.link(changed)
-        })
     }
 }
 

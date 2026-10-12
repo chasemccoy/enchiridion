@@ -9,6 +9,8 @@ import SwiftUI
 /// `.environment(_:)`. The server's origin goes down as `\.serverURL`, which media URLs resolve against. Web links
 /// open in the in-app browser (`inAppBrowser()`).
 ///
+/// `enchiridion://record/<id>` (`DeepLink`) opens that record: Siri and Shortcuts' Open record goes through it.
+///
 /// Coming back to the app tries again: when it becomes active after the index failed to load (a 401 included, whose
 /// not-allowed state has no Retry of its own), or after it sat in the background for a while (`staleAfter`), the
 /// index is loaded again. After a shorter time away (a share from Safari, say) it asks for the newest record alone,
@@ -40,6 +42,11 @@ public struct EnchiridionRootView: View {
             .enchiridionRoot()
             .onChange(of: scenePhase) { _, phase in
                 phaseChanged(phase)
+            }
+            // `enchiridion://record/<id>` (a Shortcut's Open record) selects that record.
+            .onOpenURL { url in
+                guard let id = DeepLink.recordID(from: url) else { return }
+                library.selectedID = id
             }
     }
 

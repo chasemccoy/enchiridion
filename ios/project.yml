@@ -70,6 +70,9 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true
         ITSAppUsesNonExemptEncryption: false
         EnchiridionServer: $(ENCHIRIDION_SERVER)   # read by DEBUG builds only (Config/Base.xcconfig)
+        CFBundleURLTypes:                          # enchiridion://record/<id> (DeepLink): Shortcuts' Open record
+          - CFBundleURLName: org.chsmc.enchiridion
+            CFBundleURLSchemes: [enchiridion]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.chsmc.enchiridion

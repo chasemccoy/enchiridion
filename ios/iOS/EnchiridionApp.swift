@@ -17,7 +17,7 @@ struct EnchiridionApp: App {
         FontRegistry.register(bundle: .main)
         // Record images load through the shared URLCache, which would keep small ones on disk.
         URLCache.keepMediaInMemory()
-        environment = .live(server: Self.server)
+        environment = .live(server: AppServer.url)
     }
 
     var body: some Scene {
@@ -25,11 +25,14 @@ struct EnchiridionApp: App {
             EnchiridionRootView(environment: environment)
         }
     }
+}
 
+/// The server the app and its Shortcuts talk to.
+enum AppServer {
     /// `Server.production`; a DEBUG build may point at another API with `-EnchiridionServer <origin>` (the Simulator
     /// on voyager reaches `http://localhost:4321`), else with `ENCHIRIDION_SERVER` in `Config/Local.xcconfig`, which
     /// the share extension reads too. Release builds read neither.
-    private static var server: URL {
+    static var url: URL {
         #if DEBUG
         Server.fromArguments(ProcessInfo.processInfo.arguments,
                              fallback: Server.fromInfoDictionary(.main) ?? Server.production)

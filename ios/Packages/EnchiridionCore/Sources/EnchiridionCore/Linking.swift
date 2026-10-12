@@ -24,6 +24,10 @@ public struct PendingLink: Hashable, Sendable, Identifiable {
         self.init(targetID: row.id, title: row.title, slug: row.slug, type: row.type, predicate: predicate)
     }
 
+    public init(_ record: Record, predicate: Predicate) {
+        self.init(targetID: record.id, title: record.title, slug: record.slug, type: record.type, predicate: predicate)
+    }
+
     /// One link per target: choosing a record already linked changes how it's linked.
     public var id: Int { targetID }
 
@@ -36,6 +40,33 @@ public struct PendingLink: Hashable, Sendable, Identifiable {
     /// The `PUT /link` for a record saved with this id.
     public func input(sourceID: Int) -> LinkInput {
         LinkInput(sourceId: sourceID, targetId: targetID, predicate: predicate)
+    }
+}
+
+extension PendingLink {
+    /// Sends each link from the record saved as `recordID`; returns the ones that failed (`PUT /link` upserts, so
+    /// sending one again that landed after all is harmless).
+    static func send(_ links: [PendingLink], from recordID: Int, client: EnchiridionClient) async -> [PendingLink] {
+        var failed: [PendingLink] = []
+        for link in links {
+            do {
+                _ = try await client.putLink(link.input(sourceID: recordID))
+            } catch {
+                failed.append(link)
+            }
+        }
+        return failed
+    }
+}
+
+extension Array where Element == PendingLink {
+    /// Adds a link, or changes how an already linked record is linked.
+    public mutating func link(_ link: PendingLink) {
+        if let index = firstIndex(where: { $0.id == link.id }) {
+            self[index] = link
+        } else {
+            append(link)
+        }
     }
 }
 
