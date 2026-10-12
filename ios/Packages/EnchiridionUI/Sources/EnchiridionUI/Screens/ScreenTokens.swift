@@ -75,6 +75,9 @@ extension Symbol {
     static let browser = "safari"
     static let share = "square.and.arrow.up"
     static let more = "ellipsis"
+    /// A pending link on the share card: its relationship menu, and removing it.
+    static let relationship = "chevron.up.chevron.down"
+    static let removeLink = "xmark.circle.fill"
 }
 
 extension RecordType {

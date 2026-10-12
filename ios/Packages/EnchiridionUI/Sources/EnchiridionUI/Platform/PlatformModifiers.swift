@@ -40,6 +40,24 @@ extension View {
         #endif
     }
 
+    /// A search field that shows without pulling down: in the navigation bar's drawer on iOS.
+    func alwaysVisibleSearch(text: Binding<String>, prompt: String) -> some View {
+        #if canImport(UIKit)
+        searchable(text: text, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(verbatim: prompt))
+        #else
+        searchable(text: text, prompt: Text(verbatim: prompt))
+        #endif
+    }
+
+    /// The inset grouped list style (iOS); macOS lists stay inset.
+    func groupedList() -> some View {
+        #if canImport(UIKit)
+        listStyle(.insetGrouped)
+        #else
+        listStyle(.inset)
+        #endif
+    }
+
     /// Dragging a scroll view down takes the keyboard down with it (iOS).
     func dismissesKeyboardInteractively() -> some View {
         #if canImport(UIKit)

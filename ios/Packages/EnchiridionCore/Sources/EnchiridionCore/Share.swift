@@ -71,23 +71,32 @@ public struct ShareInput: Equatable, Sendable {
     }
 }
 
-/// The share card's fields. Title and note are edited; the rest comes from the share.
+/// The share card's fields: the web's add form (the page the browser extension opens) filled from the share. Every
+/// field can be edited; links are added after the record is saved.
 public struct ShareDraft: Hashable, Sendable {
     public var title: String
+    public var type: RecordType
     public var url: String?
     public var note: String
     /// The page's description: the record's summary.
     public var summary: String?
     /// The selection (or shared text): the record's content.
     public var selection: String?
+    public var isCurated: Bool
+    /// Links the record gets once it's saved, in the order they were added.
+    public var links: [PendingLink]
 
-    public init(title: String = "", url: String? = nil, note: String = "", summary: String? = nil,
-                selection: String? = nil) {
+    public init(title: String = "", type: RecordType = .artifact, url: String? = nil, note: String = "",
+                summary: String? = nil, selection: String? = nil, isCurated: Bool = false,
+                links: [PendingLink] = []) {
         self.title = title
+        self.type = type
         self.url = url
         self.note = note
         self.summary = summary
         self.selection = selection
+        self.isCurated = isCurated
+        self.links = links
     }
 
     /// A page's title on one line (a `document.title` can hold newlines); shared text becomes the content.
@@ -107,12 +116,21 @@ public struct ShareDraft: Hashable, Sendable {
         RecordSlug.base(title: RecordDraft.line(title), url: url)
     }
 
-    /// The `PUT /record` create: `{type: "artifact", source: "manual", title, slug, url, summary, content: selection,
-    /// notes: note}`, blank fields as `null`.
+    /// The `PUT /record` create: `{type, source: "manual", title, slug, url, isCurated, summary, content: selection,
+    /// notes: note}`, blank fields as `null`. Links go separately, once the record has an id.
     public func input(slug: String) -> RecordInput {
-        RecordInput(slug: slug, type: .artifact, title: RecordDraft.line(title), url: url.flatMap(RecordDraft.line),
-                    summary: summary.flatMap(RecordDraft.text), content: selection.flatMap(RecordDraft.text),
-                    notes: RecordDraft.line(note), source: .manual)
+        RecordInput(slug: slug, type: type, title: RecordDraft.line(title), url: url.flatMap(RecordDraft.line),
+                    isCurated: isCurated, summary: summary.flatMap(RecordDraft.text),
+                    content: selection.flatMap(RecordDraft.text), notes: RecordDraft.line(note), source: .manual)
+    }
+
+    /// Adds a link, or changes how an already linked record is linked.
+    public mutating func link(_ link: PendingLink) {
+        if let index = links.firstIndex(where: { $0.id == link.id }) {
+            links[index] = link
+        } else {
+            links.append(link)
+        }
     }
 
     static func oneLine(_ text: String) -> String {
@@ -121,7 +139,7 @@ public struct ShareDraft: Hashable, Sendable {
     }
 }
 
-/// The share extension's card: saves the shared page (or text) as a new artifact record.
+/// The share extension's card: saves the shared page (or text) as a new record, then adds its links.
 ///
 /// There is no outbox: without App Groups the app can't see what the extension parks, so the save happens here or
 /// not at all, and a failure says so (with Retry). A failure that might have been a lost success (a timeout, a
@@ -138,6 +156,8 @@ public final class ShareComposeModel {
     /// The last save failed, but the record may be in Enchiridion all the same (`RecordCreation.isUnconfirmed`): the
     /// card says it couldn't confirm the save, not that nothing was saved.
     public private(set) var mayHaveSaved = false
+    /// Links that couldn't be added after the record saved: the card says so, and Retry adds just these.
+    public private(set) var failedLinks: [PendingLink] = []
 
     @ObservationIgnored private let creation: RecordCreation
     @ObservationIgnored private let environment: AppEnvironment
@@ -157,6 +177,38 @@ public final class ShareComposeModel {
 
     public var canSave: Bool {
         draft.hasContent && (state == .editing || state.error != nil)
+    }
+
+    /// A search for the card's link picker, on the extension's client.
+    public func makeSearch() -> RecordSearchModel {
+        RecordSearchModel(environment: environment, role: .share)
+    }
+
+    /// The record saved but some links didn't: Retry adds them.
+    public var canRetryLinks: Bool {
+        if case .saved = state { return !failedLinks.isEmpty }
+        return false
+    }
+
+    /// Adds the links that failed after the save, again (`PUT /link` upserts, so a link that landed after all is
+    /// harmless to send twice).
+    public func retryLinks() async {
+        guard case .saved(let record) = state, !failedLinks.isEmpty else { return }
+        failedLinks = await Self.addLinks(failedLinks, to: record.id, client: environment.client(role: .share))
+    }
+
+    /// Sends each link; returns the ones that failed.
+    private static func addLinks(_ links: [PendingLink], to recordID: Int,
+                                 client: EnchiridionClient) async -> [PendingLink] {
+        var failed: [PendingLink] = []
+        for link in links {
+            do {
+                _ = try await client.putLink(link.input(sourceID: recordID))
+            } catch {
+                failed.append(link)
+            }
+        }
+        return failed
     }
 
     /// Saves the record; `state` ends `.saved` or `.failed`. Callable again after a failure (Retry).
@@ -186,6 +238,7 @@ public final class ShareComposeModel {
         mayHaveSaved = creation.isUnconfirmed
         switch outcome {
         case .success(let record):
+            failedLinks = await Self.addLinks(draft.links, to: record.id, client: environment.client(role: .share))
             state = .saved(record)
         case .failure(let error) where timedOut:
             state = .failed(EnchiridionError.classify(error) ?? .unreachable)

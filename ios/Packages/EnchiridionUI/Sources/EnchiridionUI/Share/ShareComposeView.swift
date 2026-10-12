@@ -1,16 +1,22 @@
 import EnchiridionCore
 import EnchiridionKit
+import struct EnchiridionKit.Predicate
 import SwiftUI
 
-/// The share extension's card: saves what was shared as a new artifact record. A compact column on the page color:
-/// a preview row (the domain, then the page's title as shared, else its path; or "Text" for a text share), the editable
-/// title, an "Add a note" field (3 to 8 lines, focused on open), the selection as a quote (3 lines), and "Save to
-/// Enchiridion". Cancel sits in the bar.
+/// The share extension's card: the web's add form (the page the browser extension opens), filled from the share. A
+/// column on the page color: a preview row (the domain, then the page's title as shared, else its path; or "Text" for
+/// a text share), the title in the serif (focused on open), the type (segmented), the content (the selection or shared
+/// text), Details (summary, link, notes), Curated, and Links, then "Save to Enchiridion". Cancel sits in the bar.
+///
+/// "Add link" is the web's two-step picker, pushed on the card's stack: search for a record, then say how it's linked.
+/// A pending link's relationship can be changed from its menu, or the link removed. Links are added once the record
+/// has saved (`ShareComposeModel.save()`).
 ///
 /// The endings follow `ShareComposeModel.state`:
 /// - **Saving:** the fields wait and the button reads "Saving…".
 /// - **Saved:** the card crossfades to "Saved to Enchiridion", and `onDone` runs after `savedLinger` (the extension
-///   completes its request).
+///   completes its request). A save whose links didn't all go stays open instead: the record is in, the links that
+///   failed are named, with Retry (`retryLinks()`) and Done.
 /// - **Failed:** the error's message (the not-allowed state for a 401 that names this device), with Retry and Copy
 ///   link (Copy text for a text share), so nothing shared is lost. Retry looks up the slug of a create whose answer was
 ///   lost before trying again, so it never makes a second record; such a failure reads "Couldn't confirm it saved",
@@ -25,9 +31,11 @@ public struct ShareComposeView: View {
     let savedLinger: Duration
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: Field?
+    @State private var path: [LinkPickerStep] = []
+    @State private var search: RecordSearchModel?
 
     private enum Field: Hashable {
-        case title, note
+        case title, content, summary, url, note
     }
 
     /// `onDone` runs once the saved ending has shown for `savedLinger`; `onCancel` when Cancel is tapped (without it,
@@ -40,12 +48,20 @@ public struct ShareComposeView: View {
         self.savedLinger = savedLinger
     }
 
+    /// Saved with every link: the ending shows, then the card closes.
+    private var finished: Bool {
+        model.state.savedRecord != nil && model.failedLinks.isEmpty
+    }
+
     public var body: some View {
         let saved = model.state.savedRecord != nil
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
-                if saved {
+                if finished {
                     SavedEnding()
+                        .transition(.opacity)
+                } else if saved {
+                    LinksFailedEnding(model: model, onDone: onDone)
                         .transition(.opacity)
                 } else {
                     ScrollView {
@@ -74,15 +90,33 @@ public struct ShareComposeView: View {
                         Button(role: .cancel) { onCancel() }
                             .disabled(model.state.isSaving)
                     }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(role: .confirm) { save() }
+                            .disabled(!model.canSave)
+                    }
                 }
             }
             .inlineNavigationTitle()
+            .navigationDestination(for: LinkPickerStep.self) { step in
+                switch step {
+                case .record:
+                    if let search {
+                        RecordLinkSearch(search: search, path: $path)
+                    }
+                case .predicate(let row):
+                    LinkPredicatePicker(target: row) { predicate in
+                        model.draft.link(PendingLink(row, predicate: predicate))
+                        path = []
+                    }
+                }
+            }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: saved)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: finished)
         .enchiridionRoot()
-        .onAppear { focus = .note }
-        .onChange(of: saved) { _, saved in
-            guard saved else { return }
+        .onAppear { focus = .title }
+        .onChange(of: finished) { _, finished in
+            guard finished else { return }
             AccessibilityNotification.Announcement("Saved to Enchiridion").post()
             Task {
                 try? await Task.sleep(for: savedLinger)
@@ -94,30 +128,67 @@ public struct ShareComposeView: View {
     private var composing: some View {
         @Bindable var model = model
         let saving = model.state.isSaving
-        return VStack(alignment: .leading, spacing: Space.detailGap) {
+        return VStack(alignment: .leading, spacing: Space.formSection) {
             SharePreview(model: model)
-            VStack(alignment: .leading, spacing: Space.metaGap) {
-                TextField("Title", text: $model.draft.title, prompt: prompt("Title"), axis: .vertical)
-                    .lineLimit(1 ... 3)
+            VStack(alignment: .leading, spacing: Space.formSection) {
+                TextField("Title", text: $model.draft.title, prompt: prompt("Untitled record"), axis: .vertical)
+                    .font(Typography.detailTitle)
+                    .lineSpacing(Typography.detailTitleLineSpacing)
+                    .foregroundStyle(Palette.textHighlighted)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1 ... 4)
                     .focused($focus, equals: .title)
                     .submitLabel(.next)
-                    .onSubmit { focus = .note }
-                    // The field wraps a long title, but a title is one line: Return moves on to the note.
+                    // The field wraps a long title, but a title is one line: Return moves on to the content.
                     .onChange(of: model.draft.title) { _, title in
                         guard title.contains(where: \.isNewline) else { return }
                         model.draft.title = title.split(whereSeparator: \.isNewline).joined(separator: " ")
-                        focus = .note
+                        focus = .content
                     }
-                    .boxedField()
-                TextField("Add a note", text: $model.draft.note, prompt: prompt("Add a note"), axis: .vertical)
-                    .lineLimit(3 ... 8)
-                    .focused($focus, equals: .note)
-                    .boxedField()
+                Picker("Type", selection: $model.draft.type) {
+                    ForEach([RecordType.artifact, .concept, .entity], id: \.self) { type in
+                        Text(verbatim: type.displayName).tag(type)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                FormSection("Content") {
+                    TextField("Content", text: text($model.draft.selection),
+                              prompt: prompt("Write something about this record"), axis: .vertical)
+                        .lineLimit(3 ... 12)
+                        .focused($focus, equals: .content)
+                }
+                FormSection("Details") {
+                    DetailField(symbol: Symbol.summary, label: "Summary") {
+                        TextField("Summary", text: text($model.draft.summary),
+                                  prompt: prompt("A brief summary"), axis: .vertical)
+                            .lineLimit(1 ... 6)
+                            .focused($focus, equals: .summary)
+                    }
+                    DetailField(symbol: Symbol.url, label: "Link") {
+                        TextField("Link", text: text($model.draft.url), prompt: prompt("example.com"))
+                            .urlEntry()
+                            .focused($focus, equals: .url)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .note }
+                    }
+                    DetailField(symbol: Symbol.notes, label: "Notes") {
+                        TextField("Notes", text: $model.draft.note, prompt: prompt("Additional notes"),
+                                  axis: .vertical)
+                            .lineLimit(1 ... 8)
+                            .focused($focus, equals: .note)
+                    }
+                    Toggle("Curated", isOn: $model.draft.isCurated)
+                        .font(Typography.toggleLabel)
+                        .tint(Palette.primary)
+                }
+                PendingLinks(draft: $model.draft) {
+                    focus = nil
+                    if search == nil { search = model.makeSearch() }
+                    path = [.record]
+                }
             }
             .disabled(saving)
-            if let selection = model.draft.selection.nonBlank {
-                SelectionQuote(text: selection)
-            }
             if let error = model.state.error {
                 ShareFailure(error: error, model: model)
             }
@@ -138,10 +209,128 @@ public struct ShareComposeView: View {
         Text(verbatim: text).foregroundStyle(Palette.textDimmed)
     }
 
+    /// An optional field as a text field's string: blank reads as nil.
+    private func text(_ binding: Binding<String?>) -> Binding<String> {
+        Binding(get: { binding.wrappedValue ?? "" }, set: { binding.wrappedValue = $0.isEmpty ? nil : $0 })
+    }
+
     private func save() {
         guard model.canSave else { return }
         focus = nil
         Task { await model.save() }
+    }
+}
+
+/// A labelled field in Details: the label (with its symbol) small and muted above the field.
+private struct DetailField<Field: View>: View {
+    let symbol: String
+    let label: String
+    @ViewBuilder let field: () -> Field
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.iconGap) {
+            Label(label, systemImage: symbol)
+                .font(Typography.metadataLabel)
+                .foregroundStyle(Palette.textMuted)
+                .accessibilityHidden(true)
+            field()
+        }
+    }
+}
+
+/// The links the record will get: each target with its relationship (a menu to change it) and a remove button, then
+/// "Add link".
+private struct PendingLinks: View {
+    @Binding var draft: ShareDraft
+    let add: () -> Void
+
+    var body: some View {
+        FormSection("Links") {
+            ForEach(draft.links) { link in
+                HStack(spacing: Space.metaGap) {
+                    VStack(alignment: .leading, spacing: Space.metaLineGap) {
+                        Menu {
+                            Picker("Relationship", selection: predicate(of: link)) {
+                                ForEach(Predicate.linkOptions, id: \.self) { predicate in
+                                    Text(verbatim: predicate.menuName).tag(predicate)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: Space.iconGap) {
+                                Text(verbatim: link.predicate.menuName)
+                                Image(systemName: Symbol.relationship)
+                                    .imageScale(.small)
+                            }
+                            .font(Typography.metadataLabel)
+                            .foregroundStyle(Palette.textMuted)
+                        }
+                        .accessibilityLabel(Text(verbatim: "Relationship: \(link.predicate.menuName)"))
+                        LinkTargetRow(title: link.title, slug: link.slug, type: link.type)
+                    }
+                    Button(role: .destructive) {
+                        draft.links.removeAll { $0.id == link.id }
+                    } label: {
+                        Image(systemName: Symbol.removeLink)
+                            .foregroundStyle(Palette.textDimmed)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(verbatim: "Remove link to \(link.displayTitle)"))
+                }
+            }
+            Button(action: add) {
+                Label("Add link", systemImage: Symbol.add)
+                    .font(Typography.toggleLabel)
+                    .foregroundStyle(Palette.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func predicate(of link: PendingLink) -> Binding<Predicate> {
+        Binding(get: { link.predicate }, set: { predicate in
+            var changed = link
+            changed.predicate = predicate
+            draft.link(changed)
+        })
+    }
+}
+
+/// The record saved but some links didn't: which, with Retry and Done.
+private struct LinksFailedEnding: View {
+    let model: ShareComposeModel
+    let onDone: () -> Void
+    @State private var retrying = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.detailGap) {
+            Label("Saved, but some links weren't added", systemImage: Symbol.failure)
+                .font(Typography.stateTitle)
+                .foregroundStyle(Palette.textHighlighted)
+            Text(verbatim: model.failedLinks.map { "\($0.predicate.menuName) \($0.displayTitle)" }
+                .joined(separator: "\n"))
+                .font(Typography.stateMessage)
+                .foregroundStyle(Palette.textMuted)
+                .wrapsFully()
+            HStack(spacing: Space.actions) {
+                Button("Done", action: onDone)
+                    .buttonStyle(.bordered)
+                Button(retrying ? "Retrying…" : "Retry") {
+                    retrying = true
+                    Task {
+                        await model.retryLinks()
+                        retrying = false
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(retrying)
+            }
+            .controlSize(.large)
+        }
+        .frame(maxWidth: Metrics.shareCardWidth, alignment: .leading)
+        .padding(Space.margin)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -182,28 +371,6 @@ private struct SharePreview: View {
         }
         guard let path = model.input.url?.path(percentEncoded: false), path != "/", !path.isEmpty else { return nil }
         return path
-    }
-}
-
-/// The selection, three lines of it, behind a quote rule.
-private struct SelectionQuote: View {
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: Metrics.quoteGap) {
-            Palette.borderAccented.view
-                .frame(width: Metrics.quoteRule)
-            Text(verbatim: text)
-                .font(Typography.cardBody)
-                .lineSpacing(Typography.bodyLineSpacing)
-                .foregroundStyle(Palette.textMuted)
-                .lineLimit(3)
-                .wrapsFully()
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(verbatim: "Selection: \(text)"))
     }
 }
 

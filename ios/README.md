@@ -144,7 +144,9 @@ curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device
   - Links open in an in-app browser sheet.
 - **Sharing.**
   - Share a page from Safari. Select text first to save it as the record's content; the page's description becomes the summary.
-  - Edit the title, add a note if you like, and tap **Save to Enchiridion**.
+  - The card is the web's add form: title, type, content, and Details (summary, link, notes), plus Curated. Everything is filled from the share and editable.
+  - **Add link** searches for a record, then asks how it's linked ("Created by", "Tagged with"…). Change a pending link's relationship from its menu, or remove it. Links are added once the record saves.
+  - Tap **Save** (in the bar) or **Save to Enchiridion**. If the record saves but a link doesn't, the card stays open naming the links that failed, with **Retry** and **Done**.
   - If the save fails, the card stays open with **Retry** and **Copy link**. A retry never saves the record twice. When the save may have reached voyager though its answer didn't come back, the card says it couldn't confirm the save rather than "Not saved": tap Retry, since sharing the page again later would save it twice.
 
 ## Fonts
@@ -188,7 +190,7 @@ The Simulator on voyager runs on voyager's own network, so it reaches production
 
 1. **First run.** With checking on and the phone not yet listed, the app shows the not-listed screen with the phone's name and ID. Add the ID to the file; a pull to refresh then loads the library.
 2. **Tailscale off.** Turn Tailscale off. The library says "Tailscale is off. Turn it on to reach Enchiridion." with Retry, never the not-listed screen.
-3. **Share from Safari.** Select a paragraph and share to Enchiridion. The card shows the domain and title. Add a note and save: the card reads "Saved to Enchiridion" and closes. The record appears in the web app with the URL, the selection as its content, the description as its summary and the note as its notes.
+3. **Share from Safari.** Select a paragraph and share to Enchiridion. The card shows the domain and title. Add a note, add a link to an existing record (search, then pick "Created by"), and save: the card reads "Saved to Enchiridion" and closes. The record appears in the web app with the URL, the selection as its content, the description as its summary, the note as its notes and the link.
 4. **Share while offline.** Share with Tailscale off. The card fails with a message, Retry and Copy link. Turn Tailscale on and tap Retry: the share is saved once.
 5. **Curation.** Filter to Needs curation, open a record and turn Curated on. The record leaves the list and the next one is selected (on iPad, side by side).
 6. **Fonts.** The detail title is set in Martina Plantijn, not New York. Compare it with the web app.

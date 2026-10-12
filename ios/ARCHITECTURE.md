@@ -263,19 +263,20 @@ A save in the editor has `Timings.editorDeadline` (30 s) for all its requests to
    - With nothing usable, the extension shows "Nothing to share" and closes after 1.5 s.
 4. **The card.** `ShareComposeView` over `ShareComposeModel` (client role `share`, 10 s timeout) shows:
    - a preview row: the domain, then the page's title as shared (else its path); "Text" for a text share;
-   - an editable title;
-   - an "Add a note" field;
-   - the selection as a quote;
-   - a **Save to Enchiridion** button.
+   - the web's add form, filled from the share (`ShareDraft`): the title in the serif, the type (segmented), the content (the selection or shared text), Details (summary, link, notes) and Curated;
+   - Links: the pending links (`ShareDraft.links`, one per target: `link(_:)` replaces), each with a relationship menu (`Predicate.linkOptions`, the canonical predicates) and remove, then **Add link**. Add link pushes the web's two-step picker on the card's stack: `RecordLinkSearch` (a `RecordSearchModel` from `makeSearch()`, hybrid search after the debounce) and then `LinkPredicatePicker`;
+   - **Save** in the bar and a **Save to Enchiridion** button.
 5. **Saving** creates this record:
 
    ```
-   {type: "artifact", source: "manual", title, slug, url, summary: description, content: selection, notes: note}
+   {type, source: "manual", title, slug, url, isCurated, summary: description, content: selection, notes: note}
    ```
+
+   Then each pending link goes as `PUT /link {sourceId: <new id>, targetId, predicate}` (the server canonicalizes and upserts). Links that fail are kept in `failedLinks`.
 
    The slug comes from the slug rules above, including the idempotency check.
 6. **Endings.** The model's `state` goes from `editing` to `saving`, then to `saved` or `failed`.
-   - `saved`: the card reads "Saved to Enchiridion", then completes the extension request after `savedLinger` (1 s).
+   - `saved`: the card reads "Saved to Enchiridion", then completes the extension request after `savedLinger` (1 s). If any link failed, it stays open instead, naming them, with Retry (`retryLinks()`, links only: the record is never created again) and Done.
    - `failed`: the card keeps the message, with Retry and Copy link. It reads "Not saved" only when nothing was; a failure after which the record may exist (`ShareComposeModel.mayHaveSaved`: the answer was lost and the check after it failed too) reads "Couldn't confirm it saved", says it may be in Enchiridion already, and that Retry checks first. Sharing the page again from a new card would save it twice, since a new card can't know about this one's create.
    - A save has `Timings.shareDeadline` (10 s) for all its requests together; each request's own timeout only counts idle time. Past the deadline the save is cancelled and the card fails as unreachable. The create may have landed, so Retry checks its slug first.
    - Cancel is off while saving (at most the deadline) and cancels the card otherwise.
