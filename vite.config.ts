@@ -124,7 +124,46 @@ export default defineConfig({
   ],
   server: {
     port: FRONTEND_PORT,
-    allowedHosts: true,
+    // voyager serves this dev server in production (`vite --host`, behind Caddy at
+    // enchiridion.chsmc.tools), so treat it as exposed. Localhost and raw IPs are always
+    // allowed; the names are the Caddy host and voyager's MagicDNS names. Listing them (instead
+    // of `true`) restores Vite's DNS-rebinding guard.
+    allowedHosts: ['enchiridion.chsmc.tools', 'voyager', '.ts.net'],
+    fs: {
+      // `/@fs` would serve any file under the workspace root, which is this repo and holds the
+      // live database, uploads, backups and any copy of the database made beside it. So it serves
+      // only the folders the web app loads from (absolute: Vite resolves `allow` against `root`,
+      // which is app/). `backend` because the views import from @db and @integrations. This is a
+      // prefix match on the path, so unlike `deny` it can't be sidestepped on this case-insensitive
+      // volume with characters picomatch doesn't fold (ſ for s, the Kelvin sign for k).
+      allow: ['app', 'shared', 'backend', 'node_modules'].map((dir) =>
+        path.resolve(__dirname, dir),
+      ),
+      // A second layer. A custom `deny` replaces Vite's defaults, so the first six entries repeat
+      // them (Vite 8.3.1): check them again when upgrading Vite.
+      deny: [
+        '.env',
+        '.env.*',
+        '*.{crt,pem,key,p12,pfx,cer,der}',
+        '.npmrc',
+        '.yarnrc.yml',
+        '**/.git/**',
+        // Any env-named secret, not only `.env*`: node_modules/amber links the amber repo into an
+        // allowed folder (Vite checks the linked path), and its native host keeps an API key in
+        // extension/host/host.env.
+        '*.env',
+        '*.db',
+        '*.db-*',
+        '*.db.*',
+        '*.db~',
+        '*.sqlite*',
+        '*.bak',
+        '**/uploads/**',
+        '**/backup/**',
+        '**/db-backups/**',
+        '**/.claude-test/**',
+      ],
+    },
   },
   resolve: {
     alias: {
