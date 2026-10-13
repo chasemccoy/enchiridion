@@ -2,18 +2,17 @@ import EnchiridionCore
 import EnchiridionKit
 import SwiftUI
 
-/// A record in the list as a plain iOS row, as Mail and Reader draw theirs: the title (semibold, two lines), the
-/// summary or else the content as plain text (two lines), and a muted line of who or where, when, and the rest (type
-/// unless an artifact, highlights, the note), with the first image as a thumbnail at the trailing edge. A search hit
-/// inside another record (a highlight in a book) says so above its title. An untitled record leads with its content.
+/// A record in the list as a plain iOS row: edge to edge, the list's hairlines between rows, and inside it the web
+/// card's slots, 6 pt apart, each only when there is something to show. Top to bottom: the record a search hit sits
+/// in (a book for a highlight), the title (semibold, two lines), the first image (150 pt, full width), the summary or
+/// else the content as plain text (three lines), a muted line of who or where, when, the type unless an artifact, the
+/// highlight count and `#tags`, and the note's bubble. An untitled record leads with its content.
 ///
-/// Edge to edge on the page, separated by the list's own hairlines; the list draws selection and the pressed state.
-/// The row is presentation only: tapping, swipe actions and context menus belong to the list.
+/// The row is presentation only: tapping, selection, swipe actions and context menus belong to the list.
 public struct RecordRow: View {
     let record: ListRecord
     let showsParent: Bool
     @Environment(\.serverURL) private var serverURL
-    @ScaledMetric(relativeTo: .body) private var thumbnailSize = Metrics.rowThumbnail
 
     public init(_ record: ListRecord, showsParent: Bool = false) {
         self.record = record
@@ -22,62 +21,64 @@ public struct RecordRow: View {
 
     public var body: some View {
         let title = record.title.nonBlank
-        let excerpt = WidgetContent.excerpt(record.content, limit: 280)
-        HStack(alignment: .top, spacing: Space.cardPadding) {
-            VStack(alignment: .leading, spacing: Space.metaLineGap) {
-                if showsParent, let parent = record.parent {
-                    Label {
-                        Text(verbatim: parent.title.nonBlank ?? parent.slug)
-                    } icon: {
-                        Image(systemName: Symbol.parentChip)
-                    }
+        let excerpt = WidgetContent.excerpt(record.content, limit: 400)
+        VStack(alignment: .leading, spacing: Space.cardGap) {
+            if showsParent, let parent = record.parent {
+                Label {
+                    Text(verbatim: parent.title.nonBlank ?? parent.slug)
+                } icon: {
+                    Image(systemName: Symbol.parentChip)
+                }
+                .font(Typography.byline)
+                .foregroundStyle(Palette.textMuted)
+                .lineLimit(1)
+                .accessibilityLabel(Text("In \(parent.title.nonBlank ?? parent.slug)"))
+            }
+            if let title {
+                Text(verbatim: title)
+                    .font(Typography.rowTitle)
+                    .foregroundStyle(Palette.textHighlighted)
+                    .lineLimit(2)
+            }
+            if let media = record.media.first(where: \.isImage), let url = media.resolvedURL(server: serverURL) {
+                RowImage(url: url, altText: media.altText)
+            }
+            if let text = record.summary.nonBlank ?? (title == nil ? nil : excerpt) {
+                Text(verbatim: Self.oneParagraph(text))
+                    .font(Typography.cardBody)
+                    .lineSpacing(Typography.bodyLineSpacing)
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(3)
+            } else if title == nil, let excerpt {
+                Text(verbatim: Self.oneParagraph(excerpt))
+                    .font(Typography.cardTitle)
+                    .lineSpacing(Typography.bodyLineSpacing)
+                    .foregroundStyle(Palette.textHighlighted)
+                    .lineLimit(4)
+            }
+            if let meta = Self.meta(record) {
+                Text(verbatim: meta)
                     .font(Typography.byline)
                     .foregroundStyle(Palette.textMuted)
-                    .lineLimit(1)
-                    .accessibilityLabel(Text("In \(parent.title.nonBlank ?? parent.slug)"))
-                }
-                if let title {
-                    Text(verbatim: title)
-                        .font(Typography.rowTitle)
-                        .foregroundStyle(Palette.textHighlighted)
-                        .lineLimit(2)
-                }
-                if let text = record.summary.nonBlank ?? (title == nil ? nil : excerpt) {
-                    Text(verbatim: Self.oneParagraph(text))
-                        .font(Typography.cardBody)
-                        .lineSpacing(Typography.bodyLineSpacing)
-                        .foregroundStyle(Palette.text)
-                        .lineLimit(2)
-                } else if title == nil, let excerpt {
-                    Text(verbatim: Self.oneParagraph(excerpt))
-                        .font(Typography.cardTitle)
-                        .foregroundStyle(Palette.textHighlighted)
-                        .lineLimit(3)
-                }
-                if let meta = Self.meta(record) {
-                    Text(verbatim: meta)
-                        .font(Typography.byline)
-                        .foregroundStyle(Palette.textMuted)
-                        .lineLimit(1)
-                        .padding(.top, 1)
-                }
+                    .lineLimit(2)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let media = record.media.first(where: \.isImage), let url = media.resolvedURL(server: serverURL) {
-                RowThumbnail(url: url, size: thumbnailSize)
+            if let notes = record.notes.nonBlank {
+                NoteBubble(notes)
+                    .padding(.top, Space.iconGap)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .multilineTextAlignment(.leading)
         .accessibilityElement(children: .combine)
     }
 
-    /// Paragraphs run together on two lines rather than break after the first.
+    /// Paragraphs run together rather than break after the first.
     static func oneParagraph(_ text: String) -> String {
         text.split(whereSeparator: \.isNewline).joined(separator: " ")
     }
 
-    /// "Robin Sloan · Oct 7 · Concept · 3 highlights · Read again", each part only when there is one: the creator
-    /// else the domain, the date, the type unless an artifact, the highlight count, the note's first line.
+    /// "Robin Sloan · Oct 7 · Concept · 3 highlights · #essays #web", each part only when there is one: the creator
+    /// else the domain, the date, the type unless an artifact, the highlight count, the tags.
     static func meta(_ record: ListRecord) -> String? {
         var parts: [String] = []
         if let who = record.creator?.title.nonBlank ?? record.domain { parts.append(who) }
@@ -86,23 +87,34 @@ public struct RecordRow: View {
         if record.childCount > 0 {
             parts.append(record.childCount == 1 ? "1 highlight" : "\(record.childCount) highlights")
         }
-        if let note = record.notes.nonBlank?.split(whereSeparator: \.isNewline).first {
-            parts.append(String(note).trimmingCharacters(in: .whitespaces))
-        }
+        let tags = tags(of: record)
+        if !tags.isEmpty { parts.append(tags.joined(separator: " ")) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// "#science-fiction" for each of the record's description targets (its `tagged_with` tags and `has_format`
+    /// formats, as the web's card lists them), slugified like the web; duplicates once.
+    static func tags(of record: ListRecord) -> [String] {
+        var seen = Set<String>()
+        return record.targets(ofType: .description).compactMap { target in
+            let slug = Slug.make(target.title ?? target.slug)
+            guard !slug.isEmpty, seen.insert(slug).inserted else { return nil }
+            return "#\(slug)"
+        }
     }
 }
 
-/// The first image, square, cropped to fill, `elevated` while it loads, a hairline over it.
-private struct RowThumbnail: View {
+/// A row's first image: 150 pt tall, full width, 9 pt radius, cropped to fill with the point a quarter of the way
+/// down kept in view (the web's `object-position: 50% 25%`), a hairline drawn over it, `elevated` while it loads.
+private struct RowImage: View {
     let url: URL
-    let size: CGFloat
+    let altText: String?
 
     var body: some View {
         let shape = Radius.shape(Radius.image)
         Palette.elevated.view
-            .frame(width: size, height: size)
-            .overlay {
+            .frame(height: Metrics.cardImageHeight)
+            .overlay(alignment: .top) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -110,10 +122,18 @@ private struct RowThumbnail: View {
                 } placeholder: {
                     Color.clear
                 }
+                // Aligns the image's focus point with the frame's: a filled image taller than the frame is shifted
+                // up by a quarter of the overflow; a wider one stays centered.
+                .alignmentGuide(VerticalAlignment.top) { dimensions in
+                    max(0, dimensions.height - Metrics.cardImageHeight) * Metrics.cardImageFocus.y
+                }
             }
             .clipShape(shape)
             .overlay { shape.strokeBorder(Palette.border, lineWidth: Metrics.cardBorder) }
-            .accessibilityHidden(true)
+            .padding(.vertical, Space.iconGap / 2)
+            .accessibilityElement()
+            .accessibilityLabel(Text(verbatim: altText.nonBlank ?? ""))
+            .accessibilityHidden(altText.nonBlank == nil)
     }
 }
 

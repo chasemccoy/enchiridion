@@ -67,6 +67,12 @@ public enum Space {
 public enum Metrics {
     /// The card's hairline (the web's 0.5 px border).
     public static let cardBorder: CGFloat = 0.5
+    /// A row's image: its height, and the point of the image kept in view when it is cropped (the web's
+    /// `object-position: 50% 25%`).
+    public static let cardImageHeight: CGFloat = 150
+    public static let cardImageFocus = UnitPoint(x: 0.5, y: 0.25)
+    /// The note bubble's padding.
+    public static let notePadding = EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)
     /// Badges: padding and icon size, small (cards) and regular (detail).
     public static let badgeSmallPadding = EdgeInsets(top: 3, leading: 5, bottom: 3, trailing: 5)
     public static let badgePadding = EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7)

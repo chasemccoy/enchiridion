@@ -154,7 +154,7 @@ Tests use stub transports and a manual clock.
 - `hasMedia`: keeps records with any media attached;
 - `sort`: newest (the index's own order), oldest, title A–Z (untitled last), or relevance (the search's ranking, offered only while searching). Nil means the default: relevance while searching, newest otherwise. Sorts are stable.
 
-**Rows.** The list is a plain iOS list rather than the web's cards (`RecordRow`): edge to edge with the list's hairlines between rows, the title, the summary (else the content as plain text, `WidgetContent.excerpt`) on two lines, a muted line (the creator or domain, the date, the type unless an artifact, the highlight count, the note's first line), and the first image as a 60 pt thumbnail. `elevated` while pressed and, on iPad, while selected. Search hits inside another record name it above the title.
+**Rows.** The list is a plain iOS list rather than the web's cards (`RecordRow`): edge to edge with the list's hairlines between rows, `elevated` while pressed and, on iPad, while selected. Inside, the web card's slots 6 pt apart: the record a search hit sits in, the title (semibold), the first image (150 pt, full width), the summary (else the content as plain text, `WidgetContent.excerpt`) on three lines, a muted line (the creator or domain, the date, the type unless an artifact, the highlight count, `#tags`) and the note's bubble.
 
 **Sections.** Records are grouped by the local month of `recordCreatedAt` ("September 2026"). A section shows its count, " (N)", only when it has more than 4 records. Rows whose timestamp won't parse go into a trailing "Undated" section. While searching, or sorted by title, there is a single flat section with no header (the web's rule).
 

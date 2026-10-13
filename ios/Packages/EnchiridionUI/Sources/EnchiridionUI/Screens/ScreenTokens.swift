@@ -30,9 +30,7 @@ extension Space {
 
 extension Metrics {
     /// A library row's padding: the page margin at the sides.
-    static let rowPadding = EdgeInsets(top: 11, leading: 16, bottom: 11, trailing: 16)
-    /// A library row's thumbnail, square.
-    static let rowThumbnail: CGFloat = 60
+    static let rowPadding = EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
     /// The list column on iPad: wide enough for a row's summary and thumbnail, never wider than reads well.
     static let listColumnMin: CGFloat = 320
     static let listColumnIdeal: CGFloat = 380

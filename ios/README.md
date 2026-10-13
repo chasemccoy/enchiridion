@@ -137,7 +137,7 @@ curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device
   - Pull to refresh.
   - The bottom bar holds the filter menu (type, **Needs curation**, **Has media**, and the sort: newest, oldest, title, or relevance while searching), search, and **+** for a new record.
   - Search runs hybrid search as you type: matches by meaning (semantic, from the records' embeddings) fused with matches on the words, as the web's search does. "Essays about small websites" finds them without those words in the title.
-  - Records are a plain list, as Mail's: title, two lines of summary, who or where and when, and a thumbnail when there's an image.
+  - Records are a plain list, as Mail's: title, image, three lines of summary, who or where, when and tags, and the note.
   - Swipe a row to curate or delete it, or long-press for Open link, Copy link, Curate and Delete.
   - On iPad the record opens beside the list.
 - **Record.**
