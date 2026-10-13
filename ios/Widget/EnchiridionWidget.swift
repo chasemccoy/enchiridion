@@ -87,6 +87,8 @@ struct RecordWidgetEntry: TimelineEntry {
         /// The content as plain text, unless it's what the title already shows.
         var content: String?
         var domain: String?
+        /// The record's `created_by` link: "Robin Sloan".
+        var creator: String?
         /// The first image, downsampled JPEG; only for the sizes that show one.
         var image: Data?
     }
@@ -102,7 +104,7 @@ struct RecordWidgetEntry: TimelineEntry {
         record: Shown(id: 0, title: "Appropriate uses for SQLite", typeName: "Artifact", symbolName: "shippingbox",
                       summary: "Situations where SQLite works well, and where a client/server database is better.",
                       content: "SQLite does not compete with client/server databases. SQLite competes with fopen().",
-                      domain: "sqlite.org"))
+                      domain: "sqlite.org", creator: "D. Richard Hipp"))
 }
 
 extension RecordWidgetEntry.Shown {
@@ -116,7 +118,10 @@ extension RecordWidgetEntry.Shown {
                   typeName: row.type.displayName, symbolName: row.type.symbolName,
                   summary: summary?.isEmpty == false ? summary : nil,
                   content: titled ? excerpt : nil,
-                  domain: row.domain, image: image)
+                  domain: row.domain,
+                  creator: row.creator.flatMap { $0.title?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                      .flatMap { $0.isEmpty ? nil : $0 },
+                  image: image)
     }
 }
 
@@ -217,7 +222,7 @@ struct RecordWidgetView: View {
                 switch family {
                 case .accessoryRectangular:
                     VStack(alignment: .leading, spacing: 1) {
-                        Label(record.typeName, systemImage: record.symbolName)
+                        Label(record.creator ?? record.typeName, systemImage: record.symbolName)
                             .font(.caption2)
                             .widgetAccentable()
                         Text(verbatim: record.title)
@@ -300,12 +305,14 @@ private struct WidgetBody: View {
     }
 }
 
+/// Who made it and where it lives: "by Robin Sloan · robinsloan.com", either half alone.
 private struct DomainLine: View {
-    let domain: String?
+    let record: RecordWidgetEntry.Shown
 
     var body: some View {
-        if let domain {
-            Text(verbatim: domain)
+        let parts = [record.creator.map { "by \($0)" }, record.domain].compactMap(\.self)
+        if !parts.isEmpty {
+            Text(verbatim: parts.joined(separator: " · "))
                 .font(Typography.byline)
                 .foregroundStyle(Palette.textMuted)
                 .lineLimit(1)
@@ -331,7 +338,7 @@ private struct WidgetPicture: View {
     }
 }
 
-/// Type, title, domain: the small size has no room for more.
+/// Type, title, creator and domain: the small size has no room for more.
 private struct SmallRecord: View {
     let record: RecordWidgetEntry.Shown
 
@@ -340,13 +347,13 @@ private struct SmallRecord: View {
             TypeLine(record: record)
             WidgetTitle(text: record.title, size: 19, lines: 4)
             Spacer(minLength: 0)
-            DomainLine(domain: record.domain)
+            DomainLine(record: record)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
-/// Words on the left (type, title, summary or content, domain), the image on the right when there is one.
+/// Words on the left (type, title, summary or content, creator and domain), the image on the right when there is one.
 private struct MediumRecord: View {
     let record: RecordWidgetEntry.Shown
 
@@ -360,7 +367,7 @@ private struct MediumRecord: View {
                         .padding(.top, 2)
                 }
                 Spacer(minLength: 0)
-                DomainLine(domain: record.domain)
+                DomainLine(record: record)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             if let image = record.image {
@@ -372,7 +379,7 @@ private struct MediumRecord: View {
     }
 }
 
-/// The image across the top, then type, title, summary and content, as much as fits, and the domain.
+/// The image across the top, then type, title, summary and content, as much as fits, and the creator and domain.
 private struct LargeRecord: View {
     let record: RecordWidgetEntry.Shown
     @Environment(\.widgetFamily) private var family
@@ -395,7 +402,7 @@ private struct LargeRecord: View {
                     .foregroundStyle(Palette.textMuted)
             }
             Spacer(minLength: 0)
-            DomainLine(domain: record.domain)
+            DomainLine(record: record)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
