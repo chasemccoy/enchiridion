@@ -281,6 +281,8 @@ private struct WidgetTitle: View {
             .font(Typography.serif(size: size, relativeTo: .headline))
             .foregroundStyle(Palette.textHighlighted)
             .lineLimit(lines)
+            // A long title shrinks a little before it truncates.
+            .minimumScaleFactor(0.85)
     }
 }
 
