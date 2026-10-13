@@ -10,9 +10,9 @@ public enum Typography {
     public static var detailTitle: Font { serif(.regular, size: 27, relativeTo: .title) }
     /// The extra space between a wrapped detail title's lines (the web measures ≈1.43 line height).
     public static let detailTitleLineSpacing: CGFloat = 4
-    /// The "Enchiridion" wordmark: 20 pt Martina Plantijn Medium, scaling with `.headline` (a step up from the web's
+    /// The "Enchiridion" wordmark: 23 pt Martina Plantijn Medium, scaling with `.headline` (a step up from the web's
     /// 1.05rem logo, to hold the bar beside the system's larger controls).
-    public static var wordmark: Font { serif(.medium, size: 20, relativeTo: .headline) }
+    public static var wordmark: Font { serif(.medium, size: 23, relativeTo: .headline) }
 
     /// Martina Plantijn at `size`, scaling with `style`; New York at `style` while the face isn't registered
     /// (`FontRegistry`), since `Font.custom` would otherwise fall back to the system sans without a word.

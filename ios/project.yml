@@ -59,7 +59,9 @@ targets:
         CFBundleDisplayName: Enchiridion
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        UILaunchScreen: {}
+        UILaunchScreen:                            # the web PWA's splash icons (light, dark) on the page color
+          UIImageName: LaunchIcon
+          UIColorName: LaunchBackground
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
