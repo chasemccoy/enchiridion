@@ -344,3 +344,38 @@ struct DeepLinkTests {
         }
     }
 }
+
+@MainActor
+struct RememberedFiltersTests {
+    /// Preferences kept in memory, as UserDefaults would across launches.
+    private static func memory() -> Preferences {
+        let store = Mutex<[String: Data]>([:])
+        return Preferences(load: { key in store.withLock { $0[key] } },
+                           save: { key, data in store.withLock { $0[key] = data } })
+    }
+
+    private func environment(_ preferences: Preferences) -> AppEnvironment {
+        var environment = AppEnvironment.test(StubTransport { _ in .notFound })
+        environment.preferences = preferences
+        return environment
+    }
+
+    @Test func filtersAndSortSurviveARelaunch() {
+        let preferences = Self.memory()
+        let first = LibraryModel(environment: environment(preferences))
+        #expect(first.filters == LibraryModel.Filters())
+        first.filters.type = .concept
+        first.filters.needsCuration = true
+        first.filters.hasMedia = true
+        first.filters.sort = .title
+        let relaunched = LibraryModel(environment: environment(preferences))
+        #expect(relaunched.filters == LibraryModel.Filters(type: .concept, needsCuration: true, hasMedia: true,
+                                                           sort: .title))
+    }
+
+    @Test func unreadableFiltersFallBackToDefaults() {
+        let preferences = Self.memory()
+        preferences.save(LibraryModel.filtersKey, Data("{\"type\":".utf8))
+        #expect(LibraryModel(environment: environment(preferences)).filters == LibraryModel.Filters())
+    }
+}

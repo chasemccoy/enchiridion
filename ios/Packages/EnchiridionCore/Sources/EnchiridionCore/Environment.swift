@@ -48,11 +48,14 @@ public struct AppEnvironment: Sendable {
     public var timings: Timings
     /// The slug for a record with no title or URL to make one from (`Slug.fallback()`); tests make it predictable.
     public var fallbackSlug: @Sendable () -> String
+    /// Settings kept between launches (the library's filters); nothing outside the app (`.none`).
+    public var preferences: Preferences
 
     public init(server: URL = Server.production, transport: any HTTPTransport = URLSessionTransport(),
                 appVersion: String, platform: String = "ios", now: @escaping @Sendable () -> Date = { Date() },
                 clock: any Clock<Duration> = ContinuousClock(), timeZone: TimeZone = .autoupdatingCurrent,
-                timings: Timings = .standard, fallbackSlug: @escaping @Sendable () -> String = { Slug.fallback() }) {
+                timings: Timings = .standard, fallbackSlug: @escaping @Sendable () -> String = { Slug.fallback() },
+                preferences: Preferences = .none) {
         self.server = server
         self.transport = transport
         self.appVersion = appVersion
@@ -62,11 +65,12 @@ public struct AppEnvironment: Sendable {
         self.timeZone = timeZone
         self.timings = timings
         self.fallbackSlug = fallbackSlug
+        self.preferences = preferences
     }
 
     /// The app's: URLSession and the given server (the app passes `Server.fromArguments` in DEBUG builds).
     public static func live(server: URL = Server.production, bundle: Bundle = .main) -> AppEnvironment {
-        AppEnvironment(server: server, appVersion: appVersion(of: bundle))
+        AppEnvironment(server: server, appVersion: appVersion(of: bundle), preferences: .userDefaults)
     }
 
     /// The share extension's: the production server unless a DEBUG build passes the one its Info.plist names

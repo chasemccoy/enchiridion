@@ -46,7 +46,7 @@ voyager is the production server.
 
 ## Invariants
 
-- **The server is the only copy.** No disk cache, no persistence, no outbox. Record images load through `URLCache.shared`, which both targets make memory-only at launch (`URLCache.keepMediaInMemory()`). Without App Groups the extension can't hand anything to the app, so a share is saved now or the card says it wasn't (or, when its answer was lost, that it couldn't confirm it).
+- **The server is the only copy.** No disk cache, no persistence, no outbox. The one thing kept on the device is settings, never records: the library's filters and sort, in the app's UserDefaults (`Preferences`). Record images load through `URLCache.shared`, which both targets make memory-only at launch (`URLCache.keepMediaInMemory()`). Without App Groups the extension can't hand anything to the app, so a share is saved now or the card says it wasn't (or, when its answer was lost, that it couldn't confirm it).
 - **No pairing.** The server is the constant `Server.production`, and voyager knows the device through Tailscale. Nothing about the server or the device is stored.
   - DEBUG builds of the app accept `-EnchiridionServer <origin>`.
   - DEBUG builds of the app and the share extension read `ENCHIRIDION_SERVER` from the gitignored `Config/Local.xcconfig` (the `EnchiridionServer` Info.plist key). Release builds always use production.

@@ -31,7 +31,7 @@ public struct RecordSection: Identifiable, Equatable, Sendable {
 @MainActor @Observable
 public final class LibraryModel {
     /// The web index's toolbar filters.
-    public struct Filters: Hashable, Sendable {
+    public struct Filters: Hashable, Sendable, Codable {
         /// Only records of this type; nil for all.
         public var type: RecordType?
         /// Hide curated records.
@@ -66,7 +66,7 @@ public final class LibraryModel {
     }
 
     /// The web index's sort menu.
-    public enum Sort: String, CaseIterable, Hashable, Sendable {
+    public enum Sort: String, CaseIterable, Hashable, Sendable, Codable {
         /// The search's own ranking; only while searching.
         case relevance
         case newest
@@ -116,8 +116,13 @@ public final class LibraryModel {
     /// The last curate or delete that failed, for an alert; `clearActionError()` dismisses it.
     public private(set) var actionError: EnchiridionError?
 
+    /// Remembered between launches (`AppEnvironment.preferences`).
     public var filters = Filters() {
-        didSet { if filters != oldValue { rebuild() } }
+        didSet {
+            guard filters != oldValue else { return }
+            environment.preferences.set(filters, for: Self.filtersKey)
+            rebuild()
+        }
     }
 
     /// The search field. Non-blank text searches after `Timings.searchDebounce`; clearing it shows the index at once.
@@ -152,7 +157,11 @@ public final class LibraryModel {
     public init(environment: AppEnvironment) {
         self.environment = environment
         client = environment.client(role: .app)
+        filters = environment.preferences.value(Filters.self, for: Self.filtersKey) ?? Filters()
     }
+
+    /// Where `filters` are kept.
+    nonisolated static let filtersKey = "library.filters"
 
     /// Whether the list shows search results rather than the index.
     public var isSearching: Bool { !activeQuery.isEmpty }
