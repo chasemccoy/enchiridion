@@ -336,7 +336,7 @@ private struct SmallRecord: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.metaGap) {
             TypeLine(record: record)
-            WidgetTitle(text: record.title, lines: 4)
+            WidgetTitle(text: record.title, size: 19, lines: 4)
             Spacer(minLength: 0)
             DomainLine(domain: record.domain)
         }
@@ -352,7 +352,7 @@ private struct MediumRecord: View {
         HStack(spacing: Space.cardPadding) {
             VStack(alignment: .leading, spacing: Space.iconGap) {
                 TypeLine(record: record)
-                WidgetTitle(text: record.title, lines: 2)
+                WidgetTitle(text: record.title, size: 20, lines: 2)
                 if let text = record.summary ?? record.content {
                     WidgetBody(text: text, lines: record.image == nil ? 3 : 2)
                         .padding(.top, 2)
@@ -383,7 +383,7 @@ private struct LargeRecord: View {
             }
             VStack(alignment: .leading, spacing: Space.iconGap) {
                 TypeLine(record: record)
-                WidgetTitle(text: record.title, size: 20, lines: 3)
+                WidgetTitle(text: record.title, size: 24, lines: 3)
             }
             if let summary = record.summary {
                 WidgetBody(text: summary, lines: 4)
