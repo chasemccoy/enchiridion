@@ -146,6 +146,9 @@ private struct DetailContent: View {
         .padding(.top, Space.metaGap)
         .padding(.bottom, Space.monthGap)
         .frame(maxWidth: .infinity)
+        // Exactly the screen's width: a view that measures a little wider than it draws can never widen the page
+        // into a sideways scroll.
+        .containerRelativeFrame(.horizontal)
     }
 }
 
@@ -362,10 +365,10 @@ private struct DetailsCard: View {
     let record: Record
 
     var body: some View {
-        let summary = record.summary.nonBlank
+        let summary = record.summary.nonBlank?.trimmingLineEnds
         let url = record.url.nonBlank
         let published = record.contentCreatedAt?.text(.published)
-        let notes = record.notes.nonBlank
+        let notes = record.notes.nonBlank?.trimmingLineEnds
         if summary != nil || url != nil || published != nil || notes != nil {
             VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
                 GroupedCardLabel(text: "Details")

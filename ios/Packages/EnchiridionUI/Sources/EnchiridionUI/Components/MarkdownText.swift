@@ -160,6 +160,9 @@ enum MarkdownBlock: Hashable, Sendable {
                 continue
             }
             let trimmed = line.trimmingCharacters(in: .whitespaces)
+            // Spaces at a line's end mean nothing here (every newline is already a break), and iOS can count them
+            // hanging past a wrapped line as width, widening the page.
+            let line = line.trimmingLineEnd
             if trimmed.isEmpty {
                 close()
             } else if let groups = match(fencePattern, line) {
@@ -318,6 +321,20 @@ enum MarkdownBlock: Hashable, Sendable {
             result.append(line)
         }
         return result
+    }
+}
+
+extension String {
+    /// The string without the spaces and tabs at its end.
+    var trimmingLineEnd: String {
+        String(reversed().drop(while: { $0 == " " || $0 == "\t" }).reversed())
+    }
+
+    /// Each line without the spaces and tabs at its end: text set as is (a summary, notes), whose trailing spaces
+    /// iOS can count as width past a wrapped line.
+    var trimmingLineEnds: String {
+        split(separator: "\n", omittingEmptySubsequences: false).map { String($0).trimmingLineEnd }
+            .joined(separator: "\n")
     }
 }
 
