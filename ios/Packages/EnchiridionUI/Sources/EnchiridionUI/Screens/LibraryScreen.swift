@@ -123,15 +123,16 @@ private struct LibraryList: View {
                 if let heading = section.heading {
                     MonthHeader(heading)
                         .listRowInsets(EdgeInsets(
-                            top: section.id == library.sections.first?.id ? Space.metaGap : Space.detailGap + Space.metaGap,
+                            top: section.id == library.sections.first?.id ? Space.metaGap : Space.monthGap + Space.detailGap,
                             leading: Space.margin,
-                            bottom: Space.iconGap,
+                            bottom: Space.cardGap,
                             trailing: Space.margin))
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
                 ForEach(section.records) { record in
-                    LibraryRow(record: record, editor: $editor)
+                    LibraryRow(record: record, endsSection: record.id == section.records.last?.id,
+                               editor: $editor)
                 }
             }
         }
@@ -262,6 +263,8 @@ private struct FilterMenu: View {
 /// list's hairline below it inset to the text. VoiceOver offers the swipe actions as the row's actions.
 private struct LibraryRow: View {
     let record: ListRecord
+    /// The month's last row: no hairline under it, so the gap before the next month reads as the break.
+    var endsSection = false
     @Binding var editor: EditorSession?
     @Environment(LibraryModel.self) private var library
     @Environment(\.openURL) private var openURL
@@ -314,6 +317,7 @@ private struct LibraryRow: View {
         }
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.visible)
+        .listRowSeparator(endsSection ? .hidden : .visible, edges: .bottom)
         .listRowSeparatorTint(Palette.border.color)
         .alignmentGuide(.listRowSeparatorLeading) { _ in Metrics.rowPadding.leading }
         .listRowBackground((isSelected ? Palette.elevated : Palette.page).view)
