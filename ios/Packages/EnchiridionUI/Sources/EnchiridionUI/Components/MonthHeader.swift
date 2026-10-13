@@ -1,11 +1,8 @@
 import SwiftUI
 
-/// A month between the list's groups: a hairline rule, "September 2026 (5)", a hairline rule (the web's
-/// `1fr auto 1fr` grid), 12 pt and dimmed. The label comes first: the rules shrink to nothing before it does, and at
-/// accessibility text sizes it wraps onto a second line rather than overflow the row.
+/// A month above its rows, as a plain list's section heading: "September 2026 (5)", left-aligned, semibold and muted.
 public struct MonthHeader: View {
     let title: String
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// `title` as it is, when the caller already decided about the count.
     public init(_ title: String) {
@@ -23,26 +20,11 @@ public struct MonthHeader: View {
     }
 
     public var body: some View {
-        HStack(spacing: Space.metaGap) {
-            rule
-            Text(verbatim: title)
-                .font(Typography.monthHeader)
-                .foregroundStyle(Palette.textDimmed)
-                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
-            rule
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: title))
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    private var rule: some View {
-        Palette.border.view
-            .frame(height: Metrics.rule)
-            .frame(maxWidth: .infinity)
+        Text(verbatim: title)
+            .font(Typography.monthHeading)
+            .foregroundStyle(Palette.textMuted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

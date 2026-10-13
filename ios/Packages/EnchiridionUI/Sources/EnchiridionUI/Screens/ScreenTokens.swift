@@ -13,6 +13,10 @@ extension Typography {
     static let toggleLabel: Font = .subheadline.weight(.medium)
     /// The domain heading the share card's preview.
     static let shareDomain: Font = .callout.weight(.semibold)
+    /// A record's title in the library's rows (semibold, as Mail's sender).
+    static let rowTitle: Font = .callout.weight(.semibold)
+    /// The library's month headings, left-aligned above their rows.
+    static let monthHeading: Font = .footnote.weight(.semibold)
 }
 
 extension Space {
@@ -25,7 +29,11 @@ extension Space {
 }
 
 extension Metrics {
-    /// The list column on iPad: wide enough for a card's image and meta row, never wider than reads well.
+    /// A library row's padding: the page margin at the sides.
+    static let rowPadding = EdgeInsets(top: 11, leading: 16, bottom: 11, trailing: 16)
+    /// A library row's thumbnail, square.
+    static let rowThumbnail: CGFloat = 60
+    /// The list column on iPad: wide enough for a row's summary and thumbnail, never wider than reads well.
     static let listColumnMin: CGFloat = 320
     static let listColumnIdeal: CGFloat = 380
     static let listColumnMax: CGFloat = 480

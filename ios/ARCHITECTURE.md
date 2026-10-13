@@ -24,7 +24,7 @@ This is how the iPhone and iPad client is built.
 |---|---|---|
 | `EnchiridionKit` | Foundation | Wire types, `EnchiridionClient` (an actor over an injected `HTTPTransport`), `EnchiridionError`, `Slug`, `DBTimestamp`, the predicate vocabulary |
 | `EnchiridionCore` | Foundation, Observation, Kit | `AppEnvironment`, `Server`, and the `@MainActor @Observable` models: `LibraryModel`, `RecordDetailModel`, `RecordEditorModel`, `ShareComposeModel`. Also slug planning and share input. |
-| `EnchiridionUI` | SwiftUI, Kit, Core | The theme (`Palette`, `Typography`, `Radius`, `Space`, `Metrics`, `FontRegistry`), the components (`RecordCard`, `Badge`, `MonthHeader`, `NotAllowedView`, `ErrorState`, …) and the screens (`EnchiridionRootView`, `LibraryScreen`, `RecordDetailScreen`, `RecordEditorSheet`, `ShareComposeView`) |
+| `EnchiridionUI` | SwiftUI, Kit, Core | The theme (`Palette`, `Typography`, `Radius`, `Space`, `Metrics`, `FontRegistry`), the components (`RecordRow`, `Badge`, `MonthHeader`, `NotAllowedView`, `ErrorState`, …) and the screens (`EnchiridionRootView`, `LibraryScreen`, `RecordDetailScreen`, `RecordEditorSheet`, `ShareComposeView`) |
 
 Dependencies point one way: Kit ← Core ← UI ← targets. Each package has `swift-tools-version: 6.4` and `platforms: [.iOS(.v27), .macOS(.v27)]`.
 
@@ -62,7 +62,7 @@ Dependencies point one way: Kit ← Core ← UI ← targets. Each package has `s
 
   | Where | Example |
   |---|---|
-  | Card date | "September 14" |
+  | Row date | "September 14" |
   | Detail captured badge | "March 14, 2026 at 10:12 AM" |
   | Published | "March 14, 2026" |
   | Month header | "September 2026" |
@@ -137,12 +137,12 @@ Tests use stub transports and a manual clock.
 **Curating and deleting.**
 - Curating is optimistic. The row and the switch change at once, the server gets `{id, slug, isCurated}`, and a failure reverts the change and sets `actionError`. A lost answer (`unreachable` or `restarting`) may hide a curate that landed, so the record is read back first (`RecordCuration.confirm`): if it holds the new value, the curate succeeded and nothing reverts. If the read fails too, the change reverts with the error: the screen keeps to what the server last confirmed, and curating again is safe because it sets a value rather than toggling one.
 - Deleting waits for the server, and always deletes media first (`deleteMedia`, then `delete`), as the web does. A row's or detail's media list can be stale (media added on the web since it loaded), and deleting none costs one request.
-- A row with a curate or delete in flight (`workingIDs`) takes no other action: the model refuses it and the card's actions are disabled.
+- A row with a curate or delete in flight (`workingIDs`) takes no other action: the model refuses it and the row's actions are disabled.
 - A record deleted elsewhere answers a curate, an edit or a detail's load with 404 (the server refuses to update an id no row has, and ids are never reused). The row leaves, an open detail closes, and the record is said to be gone where the user will see it:
   - From the list (a swipe, the context menu), the library's alert says it.
   - From a detail (its Curate button, or loading it: a row the phone still lists after a delete on the web), the detail reports `.vanished`: it closes, and the library's alert (on `LibraryScreen`, above the navigation) says it.
   - From an editor, the sheet stays up with "That record couldn't be found." inline and the typed text still there. It reports `.deleted` when it closes (`RecordEditorModel.close()`, from the sheet's `onDisappear`); only then does the row leave and the detail it was opened from close.
-- **Every editor is presented by `LibraryScreen`**, above the navigation: New record, a card's Edit, and a detail's Edit (`RecordDetailScreen`'s `onEdit`). A reload can move the selection while an editor is open (the record left the list: curated on the web while the list shows what needs curating, say), and a sheet goes with the screen that presented it, typed text and all. A detail's editor reports through its detail while that is still shown, and straight to the library once it isn't (`RecordDetailModel.makeEditor()`).
+- **Every editor is presented by `LibraryScreen`**, above the navigation: New record, a row's Edit, and a detail's Edit (`RecordDetailScreen`'s `onEdit`). A reload can move the selection while an editor is open (the record left the list: curated on the web while the list shows what needs curating, say), and a sheet goes with the screen that presented it, typed text and all. A detail's editor reports through its detail while that is still shown, and straight to the library once it isn't (`RecordDetailModel.makeEditor()`).
 
 **Coming back to the foreground.** `EnchiridionRootView` reloads the index when the app becomes active after a failed load (a 401 included, because the not-allowed state has no Retry of its own) or after 15 minutes in the background. After a shorter time in the background (a share from Safari, say) it calls `refreshIfNewer()`, which asks for `ListQuery.newest` alone and reloads only when that record isn't in the index yet. Nothing pushes new records to the phone.
 
@@ -153,6 +153,8 @@ Tests use stub transports and a manual clock.
 - `needsCuration`: hides curated records;
 - `hasMedia`: keeps records with any media attached;
 - `sort`: newest (the index's own order), oldest, title A–Z (untitled last), or relevance (the search's ranking, offered only while searching). Nil means the default: relevance while searching, newest otherwise. Sorts are stable.
+
+**Rows.** The list is a plain iOS list rather than the web's cards (`RecordRow`): edge to edge with the list's hairlines between rows, the title, the summary (else the content as plain text, `WidgetContent.excerpt`) on two lines, a muted line (the creator or domain, the date, the type unless an artifact, the highlight count, the note's first line), and the first image as a 60 pt thumbnail. `elevated` while pressed and, on iPad, while selected. Search hits inside another record name it above the title.
 
 **Sections.** Records are grouped by the local month of `recordCreatedAt` ("September 2026"). A section shows its count, " (N)", only when it has more than 4 records. Rows whose timestamp won't parse go into a trailing "Undated" section. While searching, or sorted by title, there is a single flat section with no header (the web's rule).
 

@@ -123,9 +123,9 @@ private struct LibraryList: View {
                 if let heading = section.heading {
                     MonthHeader(heading)
                         .listRowInsets(EdgeInsets(
-                            top: section.id == library.sections.first?.id ? 0 : Space.monthGap - Space.cardGap / 2,
+                            top: section.id == library.sections.first?.id ? Space.metaGap : Space.detailGap + Space.metaGap,
                             leading: Space.margin,
-                            bottom: Space.afterMonthHeader - Space.cardGap / 2,
+                            bottom: Space.iconGap,
                             trailing: Space.margin))
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
@@ -257,8 +257,9 @@ private struct FilterMenu: View {
     }
 }
 
-/// One card: a button that selects it, with the swipe actions, the context menu and the delete confirmation (anchored
-/// here, so on iPad it points at the card). VoiceOver offers the swipe actions as the card's actions.
+/// One row: a button that selects it, with the swipe actions, the context menu and the delete confirmation (anchored
+/// here, so on iPad it points at the row). Edge to edge, `elevated` while pressed and while selected (iPad), with the
+/// list's hairline below it inset to the text. VoiceOver offers the swipe actions as the row's actions.
 private struct LibraryRow: View {
     let record: ListRecord
     @Binding var editor: EditorSession?
@@ -266,7 +267,7 @@ private struct LibraryRow: View {
     @Environment(\.openURL) private var openURL
     @State private var confirmingDelete = false
 
-    /// A curate or delete is in flight: the card dims, and takes no other action until it's done.
+    /// A curate or delete is in flight: the row dims, and takes no other action until it's done.
     private var isWorking: Bool { library.workingIDs.contains(record.id) }
 
     var body: some View {
@@ -275,11 +276,14 @@ private struct LibraryRow: View {
         Button {
             library.selectedID = record.id
         } label: {
-            RecordCard(record, isSelected: isSelected, showsParent: library.isSearching)
+            RecordRow(record, showsParent: library.isSearching)
+                .padding(Metrics.rowPadding)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(PressDimButtonStyle())
+        .buttonStyle(RowButtonStyle())
         .opacity(isWorking ? 0.6 : 1)
-        .contextMenuPreviewShape(Radius.shape(Radius.card))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .contextMenuPreviewShape(Rectangle())
         .contextMenu {
             if let link {
                 Button {
@@ -308,10 +312,11 @@ private struct LibraryRow: View {
             }
             .disabled(isWorking)
         }
-        .listRowInsets(EdgeInsets(top: Space.cardGap / 2, leading: Space.margin, bottom: Space.cardGap / 2,
-                                  trailing: Space.margin))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.visible)
+        .listRowSeparatorTint(Palette.border.color)
+        .alignmentGuide(.listRowSeparatorLeading) { _ in Metrics.rowPadding.leading }
+        .listRowBackground((isSelected ? Palette.elevated : Palette.page).view)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             curateButton
                 .tint(Palette.primary.color)

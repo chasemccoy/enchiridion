@@ -120,8 +120,7 @@ enum RecordName {
     }
 }
 
-/// Dims its label a little while pressed: a card in the list, a byline link. A style of its own also keeps a list
-/// from drawing its row highlight behind a card.
+/// Dims its label a little while pressed: a byline link.
 struct PressDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

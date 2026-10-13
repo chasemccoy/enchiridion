@@ -67,17 +67,6 @@ public enum Space {
 public enum Metrics {
     /// The card's hairline (the web's 0.5 px border).
     public static let cardBorder: CGFloat = 0.5
-    /// The selected card's inset ring.
-    public static let selectionRing: CGFloat = 2
-    /// A card's image: its height, and the point of the image kept in view when it is cropped (the web's
-    /// `object-position: 50% 25%`).
-    public static let cardImageHeight: CGFloat = 150
-    public static let cardImageFocus = UnitPoint(x: 0.5, y: 0.25)
-    /// The extra space above a card's note bubble, on top of the 6 pt gap: the web's bubble sits 12 px below the meta
-    /// row (its 6 px grid gap, plus the bubble's 8 px margin, less the meta row's -2 px bottom margin).
-    public static let noteTopMargin: CGFloat = 6
-    /// The note bubble's padding.
-    public static let notePadding = EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)
     /// Badges: padding and icon size, small (cards) and regular (detail).
     public static let badgeSmallPadding = EdgeInsets(top: 3, leading: 5, bottom: 3, trailing: 5)
     public static let badgePadding = EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7)
