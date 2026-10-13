@@ -13,10 +13,16 @@ extension Typography {
     static let toggleLabel: Font = .subheadline.weight(.medium)
     /// The domain heading the share card's preview.
     static let shareDomain: Font = .callout.weight(.semibold)
-    /// A record's title in the library's rows (semibold, as Mail's sender).
-    static let rowTitle: Font = .callout.weight(.semibold)
-    /// The library's month headings, left-aligned above their rows.
-    static let monthHeading: Font = .footnote.weight(.semibold)
+    // The library's rows take iOS's own list sizes (Mail's), not the web's smaller scale.
+    /// A record's title in the library's rows (17 pt semibold, as Mail's sender).
+    static let rowTitle: Font = .headline
+    /// A row's summary or content (15 pt, as Mail's preview); an untitled record's content leads at `.body`.
+    static let rowBody: Font = .subheadline
+    static let rowLead: Font = .body
+    /// A row's muted line: who or where, when, tags (13 pt).
+    static let rowMeta: Font = .footnote
+    /// The library's month headings, left-aligned above their rows (15 pt semibold).
+    static let monthHeading: Font = .subheadline.weight(.semibold)
 }
 
 extension Space {

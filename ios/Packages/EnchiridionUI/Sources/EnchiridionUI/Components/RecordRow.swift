@@ -29,7 +29,7 @@ public struct RecordRow: View {
                 } icon: {
                     Image(systemName: Symbol.parentChip)
                 }
-                .font(Typography.byline)
+                .font(Typography.rowMeta)
                 .foregroundStyle(Palette.textMuted)
                 .lineLimit(1)
                 .accessibilityLabel(Text("In \(parent.title.nonBlank ?? parent.slug)"))
@@ -45,20 +45,20 @@ public struct RecordRow: View {
             }
             if let text = record.summary.nonBlank ?? (title == nil ? nil : excerpt) {
                 Text(verbatim: Self.oneParagraph(text))
-                    .font(Typography.cardBody)
+                    .font(Typography.rowBody)
                     .lineSpacing(Typography.bodyLineSpacing)
                     .foregroundStyle(Palette.text)
                     .lineLimit(3)
             } else if title == nil, let excerpt {
                 Text(verbatim: Self.oneParagraph(excerpt))
-                    .font(Typography.cardTitle)
+                    .font(Typography.rowLead)
                     .lineSpacing(Typography.bodyLineSpacing)
                     .foregroundStyle(Palette.textHighlighted)
                     .lineLimit(4)
             }
             if let meta = Self.meta(record) {
                 Text(verbatim: meta)
-                    .font(Typography.byline)
+                    .font(Typography.rowMeta)
                     .foregroundStyle(Palette.textMuted)
                     .lineLimit(2)
             }
