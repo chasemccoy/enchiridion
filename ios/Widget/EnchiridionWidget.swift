@@ -356,7 +356,7 @@ private struct MediumRecord: View {
                 TypeLine(record: record)
                 WidgetTitle(text: record.title, size: 20, lines: 2)
                 if let text = record.summary ?? record.content {
-                    WidgetBody(text: text, lines: record.image == nil ? 3 : 2)
+                    WidgetBody(text: text, lines: 3)
                         .padding(.top, 2)
                 }
                 Spacer(minLength: 0)
