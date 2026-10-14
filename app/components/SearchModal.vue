@@ -9,7 +9,7 @@
       <UCommandPalette
         v-model:searchTerm="searchQuery"
         placeholder="Search records..."
-        class="max-h-[min(460px,70dvh)]"
+        class="max-h-[min(580px,80dvh)]"
         size="sm"
         :groups="groups"
         :ui="{
