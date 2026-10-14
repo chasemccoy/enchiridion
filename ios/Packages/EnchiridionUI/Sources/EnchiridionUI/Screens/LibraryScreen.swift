@@ -263,7 +263,8 @@ private struct FilterMenu: View {
 /// list's hairline below it inset to the text. VoiceOver offers the swipe actions as the row's actions.
 private struct LibraryRow: View {
     let record: ListRecord
-    /// The month's last row: no hairline under it, so the gap before the next month reads as the break.
+    /// The month's (or the search results') last row: no hairline under it, so the gap before the next month reads
+    /// as the break.
     var endsSection = false
     @Binding var editor: EditorSession?
     @Environment(LibraryModel.self) private var library
@@ -316,7 +317,10 @@ private struct LibraryRow: View {
             .disabled(isWorking)
         }
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.visible)
+        // A hairline only between two rows: each row draws the one below it unless it ends its month (or the
+        // results), and none draws above itself, so nothing sits over the first row or above a month heading. Set
+        // per edge: a modifier for all edges would win over the per-edge one, as the nearer one does.
+        .listRowSeparator(.hidden, edges: .top)
         .listRowSeparator(endsSection ? .hidden : .visible, edges: .bottom)
         .listRowSeparatorTint(Palette.border.color)
         .alignmentGuide(.listRowSeparatorLeading) { _ in Metrics.rowPadding.leading }
