@@ -10,8 +10,9 @@ public enum Typography {
 
     /// The detail title: 27 pt Martina Plantijn Regular, scaling with `.title` (the web's 1.7rem `TitleField`).
     public static var detailTitle: Font { serif(.regular, size: 27, relativeTo: .title) }
-    /// The extra space between a wrapped detail title's lines (the web measures ≈1.43 line height).
-    public static let detailTitleLineSpacing: CGFloat = 4
+    /// The extra space between a wrapped detail title's lines: a little under the web's ≈1.43 line height, which
+    /// reads loose at this size on a phone.
+    public static let detailTitleLineSpacing: CGFloat = 1
     /// The "Enchiridion" wordmark: 23 pt Martina Plantijn Medium, scaling with `.headline` (a step up from the web's
     /// 1.05rem logo, to hold the bar beside the system's larger controls).
     public static var wordmark: Font { serif(.medium, size: 23, relativeTo: .headline) }
