@@ -74,14 +74,14 @@
 import useApiClient from '@app/composables/useApiClient';
 import { getIconForRecordType, getOriginOfUrl } from '@app/utils';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import { capitalize, formatDate, pluralize, slugify } from '@shared/lib/formatting';
+import { capitalize, pluralize, slugify } from '@shared/lib/formatting';
 import { excerpt, highlightSegments, plainText } from '@shared/lib/search-preview';
 import { isPredicateType } from '@shared/types';
 import { computed } from 'vue';
 
 /**
  * A record in the search palette: its type icon, the record it sits in (a book
- * for a highlight), the title, a muted line of who, where and when, a preview
+ * for a highlight), the title, a muted line of who and where, a preview
  * (the summary, or the content around what was searched for), the note, and the
  * first image as a thumbnail. Searched words are highlighted throughout.
  */
@@ -134,7 +134,6 @@ const meta = computed(() =>
   [
     creator.value ? `by ${creator.value.title ?? creator.value.slug}` : null,
     domain.value,
-    formatDate(record.recordCreatedAt, { year: true }),
     record.type !== 'artifact' ? capitalize(record.type) : null,
     highlights.value > 0 ? pluralize(highlights.value, 'highlight', 'highlights') : null,
     ...tags.value.slice(0, 3),

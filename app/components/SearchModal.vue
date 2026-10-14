@@ -9,7 +9,7 @@
       <UCommandPalette
         v-model:searchTerm="searchQuery"
         placeholder="Search records..."
-        class="SearchModal__palette"
+        class="max-h-[min(460px,70dvh)]"
         size="sm"
         :groups="groups"
         :ui="{
@@ -70,10 +70,6 @@ const groups = computed(() => {
 </script>
 
 <style scoped>
-.SearchModal__palette {
-  height: min(640px, 80dvh);
-}
-
 :deep(.SearchModal__item) {
   align-items: start;
 }
