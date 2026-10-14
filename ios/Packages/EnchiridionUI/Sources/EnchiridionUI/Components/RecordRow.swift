@@ -24,10 +24,12 @@ public struct RecordRow: View {
         let excerpt = WidgetContent.excerpt(record.content, limit: 400)
         VStack(alignment: .leading, spacing: Space.cardGap) {
             if showsParent, let parent = record.parent {
-                Label {
-                    Text(verbatim: parent.title.nonBlank ?? parent.slug)
-                } icon: {
+                // A Label's system gap is wide at this size: the arrow sits as close as a badge's icon does.
+                HStack(spacing: Space.iconGap) {
                     Image(systemName: Symbol.parentChip)
+                        .imageScale(.small)
+                        .accessibilityHidden(true)
+                    Text(verbatim: parent.title.nonBlank ?? parent.slug)
                 }
                 .font(Typography.rowMeta)
                 .foregroundStyle(Palette.textMuted)
