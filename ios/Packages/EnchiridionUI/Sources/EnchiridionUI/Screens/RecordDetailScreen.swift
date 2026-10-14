@@ -238,7 +238,6 @@ private struct BylineLink: View {
                     .foregroundStyle(Palette.textDimmed)
                     .accessibilityHidden(true)
                 Text(verbatim: name)
-                    .fontWeight(.medium)
                     .lineLimit(1)
             }
             .font(Typography.detailByline)

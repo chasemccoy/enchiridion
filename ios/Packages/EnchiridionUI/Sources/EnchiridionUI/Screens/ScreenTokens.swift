@@ -7,10 +7,10 @@ import SwiftUI
 extension Typography {
     /// Text typed into a form or the share card, and a form row's label (16 pt).
     static let field: Font = .callout
-    /// A linked record's title in the detail (the web's 0.9rem, weight 500).
-    static let linkTitle: Font = .subheadline.weight(.medium)
-    /// The Curated switch's label (the web's 14 px, weight 500).
-    static let toggleLabel: Font = .subheadline.weight(.medium)
+    /// A linked record's title in the detail (15 pt, regular as a list row's).
+    static let linkTitle: Font = .subheadline
+    /// The Curated switch's label (15 pt).
+    static let toggleLabel: Font = .subheadline
     /// The domain heading the share card's preview.
     static let shareDomain: Font = .callout.weight(.semibold)
     // The library's rows take iOS's own list sizes (Mail's), not the web's smaller scale.

@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// Type: the web's sizes mapped onto Dynamic Type styles, so everything scales. Sans is the system font (the web's
+/// Type: the web's sizes mapped onto Dynamic Type styles, so everything scales. Weights are iOS's, not the web's:
+/// regular for nearly everything (secondary text is set apart by color, not weight), semibold for emphasis, and
+/// medium only on badges, small text on a tint. Sans is the system font (the web's
 /// Public Sans isn't bundled); the serif, Martina Plantijn, is only for the wordmark and the detail title, as on the
 /// web. Views take every font from here.
 public enum Typography {
@@ -29,8 +31,8 @@ public enum Typography {
 
     /// A card's title (16 pt, regular, in `text`).
     public static let cardTitle: Font = .callout
-    /// "by Ann Leckie  at example.com" after a card's title (12 pt medium, muted).
-    public static let byline: Font = .caption.weight(.medium)
+    /// "by Ann Leckie  at example.com" after a title (12 pt, muted).
+    public static let byline: Font = .caption
     /// A card's summary or content (13 pt, clamped to 4 lines), and Markdown's body in cards.
     public static let cardBody: Font = .footnote
     /// The extra space between `cardBody` lines (the web sets 1.5 line height on 12.8 px).
@@ -41,8 +43,6 @@ public enum Typography {
     public static let note: Font = .caption
     /// "3 HIGHLIGHTS" (10 pt on the web; the smallest Dynamic Type style).
     public static let highlightChip: Font = .caption2
-    /// The parent chip above a search hit's title (12 pt medium, muted).
-    public static let parentChip: Font = .caption.weight(.medium)
 
     // MARK: Badges, chips, buttons
 
@@ -50,10 +50,6 @@ public enum Typography {
     public static let badge: Font = .caption.weight(.medium)
     /// Card badges (10 pt medium on the web).
     public static let badgeSmall: Font = .caption2.weight(.medium)
-    /// Filter chips and toolbar buttons (12 pt medium).
-    public static let chip: Font = .caption.weight(.medium)
-    /// Raised neutral buttons: Edit, Delete record (12 pt medium).
-    public static let button: Font = .caption.weight(.medium)
     /// A sheet's or card's main action.
     public static let prominentButton: Font = .body.weight(.semibold)
 
@@ -69,8 +65,8 @@ public enum Typography {
     public static let metadataLabel: Font = .caption
     /// A metadata row's value (14 pt, muted).
     public static let metadataValue: Font = .subheadline
-    /// A linked-records group's label (12 pt medium, muted).
-    public static let groupLabel: Font = .caption.weight(.medium)
+    /// A grouped card's label: Details, a linked-records group (12 pt, muted).
+    public static let groupLabel: Font = .caption
     /// Record counts and other toolbar text (12 pt, dimmed).
     public static let count: Font = .caption
     /// Device ids and other machine text.
