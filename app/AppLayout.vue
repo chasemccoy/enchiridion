@@ -24,7 +24,7 @@
     <SearchModal
       v-model:open="isSearchModalOpen"
       v-model:searchQuery="searchQuery"
-      :searchResultItems="searchResultItems"
+      :records="searchResults"
     />
 
     <SettingsModalView v-model:isOpen="isSettingsModalOpen" />
@@ -40,7 +40,6 @@
 import SearchModal from '@app/components/SearchModal.vue';
 import useSearch from '@app/composables/useSearch';
 import { RouteName } from '@app/router';
-import { getIconForRecordType } from '@app/utils';
 import AddRecordDrawerView from '@app/views/AddRecordDrawerView.vue';
 import SettingsModalView from '@app/views/SettingsModalView.vue';
 import { computed, ref, watch } from 'vue';
@@ -130,21 +129,6 @@ defineShortcuts({
 });
 
 const { data: searchResults } = useSearch(searchQuery, shouldSearch);
-
-const searchResultItems = computed(() => {
-  if (!searchResults.value) return undefined;
-
-  return searchResults.value.map((result) => ({
-    label: result.title || result.content || result.slug,
-    id: result.slug,
-    icon: getIconForRecordType(result.type),
-    to: `/${result.slug}`,
-    suffix: result.summary || result.content || result.notes || undefined,
-    onSelect: () => {
-      isSearchModalOpen.value = false;
-    },
-  }));
-});
 
 watch(isSearchModalOpen, () => {
   if (!isSearchModalOpen.value) {
