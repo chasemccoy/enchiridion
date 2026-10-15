@@ -39,4 +39,5 @@ ios/build/
 ios/**/DerivedData/
 ios/**/.swiftpm/
 ios/Config/Local.xcconfig
+ios/Config/Build.xcconfig
 *.xcresult

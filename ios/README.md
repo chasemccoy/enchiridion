@@ -47,6 +47,7 @@ The app is signed automatically with the free Personal Team (`756EWAN4G2`).
 
 Work on the app can happen anywhere (including on voyager), but the phone is installed from the MacBook. The project file is generated, so after a pull Xcode only sees new files or target changes once it's regenerated. Two pieces take care of that:
 
+- **`scripts/xcode.sh`** also sets the build number to the commit count (`Config/Build.xcconfig`, gitignored), so every install after a pull is a new build. iOS keeps a widget's sizes from the last build number it saw, which is why Large didn't show up while the number stayed at 1.
 - **`scripts/xcode.sh`** regenerates `Enchiridion.xcodeproj` when anything XcodeGen reads has changed (`project.yml`, `Config/*.xcconfig`, the file list of `iOS/`, `ShareExtension/` and `Widget/`, or the XcodeGen version), then opens it. It's cheap when nothing changed, so it's fine to use as the everyday way to open the project. `--pull` pulls first; `--force` regenerates regardless; `--no-open` skips opening Xcode.
 - **The git hooks** from `scripts/install-hooks.sh` run `xcode.sh --no-open --quiet` after every pull (merge or rebase) and branch switch. An open Xcode reloads the regenerated project by itself. The hooks never fail a pull: if XcodeGen is missing they print the reason and the pull completes.
 

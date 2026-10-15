@@ -47,11 +47,21 @@ if ! command -v xcodegen >/dev/null; then
   exit 1
 fi
 
+# The build number follows the commit count, so every install after a pull is a new build. iOS keeps a
+# widget's sizes and kinds from the last build number it saw: with the number stuck, a size added later
+# (Large) never reaches the widget gallery. Xcode reads the xcconfig at build time, so no regeneration.
+build=$ios/Config/Build.xcconfig
+number=$(git -C $repo rev-list --count HEAD)
+if [[ ! -f $build || $(<$build) != *"= $number"* ]]; then
+  print -- "// Written by scripts/xcode.sh: the commit count, as the build number. Gitignored.\nCURRENT_PROJECT_VERSION = $number" > $build
+  say "▸ build number $number"
+fi
+
 # Everything the generated project depends on: the spec, the xcconfigs it names, the list of
 # files in the target folders (the project lists each one), and the XcodeGen version.
 fingerprint() {
   {
-    cat $ios/project.yml $ios/Config/*.xcconfig(N)
+    cat $ios/project.yml ${(@)$(print -l $ios/Config/*.xcconfig(N)):#*/Build.xcconfig}
     (cd $ios && find iOS ShareExtension Widget -type f ! -name '.DS_Store' ! -name 'Info.plist' | LC_ALL=C sort)
     xcodegen --version
   } | shasum -a 256 | cut -d' ' -f1

@@ -13,5 +13,9 @@ CURRENT_PROJECT_VERSION = 1
 //   ENCHIRIDION_SERVER = http:/$()/localhost:4399
 ENCHIRIDION_SERVER =
 
+// The build number, from scripts/xcode.sh (gitignored): the commit count, so each install after a pull is a new
+// build and iOS refreshes the widget's sizes. 1 without it.
+#include? "Build.xcconfig"
+
 // Optional machine-local overrides (gitignored): another DEVELOPMENT_TEAM, ENCHIRIDION_SERVER.
 #include? "Local.xcconfig"
