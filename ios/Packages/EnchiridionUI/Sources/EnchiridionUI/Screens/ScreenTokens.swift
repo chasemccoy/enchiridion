@@ -35,6 +35,9 @@ extension Space {
 }
 
 extension Metrics {
+    /// How far a detail's text sits in from the page margin: a grouped card's row inset, so text outside the cards
+    /// (badges, title, content, headings) and inside them shares one left edge.
+    static var detailTextInset: CGFloat { groupedRowPadding.leading }
     /// A library row's padding: the page margin at the sides.
     static let rowPadding = EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
     /// The list column on iPad: wide enough for a row's summary and thumbnail, never wider than reads well.
