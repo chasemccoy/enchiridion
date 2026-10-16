@@ -140,7 +140,7 @@ curl -s https://enchiridion-api.chsmc.tools/me     # how voyager sees the device
   - Swipe a row to curate or delete it, or long-press for Open link, Copy link, Curate and Delete.
   - On iPad the record opens beside the list.
 - **Record.**
-  - The content, a Details card (summary, link, published date, notes) and the linked records, a card per kind of link. Tap a linked record to open it; swiping back returns one screen at a time.
+  - A ledger with one left edge: a line of facts (type, source, when it was saved, its number), the title, who made it, the summary, your note, the images and the content, then the link and published date, then the linked records as plain rows under their kind ("Created by", "Tagged with"). Tap a linked record to open it; swiping back returns one screen at a time.
   - **Edit** is at the top. The bottom bar has **Curate**, **Open link**, **Share** and **Delete**.
   - **Add link** (beside Linked records) searches for a record, then asks how it's linked. Long-press a linked record for **Remove link**.
   - **Similar records** lists records close in meaning that aren't linked yet. Tap one to open it, or its link button to link it.

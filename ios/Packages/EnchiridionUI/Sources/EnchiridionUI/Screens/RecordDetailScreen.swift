@@ -3,12 +3,10 @@ import EnchiridionKit
 import struct EnchiridionKit.Predicate
 import SwiftUI
 
-/// One record, as the web's `RecordDetail` shows it, read-only with Edit for changes: the badge row (Needs curating,
-/// the type, the source unless manual, the captured date, the id), the title in the serif, the byline (from the parent,
-/// by the creator, at the domain), the record's images, its content as Markdown (single newlines kept as line breaks),
-/// a Details card (Summary, Link, Published, Notes), then "Linked records", a card per predicate, with Add link and a
-/// row's Remove link, then "Similar records", each with a menu to link it. In a column at most
-/// 680 pt wide, centered. Edit is in the navigation bar; Curate, Open, Share and Delete are in the bottom bar.
+/// One record, read-only with Edit for changes, laid out as a ledger with one left edge and no boxes (`DetailContent`):
+/// a muted line of facts, the title in the serif, the byline, the summary and note, the images, the content as
+/// Markdown (single newlines kept as line breaks), a Link/Published table, then "Linked records" (Add link, a row's
+/// Remove link) and "Similar records" as plain rows under their labels. In a column at most 680 pt wide, centered. Edit is in the navigation bar; Curate, Open, Share and Delete are in the bottom bar.
 ///
 /// Links (a linked record, the parent, the creator) push a `RecordRoute`; the stack this screen sits in registers its
 /// destination (`LibraryScreen` does). `onDeleted` runs once a delete from here succeeds: a pushed screen pops itself
@@ -113,6 +111,10 @@ public struct RecordDetailScreen: View {
     }
 }
 
+/// The record as a ledger: one left edge for everything. A muted line of facts (needs curating, type, source, when
+/// it was saved, its number), the serif title, who made it and what it's from, the summary as a muted introduction,
+/// the note's bubble, the images, the content, then a two-column table of the link and the published date, and the
+/// linked and similar records as plain rows under their labels. No boxes: hairlines run margin to margin.
 private struct DetailContent: View {
     let detail: RecordDetail
     let model: RecordDetailModel
@@ -121,28 +123,45 @@ private struct DetailContent: View {
 
     var body: some View {
         let record = detail.record
-        VStack(alignment: .leading, spacing: Space.detailGap) {
+        VStack(alignment: .leading, spacing: 0) {
             if let error = model.state.error {
                 StatusBanner(error: error) {
                     Task { await model.refresh() }
                 }
+                .padding(.bottom, Space.detailGap)
             }
-            BadgeRow(record: record)
-            VStack(alignment: .leading, spacing: Space.metaGap) {
-                DetailTitle(title: record.title.nonBlank, scrolledAway: $titleScrolledAway)
-                Byline(detail: detail)
+            MetaLine(record: record)
+            DetailTitle(title: record.title.nonBlank, scrolledAway: $titleScrolledAway)
+                .padding(.top, Metrics.ledgerTitleGap)
+            Byline(detail: detail)
+                .padding(.top, Space.iconGap)
+            if let summary = record.summary.nonBlank?.trimmingLineEnds {
+                Text(verbatim: summary)
+                    .font(Typography.ledgerSummary)
+                    .lineSpacing(Typography.bodyLineSpacing)
+                    .foregroundStyle(Palette.textMuted)
+                    .textSelection(.enabled)
+                    .wrapsFully()
+                    .padding(.top, Metrics.ledgerSummaryGap)
+            }
+            if let notes = record.notes.nonBlank?.trimmingLineEnds {
+                NoteBubble(notes)
+                    .textSelection(.enabled)
+                    .padding(.top, Metrics.ledgerNoteGap)
             }
             DetailImages(media: detail.media)
+                .padding(.top, detail.media.contains(where: \.isImage) ? Space.detailGap : 0)
             if let content = record.content.nonBlank {
                 MarkdownText(content, size: .regular)
                     .textSelection(.enabled)
+                    .padding(.top, Space.detailGap)
             }
-            DetailsCard(record: record)
+            FactsTable(record: record)
             LinkedRecords(model: model, addLink: addLink)
             SimilarRecords(model: model)
         }
         .frame(maxWidth: Metrics.detailWidth, alignment: .leading)
-        .padding(.horizontal, Space.margin)
+        .padding(.horizontal, Metrics.detailMargin)
         .padding(.top, Space.metaGap)
         .padding(.bottom, Space.monthGap)
         .frame(maxWidth: .infinity)
@@ -152,28 +171,24 @@ private struct DetailContent: View {
     }
 }
 
-/// Needs curating, the type (always, artifact included), the source unless manual, the captured date and time, the id.
-private struct BadgeRow: View {
+/// "Needs curating · Artifact · Readwise · Saved June 28, 2025 at 1:54 PM · #371": the facts the web shows as badges,
+/// as one muted line above the title. Needs curating stands out in `text`.
+private struct MetaLine: View {
     let record: Record
 
     var body: some View {
-        FlowLayout(spacing: Space.badgeGap, lineSpacing: Space.badgeGap) {
-            if !record.isCurated {
-                Badge("Needs curating", systemImage: Symbol.needsCuration)
-            }
-            TypeBadge(record.type)
-            if let source = record.source, source != .manual {
-                Badge(source.displayName, systemImage: source.symbolName)
-            }
-            if let captured = record.recordCreatedAt.text(.captured) {
-                Badge(captured, systemImage: Symbol.captured)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(verbatim: "Captured \(captured)"))
-            }
-            Badge(String(record.id), systemImage: Symbol.recordID)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: "Record \(record.id)"))
-        }
+        var parts: [String] = [record.type.displayName]
+        if let source = record.source, source != .manual { parts.append(source.displayName) }
+        if let saved = record.recordCreatedAt.text(.captured) { parts.append("Saved \(saved)") }
+        parts.append("#\(record.id)")
+        let facts = Text(verbatim: parts.joined(separator: " · ")).foregroundStyle(Palette.textMuted)
+        let line = record.isCurated
+            ? facts
+            : Text("\(Text("Needs curating").foregroundStyle(Palette.text)) · \(facts)")
+        return line
+            .font(Typography.ledgerMeta)
+            .wrapsFully()
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -198,24 +213,21 @@ private struct DetailTitle: View {
     }
 }
 
-/// "from <parent>", "by <creator>" (each opening that record) and "at <domain>", in muted 13 pt text.
+/// "from <parent>" and "by <creator>", each opening that record, in muted text with the names in `primary`. The
+/// domain lives in the facts table's Link row.
 private struct Byline: View {
     let detail: RecordDetail
 
     var body: some View {
         let parent = detail.targets(.containedBy).first ?? detail.targets(.quotes).first
         let creator = detail.creator
-        let domain = detail.record.domain
-        if parent != nil || creator != nil || domain != nil {
+        if parent != nil || creator != nil {
             FlowLayout(spacing: Space.metaGap, lineSpacing: Space.iconGap) {
                 if let parent {
-                    BylineLink(prefix: "from", systemImage: Symbol.parent, record: parent)
+                    BylineLink(prefix: "from", record: parent)
                 }
                 if let creator {
-                    BylineLink(prefix: "by", systemImage: Symbol.creator, record: creator)
-                }
-                if let domain {
-                    DomainLabel(domain, font: Typography.detailByline)
+                    BylineLink(prefix: "by", record: creator)
                 }
             }
         }
@@ -224,24 +236,19 @@ private struct Byline: View {
 
 private struct BylineLink: View {
     let prefix: String
-    let systemImage: String
     let record: Record
-    @ScaledMetric(relativeTo: .footnote) private var iconSize = Metrics.metadataIcon
 
     var body: some View {
         let name = record.title.nonBlank ?? record.slug
         NavigationLink(value: RecordRoute(id: record.id)) {
             HStack(spacing: Space.iconGap) {
                 Text(verbatim: prefix)
-                Image(systemName: systemImage)
-                    .font(.system(size: iconSize))
-                    .foregroundStyle(Palette.textDimmed)
-                    .accessibilityHidden(true)
+                    .foregroundStyle(Palette.textMuted)
                 Text(verbatim: name)
+                    .foregroundStyle(Palette.primary)
                     .lineLimit(1)
             }
-            .font(Typography.detailByline)
-            .foregroundStyle(Palette.textMuted)
+            .font(Typography.ledgerByline)
         }
         .buttonStyle(PressDimButtonStyle())
         .accessibilityLabel(Text(verbatim: "\(prefix) \(name)"))
@@ -305,7 +312,7 @@ private struct DetailImage: View {
 }
 
 /// The bar items: Edit up top; Curate, Open, Share and Delete in the bottom bar, where iOS draws them in Liquid Glass.
-/// Curate fills once the record is curated (the badge row says "Needs curating" until then). Everything waits while a
+/// Curate fills once the record is curated (the meta line says "Needs curating" until then). Everything waits while a
 /// curate or delete is in flight.
 private struct DetailToolbar: ToolbarContent {
     let record: Record
@@ -358,184 +365,155 @@ private struct DetailToolbar: ToolbarContent {
     }
 }
 
-/// Summary, Link, Published and Notes, each only when the record has it: a grouped card, each label above its value
-/// (there's no room for a label column on a phone). The link opens in the in-app browser.
-private struct DetailsCard: View {
+/// The link and the published date as a two-column table: the label at the left edge, the value in a column of its
+/// own. The link opens in the in-app browser; an address that isn't a web link shows as plain, selectable text.
+private struct FactsTable: View {
     let record: Record
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
-        let summary = record.summary.nonBlank?.trimmingLineEnds
         let url = record.url.nonBlank
         let published = record.contentCreatedAt?.text(.published)
-        let notes = record.notes.nonBlank?.trimmingLineEnds
-        if summary != nil || url != nil || published != nil || notes != nil {
-            VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
-                GroupedCardLabel(text: "Details")
-                GroupedCard {
-                    if let summary {
-                        DetailRow("Summary", systemImage: Symbol.summary) {
-                            Text(verbatim: summary).textSelection(.enabled)
+        if url != nil || published != nil {
+            LedgerList {
+                if let url {
+                    if let link = RecordURL.web(url) {
+                        Button {
+                            openURL(link)
+                        } label: {
+                            FactRow("Link") {
+                                HStack(spacing: Space.metaGap) {
+                                    Text(verbatim: Self.shortened(url))
+                                        .foregroundStyle(Palette.primary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: Symbol.external)
+                                        .font(Typography.count.weight(.semibold))
+                                        .foregroundStyle(Palette.textDimmed)
+                                        .accessibilityHidden(true)
+                                }
+                            }
                         }
-                    }
-                    if let url {
-                        LinkRow(url: url)
-                    }
-                    if let published {
-                        DetailRow("Published", systemImage: Symbol.published) {
-                            Text(verbatim: published)
-                        }
-                    }
-                    if let notes {
-                        DetailRow("Notes", systemImage: Symbol.notes) {
-                            Text(verbatim: notes).textSelection(.enabled)
+                        .buttonStyle(LedgerRowButtonStyle())
+                        .accessibilityHint("Opens the page")
+                    } else {
+                        FactRow("Link") {
+                            Text(verbatim: url).textSelection(.enabled)
                         }
                     }
                 }
+                if let published {
+                    FactRow("Published") {
+                        Text(verbatim: published)
+                    }
+                }
             }
+            .padding(.top, Metrics.ledgerSectionGap)
         }
+    }
+
+    /// The address without its scheme and `www.`: the row already says it's a link.
+    static func shortened(_ url: String) -> String {
+        var text = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        for prefix in ["https://", "http://", "www."] where text.lowercased().hasPrefix(prefix) {
+            text = String(text.dropFirst(prefix.count))
+        }
+        return text.hasSuffix("/") ? String(text.dropLast()) : text
     }
 }
 
-/// A Details row: a small muted label with its symbol, the value under it.
-private struct DetailRow<Value: View>: View {
+/// A facts table row: the label in its column, the value beside it.
+private struct FactRow<Value: View>: View {
     let label: String
-    let systemImage: String
     let value: Value
-    @ScaledMetric(relativeTo: .caption) private var iconSize = Metrics.metadataIcon
 
-    init(_ label: String, systemImage: String, @ViewBuilder value: () -> Value) {
+    init(_ label: String, @ViewBuilder value: () -> Value) {
         self.label = label
-        self.systemImage = systemImage
         self.value = value()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.iconGap) {
-            HStack(spacing: Space.iconGap) {
-                Image(systemName: systemImage)
-                    .font(.system(size: iconSize))
-                    .foregroundStyle(Palette.textDimmed)
-                    .accessibilityHidden(true)
-                Text(verbatim: label)
-                    .font(Typography.metadataLabel)
-                    .foregroundStyle(Palette.textMuted)
-            }
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(verbatim: label)
+                .foregroundStyle(Palette.textMuted)
+                .frame(width: Metrics.ledgerLabelWidth, alignment: .leading)
             value
-                .font(Typography.metadataValue)
                 .foregroundStyle(Palette.text)
-                .wrapsFully()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(Metrics.groupedRowPadding)
+        .font(Typography.ledgerRow)
+        .ledgerRow()
         .accessibilityElement(children: .combine)
     }
 }
 
-/// The Link row: the address in `primary`, tapping it opens the in-app browser. An address that isn't a web link
-/// shows as plain, selectable text.
-private struct LinkRow: View {
-    let url: String
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        if let link = RecordURL.web(url) {
-            Button {
-                openURL(link)
-            } label: {
-                HStack(alignment: .center, spacing: Space.metaGap) {
-                    DetailRow("Link", systemImage: Symbol.url) {
-                        Text(verbatim: url)
-                            .foregroundStyle(Palette.primary)
-                            .lineLimit(2)
-                            .truncationMode(.middle)
-                    }
-                    .padding(.trailing, -Metrics.groupedRowPadding.trailing)
-                    Image(systemName: Symbol.browser)
-                        .font(Typography.count.weight(.semibold))
-                        .foregroundStyle(Palette.textDimmed)
-                        .padding(.trailing, Metrics.groupedRowPadding.trailing)
-                        .accessibilityHidden(true)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(RowButtonStyle())
-            .accessibilityHint("Opens the page")
-        } else {
-            DetailRow("Link", systemImage: Symbol.url) {
-                Text(verbatim: url).textSelection(.enabled)
-            }
-        }
-    }
-}
-
-/// "Linked records": a grouped card per predicate as it reads from this record ("Created by", "Tagged with"), its
-/// label above it, then "Add link". Each row opens its record; its context menu removes the link.
+/// "Linked records" with Add link, then a group per predicate as it reads from this record ("Created by", "Tagged
+/// with"): its label, then its records as plain rows. Each row opens its record; its context menu removes the link.
 private struct LinkedRecords: View {
     let model: RecordDetailModel
     let addLink: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.detailGap) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Linked records")
-                    .font(Typography.sectionHeading)
-                    .foregroundStyle(Palette.text)
+                    .font(Typography.ledgerHeading)
+                    .foregroundStyle(Palette.textHighlighted)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: Space.metaGap)
-                Button(action: addLink) {
-                    Label("Add link", systemImage: Symbol.addLink)
-                        .font(Typography.toggleLabel)
-                }
-                .buttonStyle(.borderless)
-                .tint(Palette.primary)
-                .disabled(model.isLinking)
+                Button("Add link", action: addLink)
+                    .font(Typography.ledgerRow)
+                    .buttonStyle(.borderless)
+                    .tint(Palette.primary)
+                    .disabled(model.isLinking)
             }
             ForEach(model.linkGroups) { group in
-                VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
-                    GroupedCardLabel(text: group.label)
-                    GroupedCard {
-                        ForEach(group.links) { link in
-                            NavigationLink(value: RecordRoute(id: link.recordID)) {
-                                LinkedRecordRow(link: link)
-                            }
-                            .buttonStyle(RowButtonStyle())
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    Task { await model.removeLink(link) }
-                                } label: {
-                                    Label("Remove link", systemImage: Symbol.unlink)
-                                }
+                LedgerLabel(text: group.label)
+                    .padding(.top, Metrics.ledgerGroupGap)
+                LedgerList {
+                    ForEach(group.links) { link in
+                        NavigationLink(value: RecordRoute(id: link.recordID)) {
+                            LinkedRecordRow(link: link)
+                        }
+                        .buttonStyle(LedgerRowButtonStyle())
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                Task { await model.removeLink(link) }
+                            } label: {
+                                Label("Remove link", systemImage: Symbol.unlink)
                             }
                         }
                     }
                 }
+                .padding(.top, Metrics.ledgerLabelGap)
             }
         }
-        .padding(.top, Space.metaGap)
+        .padding(.top, Metrics.ledgerHeadingGap)
     }
 }
 
-/// "Similar records": the server's nearest records by embedding that aren't linked yet, each opening its record, with
-/// a menu to link it ("Related to", "About"…). Hidden when there are none (or they couldn't load).
+/// "Similar records": the server's nearest records by embedding that aren't linked yet, as plain rows that open
+/// their record, each with a menu to link it ("Related to", "About"…). Hidden when there are none (or they couldn't
+/// load).
 private struct SimilarRecords: View {
     let model: RecordDetailModel
 
     var body: some View {
         let similar = model.similar
         if !similar.isEmpty {
-            VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text("Similar records")
-                    .font(Typography.sectionHeading)
-                    .foregroundStyle(Palette.text)
+                    .font(Typography.ledgerHeading)
+                    .foregroundStyle(Palette.textHighlighted)
                     .accessibilityAddTraits(.isHeader)
-                    .padding(.bottom, Space.metaGap)
-                GroupedCard {
+                LedgerList {
                     ForEach(similar) { item in
-                        HStack(spacing: 0) {
+                        HStack(spacing: Space.metaGap) {
                             NavigationLink(value: RecordRoute(id: item.id)) {
                                 SimilarRecordRow(item: item)
                             }
-                            .buttonStyle(RowButtonStyle())
+                            .buttonStyle(LedgerRowButtonStyle())
                             Menu {
                                 Section("Link as") {
                                     ForEach(Predicate.linkOptions, id: \.self) { predicate in
@@ -548,7 +526,7 @@ private struct SimilarRecords: View {
                                 Image(systemName: Symbol.addLink)
                                     .font(Typography.linkTitle)
                                     .foregroundStyle(Palette.primary)
-                                    .padding(Metrics.groupedRowPadding)
+                                    .frame(minWidth: Metrics.ledgerRowHeight, minHeight: Metrics.ledgerRowHeight)
                                     .contentShape(Rectangle())
                             }
                             .disabled(model.isLinking)
@@ -556,40 +534,32 @@ private struct SimilarRecords: View {
                         }
                     }
                 }
+                .padding(.top, Metrics.ledgerLabelGap + Space.iconGap)
             }
-            .padding(.top, Space.metaGap)
+            .padding(.top, Metrics.ledgerHeadingGap)
         }
     }
 }
 
-/// A similar record: its type's symbol, its title, and why it's similar ("50% similar by content").
+/// A similar record: its title, and why it's similar ("50% similar by content").
 private struct SimilarRecordRow: View {
     let item: SimilarRecord
 
     var body: some View {
-        HStack(alignment: .center, spacing: Space.metaGap) {
-            Image(systemName: item.record.type.symbolName)
-                .font(Typography.count)
-                .foregroundStyle(Palette.textDimmed)
-                .frame(width: 20)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: item.record.title.nonBlank ?? item.record.content.nonBlank ?? item.record.slug)
-                    .font(Typography.linkTitle)
-                    .foregroundStyle(Palette.text)
-                    .lineLimit(2)
-                if let reason = item.reasons.first {
-                    Text(verbatim: reason)
-                        .font(Typography.note)
-                        .foregroundStyle(Palette.textMuted)
-                }
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: item.record.title.nonBlank ?? item.record.content.nonBlank ?? item.record.slug)
+                .font(Typography.ledgerRow)
+                .foregroundStyle(Palette.text)
+                .lineLimit(2)
+            if let reason = item.reasons.first {
+                Text(verbatim: reason)
+                    .font(Typography.note)
+                    .foregroundStyle(Palette.textMuted)
             }
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(Metrics.groupedRowPadding)
-        .padding(.trailing, -Metrics.groupedRowPadding.trailing)
-        .contentShape(Rectangle())
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ledgerRow()
     }
 }
 
@@ -601,7 +571,7 @@ private struct LinkedRecordRow: View {
         HStack(alignment: .center, spacing: Space.metaGap) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: link.displayTitle)
-                    .font(titled ? Typography.linkTitle : Typography.cardBody)
+                    .font(titled ? Typography.ledgerRow : Typography.cardBody)
                     .foregroundStyle(Palette.text)
                     .lineLimit(titled ? 2 : 3)
                 if let notes = link.notes.nonBlank {
@@ -618,8 +588,72 @@ private struct LinkedRecordRow: View {
                 .foregroundStyle(Palette.textDimmed)
                 .accessibilityHidden(true)
         }
-        .padding(Metrics.groupedRowPadding)
-        .contentShape(Rectangle())
+        .ledgerRow()
+    }
+}
+
+/// A group's label above its rows ("Created by"), at the left edge.
+private struct LedgerLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(Typography.ledgerLabel)
+            .foregroundStyle(Palette.textMuted)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Rows with a hairline above the first and below each, margin to margin: the ledger's only divider.
+private struct LedgerList<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Hairline()
+            Group(subviews: content()) { rows in
+                ForEach(rows) { row in
+                    row
+                    Hairline()
+                }
+            }
+        }
+    }
+}
+
+/// One `border` line, a pixel thick at any scale.
+private struct Hairline: View {
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        Palette.border.view
+            .frame(height: 1 / displayScale)
+            .accessibilityHidden(true)
+    }
+}
+
+/// A pressable ledger row: `elevated` while pressed, out to the screen's edges beyond the text margin, as a list cell
+/// highlights.
+private struct LedgerRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, Metrics.detailMargin)
+            .background {
+                if configuration.isPressed {
+                    Palette.elevated.view
+                }
+            }
+            .padding(.horizontal, -Metrics.detailMargin)
+            .contentShape(Rectangle())
+    }
+}
+
+extension View {
+    /// A ledger row's height and padding: at least the tap target, the text centered in it.
+    fileprivate func ledgerRow() -> some View {
+        padding(.vertical, Metrics.ledgerRowPadding)
+            .frame(minHeight: Metrics.ledgerRowHeight)
+            .contentShape(Rectangle())
     }
 }
 
