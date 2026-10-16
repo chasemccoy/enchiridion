@@ -140,7 +140,7 @@ static_gates() {
   done
   gate "the required Info.plist keys and resources" "${keys%$'\n'}"
 
-  # The free team gets no App Groups or keychain groups, and nothing here needs an entitlement.
+  # Nothing here needs an entitlement (no App Groups or keychain groups); adding one is a deliberate change.
   gate "no entitlements files" "$(find iOS ShareExtension Widget Config -name '*.entitlements' 2>/dev/null)"
 
   if (( ${#gate_failures[@]} )); then

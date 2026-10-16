@@ -1,7 +1,7 @@
 # XcodeGen 2.46.0 spec for the Enchiridion iPhone and iPad app and its share extension (ios/ARCHITECTURE.md,
 # "Targets"). Generate with `xcodegen generate` in ios/; never commit Enchiridion.xcodeproj. The two Info.plists are
-# written from the `properties` below and committed. No entitlements: the free team gets no App Groups or keychain
-# group, and the app needs neither (the share extension saves straight to the server).
+# written from the `properties` below and committed. No entitlements: the app needs no App Groups or keychain
+# group (the share extension and the widget talk to the server themselves).
 name: Enchiridion
 options:
   bundleIdPrefix: org.chsmc

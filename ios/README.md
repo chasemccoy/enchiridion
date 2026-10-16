@@ -12,7 +12,7 @@ The app talks to the API on voyager at `https://enchiridion-api.chsmc.tools` ove
 
 ## First install on the iPhone
 
-The app is signed automatically with the free Personal Team (`756EWAN4G2`).
+The app is signed automatically with the paid developer team (`GXA23694DJ`).
 
 1. On the MacBook, once per clone: install XcodeGen and the git hooks that keep the project in step (see "Staying in sync" below).
 
@@ -27,21 +27,21 @@ The app is signed automatically with the free Personal Team (`756EWAN4G2`).
    ~/Repositories/enchiridion/ios/scripts/xcode.sh
    ```
 
-   In **Xcode › Settings › Accounts**, the Apple ID with the free team (`756EWAN4G2`) must be signed in. It's the same one familiar and faulkner use.
+   In **Xcode › Settings › Accounts**, the Apple ID on the paid team (`GXA23694DJ`) must be signed in.
 
 3. Pick the iPhone as the run destination, leave the scheme on **Enchiridion**, and press Run. The Run action builds Release, so the phone always talks to the production server.
 4. The first time only:
    - On the iPhone, turn on **Settings › Privacy & Security › Developer Mode**. The phone restarts.
    - After the install, go to **Settings › General › VPN & Device Management** and trust the developer certificate.
 
-### What the free team allows
+### The team
 
-- **App IDs.** The first install registered two: `org.chsmc.enchiridion` and `org.chsmc.enchiridion.share`. The widget adds a third, `org.chsmc.enchiridion.widget`, the first time a build with it is installed. A free team may register 10 App IDs in any 7 days, and familiar and faulkner already use 3 each. Each new ID counts against that limit, so don't rename bundle IDs or add targets casually.
-- **The widget is a trial.** If installing fails with a message about the number of apps or App IDs, the widget extension is what tipped it: say so, and it comes out of `project.yml` (or wait out the 7 days for an App ID limit).
-- **Apps per device.** A free team may have **3 apps** installed on one device. familiar and faulkner already take 2, so Enchiridion takes the last slot.
-  - To install a fourth app, delete one of the three first.
-  - Keep **Offload Unused Apps** off (Settings › Apps › App Store). An offloaded app still counts toward the 3.
-- **Not available on the free team:** App Groups, keychain sharing, push and UI-test targets. The app needs none of them. The share extension saves straight to the server.
+The paid developer team (`GXA23694DJ`) signs the app, the share extension and the widget. Before it, a free Personal Team (`756EWAN4G2`) did, which limited the phone to 3 such apps, capped new App IDs at 10 a week, and made every install expire after 7 days.
+
+- **Installs last a year**, the life of a paid team's development profile.
+- **Switching teams.** iOS won't install a build signed by another team over the old one: delete the app from the phone first (nothing lives on it, so nothing is lost), then Run. Re-add the widget afterwards.
+- **Bundle IDs.** `org.chsmc.enchiridion`, `.share` and `.widget`. If Xcode says one "is not available", the free team still holds it: say so, and they get renamed in `project.yml`.
+- **Not used yet:** App Groups and keychain sharing, which the paid team allows. The share extension and the widget talk to the server themselves.
 
 ## Staying in sync
 
@@ -62,11 +62,9 @@ ios/scripts/xcode.sh                           # or just switch to Xcode if it's
 
 Then press Run with the iPhone as the destination.
 
-## Every week: re-signing
+## Once a year: re-signing
 
-Free-team profiles expire 7 days after the build that made them. Once they expire, the app and the share extension won't open until you install a fresh build. Nothing is lost when that happens, because nothing lives on the phone.
-
-To renew, connect the iPhone (or put it on the same Wi-Fi as the Mac) and press Run in Xcode again before the week is up.
+A paid team's development profile lasts a year. When it runs out, the app and its extensions won't open until you install a fresh build: connect the iPhone (or put it on the same Wi-Fi as the Mac) and press Run in Xcode. Nothing is lost, because nothing lives on the phone.
 
 ## Adding the phone to Enchiridion's list
 

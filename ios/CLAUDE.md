@@ -4,7 +4,7 @@ The iPhone and iPad client and its share extension. Three documents cover it:
 
 - `ARCHITECTURE.md` is normative. Read it before changing any public API, and update it in the same change.
 - The wire contract is the Express API in `../backend/api/`. The visual spec is the web app in `../app/`.
-- `README.md` is Chase's guide: first install, the devices file, re-signing, fonts and the device checks.
+- `README.md` is Chase's guide: first install, the team, the devices file, re-signing, fonts and the device checks.
 
 ## Commands
 
@@ -62,9 +62,9 @@ voyager is the production server.
   - UIKit and AppKit appear only in the targets and under `EnchiridionUI/Sources/EnchiridionUI/Platform/`.
   - Every package builds for macOS.
 - **Thin targets.** Anything that decides something lives in a package and is tested with `swift test`.
-- **Free team (`756EWAN4G2`).**
-  - No entitlements, no App Groups, no push, no test targets.
-  - Never add targets or rename the bundle ids (`org.chsmc.enchiridion`, `.share`, `.widget`) without Chase asking: each new App ID counts toward the 10 per 7 days, and the app takes the last of the 3 app slots on the phone. The widget (added 2026-10-12 at Chase's request) is the trial of whether an extension also takes a slot.
+- **Paid team (`GXA23694DJ`, since 2026-10-15; before it the free `756EWAN4G2`).**
+  - No entitlements, App Groups, push or test targets yet: none is needed, though the team now allows them. Adding one is Chase's call.
+  - Don't rename the bundle ids (`org.chsmc.enchiridion`, `.share`, `.widget`) or add targets without Chase asking: a new bundle id means a new install on the phone.
 
 ## Style
 

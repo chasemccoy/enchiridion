@@ -1,7 +1,7 @@
 // Shared build settings for every target and configuration. Nothing here is secret.
 // The production server is a Swift constant, Server.production (EnchiridionCore).
 
-DEVELOPMENT_TEAM = 756EWAN4G2
+DEVELOPMENT_TEAM = GXA23694DJ
 CODE_SIGN_STYLE = Automatic
 IPHONEOS_DEPLOYMENT_TARGET = 27.0
 MARKETING_VERSION = 0.1
