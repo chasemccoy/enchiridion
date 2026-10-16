@@ -127,21 +127,15 @@ private struct DetailContent: View {
                     Task { await model.refresh() }
                 }
             }
-            // One left edge for every line of text: the badges, title, byline, content and headings sit in from
-            // the page margin by a grouped card's row inset, so they line up with the text inside the cards, whose
-            // edges (and the images') stay at the margin.
             BadgeRow(record: record)
-                .padding(.horizontal, Metrics.detailTextInset)
             VStack(alignment: .leading, spacing: Space.metaGap) {
                 DetailTitle(title: record.title.nonBlank, scrolledAway: $titleScrolledAway)
                 Byline(detail: detail)
             }
-            .padding(.horizontal, Metrics.detailTextInset)
             DetailImages(media: detail.media)
             if let content = record.content.nonBlank {
                 MarkdownText(content, size: .regular)
                     .textSelection(.enabled)
-                    .padding(.horizontal, Metrics.detailTextInset)
             }
             DetailsCard(record: record)
             LinkedRecords(model: model, addLink: addLink)
@@ -496,7 +490,6 @@ private struct LinkedRecords: View {
                 .tint(Palette.primary)
                 .disabled(model.isLinking)
             }
-            .padding(.horizontal, Metrics.detailTextInset)
             ForEach(model.linkGroups) { group in
                 VStack(alignment: .leading, spacing: Metrics.groupedCaptionGap) {
                     GroupedCardLabel(text: group.label)
@@ -536,7 +529,6 @@ private struct SimilarRecords: View {
                     .foregroundStyle(Palette.text)
                     .accessibilityAddTraits(.isHeader)
                     .padding(.bottom, Space.metaGap)
-                    .padding(.horizontal, Metrics.detailTextInset)
                 GroupedCard {
                     ForEach(similar) { item in
                         HStack(spacing: 0) {
