@@ -63,7 +63,7 @@ public enum FontRegistry {
     // MARK: Registration
 
     private static let available = Mutex<Set<Face>>([])
-    private static let log = Logger(subsystem: "org.chsmc.enchiridion", category: "fonts")
+    private static let log = Logger(subsystem: "com.chsmc.enchiridion", category: "fonts")
 
     /// `kCTFontManagerErrorAlreadyRegistered`: this process registered the file before (from another bundle or
     /// folder holding the same font), which is as good as registering it now.
@@ -97,7 +97,7 @@ public enum FontRegistry {
             #if DEBUG
             // Notice level, not debug or info, so a plain `log show` (which drops those levels) proves the serif
             // registered: in the Simulator, `xcrun simctl spawn booted log show --predicate 'subsystem ==
-            // "org.chsmc.enchiridion"'` (the Mac's own log never sees it); on a device, Console.app. Logged once:
+            // "com.chsmc.enchiridion"'` (the Mac's own log never sees it); on a device, Console.app. Logged once:
             // only when this call added a face.
             let added = missing.filter { available.contains($0) }.map(\.postScriptName)
             if !added.isEmpty {

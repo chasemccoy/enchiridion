@@ -64,7 +64,7 @@ voyager is the production server.
 - **Thin targets.** Anything that decides something lives in a package and is tested with `swift test`.
 - **Paid team (`GXA23694DJ`, since 2026-10-15; before it the free `756EWAN4G2`).**
   - No entitlements, App Groups, push or test targets yet: none is needed, though the team now allows them. Adding one is Chase's call.
-  - Don't rename the bundle ids (`org.chsmc.enchiridion`, `.share`, `.widget`) or add targets without Chase asking: a new bundle id means a new install on the phone.
+  - Don't rename the bundle ids (`com.chsmc.enchiridion`, `.share`, `.widget`) or add targets without Chase asking: a new bundle id means a new install on the phone. (They moved from `org.chsmc.…` on 2026-10-15: the free team still holds those.)
 
 ## Style
 

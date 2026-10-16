@@ -4,7 +4,7 @@
 # group (the share extension and the widget talk to the server themselves).
 name: Enchiridion
 options:
-  bundleIdPrefix: org.chsmc
+  bundleIdPrefix: com.chsmc
   deploymentTarget:
     iOS: "27.0"
   createIntermediateGroups: true
@@ -75,11 +75,11 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         EnchiridionServer: $(ENCHIRIDION_SERVER)   # read by DEBUG builds only (Config/Base.xcconfig)
         CFBundleURLTypes:                          # enchiridion://record/<id> (DeepLink): Shortcuts' Open record
-          - CFBundleURLName: org.chsmc.enchiridion
+          - CFBundleURLName: com.chsmc.enchiridion
             CFBundleURLSchemes: [enchiridion]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: org.chsmc.enchiridion
+        PRODUCT_BUNDLE_IDENTIFIER: com.chsmc.enchiridion
         PRODUCT_NAME: Enchiridion
         TARGETED_DEVICE_FAMILY: "1,2"         # iPhone and iPad
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -118,7 +118,7 @@ targets:
               NSExtensionActivationSupportsText: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: org.chsmc.enchiridion.share
+        PRODUCT_BUNDLE_IDENTIFIER: com.chsmc.enchiridion.share
         PRODUCT_NAME: EnchiridionShare        # so $(PRODUCT_MODULE_NAME).ShareViewController resolves
         TARGETED_DEVICE_FAMILY: "1,2"
         APPLICATION_EXTENSION_API_ONLY: YES
@@ -151,7 +151,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: org.chsmc.enchiridion.widget
+        PRODUCT_BUNDLE_IDENTIFIER: com.chsmc.enchiridion.widget
         PRODUCT_NAME: EnchiridionWidget
         TARGETED_DEVICE_FAMILY: "1,2"
         APPLICATION_EXTENSION_API_ONLY: YES

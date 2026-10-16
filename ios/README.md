@@ -40,7 +40,7 @@ The paid developer team (`GXA23694DJ`) signs the app, the share extension and th
 
 - **Installs last a year**, the life of a paid team's development profile.
 - **Switching teams.** iOS won't install a build signed by another team over the old one: delete the app from the phone first (nothing lives on it, so nothing is lost), then Run. Re-add the widget afterwards.
-- **Bundle IDs.** `org.chsmc.enchiridion`, `.share` and `.widget`. If Xcode says one "is not available", the free team still holds it: say so, and they get renamed in `project.yml`.
+- **Bundle IDs.** `com.chsmc.enchiridion`, `.share` and `.widget`. They were `org.chsmc.…` under the free team, which still holds those, so the paid team couldn't register them ("not available").
 - **Not used yet:** App Groups and keychain sharing, which the paid team allows. The share extension and the widget talk to the server themselves.
 
 ## Staying in sync
