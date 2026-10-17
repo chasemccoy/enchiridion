@@ -94,6 +94,45 @@ public struct RecordShortcuts: Sendable {
         return try await client.list(query)
     }
 
+    /// A record the widget shows, with the record it sits in when it's a highlight (for "from <source> by <creator>").
+    public struct Pick: Hashable, Sendable {
+        public var record: ListRecord
+        /// The record it's contained in or quotes, when that's in the library too.
+        public var parent: ListRecord?
+
+        public init(record: ListRecord, parent: ListRecord? = nil) {
+            self.record = record
+            self.parent = parent
+        }
+    }
+
+    /// The widget's draw: `sampleRetrying`, but highlights (records inside another, untitled ones included, which the
+    /// index hides) are always in the pool, curated or not; `curatedOnly` holds for everything else. Each pick carries
+    /// its parent's row.
+    public func widgetPicks(_ count: Int, curatedOnly: Bool = true, type: RecordType? = nil, imagesEvery: Bool = false,
+                            attempts: Int = 3, pause: Duration = .seconds(3),
+                            using shuffle: @Sendable ([ListRecord]) -> [ListRecord] = { $0.shuffled() })
+        async throws -> [Pick] {
+        var attempt = 1
+        while true {
+            do {
+                var query = ListQuery.index
+                query.filters.type = type
+                query.filters.hideUntitledChildren = nil
+                let all = try await client.list(query)
+                let pool = all.filter { $0.parent != nil || !curatedOnly || $0.isCurated }
+                let shuffled = shuffle(pool)
+                let picked = imagesEvery ? Self.alternatingImages(shuffled, count: count) : Array(shuffled.prefix(count))
+                let byID = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                return picked.map { Pick(record: $0, parent: $0.parent.flatMap { byID[$0.id] }) }
+            } catch {
+                guard attempt < attempts, EnchiridionError.classify(error)?.isTransient == true else { throw error }
+                attempt += 1
+                try await environment.sleep(for: pause)
+            }
+        }
+    }
+
     /// Saves a link as a new artifact, as the share card would with nothing edited: the title given, else the one
     /// found (`title` from the page's metadata, fetched by the caller), the note as its notes. Idempotent by slug like
     /// every create (`RecordCreation`).

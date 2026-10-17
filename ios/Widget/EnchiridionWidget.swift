@@ -7,7 +7,7 @@ import UIKit
 import WidgetKit
 
 // The Home Screen and Lock Screen widget: an artifact from the library at random, a new one every 15 minutes (or 30, or
-// an hour), opening it on a tap (`enchiridion://record/<id>`). One index load picks the next records (`RecordShortcuts.sampleRetrying`); the
+// an hour), opening it on a tap (`enchiridion://record/<id>`). One index load picks the next records (`RecordShortcuts.widgetPicks`, highlights always in the pool); the
 // medium and large sizes also fetch each record's first image, downsampled (`WidgetContent.thumbnail`), and show its
 // summary and content (ios/ARCHITECTURE.md, "Widget"). Glue only, like the other targets.
 
@@ -91,6 +91,10 @@ struct RecordWidgetEntry: TimelineEntry {
         var creator: String?
         /// The first image, downsampled JPEG; only for the sizes that show one.
         var image: Data?
+        /// A highlight's passage, shown as the quote it is in place of a title.
+        var quote: String? = nil
+        /// The title of the record a highlight sits in: "from <source>".
+        var source: String? = nil
     }
 
     var date: Date
@@ -108,6 +112,23 @@ struct RecordWidgetEntry: TimelineEntry {
 }
 
 extension RecordWidgetEntry.Shown {
+    /// A highlight (an untitled record inside another) as its passage, credited to the record it's from and that
+    /// record's creator and site; anything else as itself.
+    init(_ pick: RecordShortcuts.Pick, image: Data? = nil) {
+        let row = pick.record
+        let untitled = row.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+        guard let parent = row.parent, untitled, let quote = WidgetContent.excerpt(row.content, limit: 700) else {
+            self.init(row, image: image)
+            return
+        }
+        let source = parent.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let creator = (pick.parent?.creator?.title ?? row.creator?.title)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.init(id: row.id, title: source?.isEmpty == false ? source! : parent.slug, typeName: "Highlight",
+                  symbolName: Symbol.quote, summary: nil, content: nil, domain: pick.parent?.domain ?? row.domain,
+                  creator: creator?.isEmpty == false ? creator : nil, image: nil, quote: quote,
+                  source: source?.isEmpty == false ? source : parent.slug)
+    }
+
     init(_ row: ListRecord, image: Data? = nil) {
         let excerpt = WidgetContent.excerpt(row.content)
         let title = row.title?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -154,19 +175,20 @@ struct RandomRecordProvider: AppIntentTimelineProvider {
         -> Timeline<RecordWidgetEntry> {
         let now = Date.now
         do {
-            let rows = try await RecordShortcuts(environment: .shareExtension(server: Self.server), role: .widget)
-                .sampleRetrying(Self.count(context.family, interval: configuration.interval),
-                                curatedOnly: configuration.curatedOnly,
-                                type: .artifact,
-                                imagesEvery: Self.imageSize(context.family) != nil)
+            let picks = try await RecordShortcuts(environment: .shareExtension(server: Self.server), role: .widget)
+                .widgetPicks(Self.count(context.family, interval: configuration.interval),
+                             curatedOnly: configuration.curatedOnly,
+                             type: .artifact,
+                             imagesEvery: Self.imageSize(context.family) != nil)
+            let rows = picks.map(\.record)
             guard !rows.isEmpty else {
                 let entry = RecordWidgetEntry(date: now, message: "Nothing to show yet.")
                 return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(6 * 3600)))
             }
             let images = await Self.images(for: rows, maxPixelSize: Self.imageSize(context.family))
-            let entries = rows.enumerated().map { index, row in
+            let entries = picks.enumerated().map { index, pick in
                 RecordWidgetEntry(date: now.addingTimeInterval(Double(index) * configuration.interval.seconds),
-                                  record: .init(row, image: images[row.id]))
+                                  record: .init(pick, image: images[pick.record.id]))
             }
             return Timeline(entries: entries, policy: .atEnd)
         } catch {
@@ -222,12 +244,12 @@ struct RecordWidgetView: View {
                 switch family {
                 case .accessoryRectangular:
                     VStack(alignment: .leading, spacing: 1) {
-                        Label(record.creator ?? record.typeName, systemImage: record.symbolName)
+                        Label(record.creator ?? record.source ?? record.typeName, systemImage: record.symbolName)
                             .font(.caption2)
                             .widgetAccentable()
-                        Text(verbatim: record.title)
-                            .font(.headline)
-                            .lineLimit(2)
+                        Text(verbatim: record.quote ?? record.title)
+                            .font(record.quote == nil ? .headline : .subheadline)
+                            .lineLimit(record.quote == nil ? 2 : 3)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 case .systemSmall:
@@ -305,18 +327,36 @@ private struct WidgetBody: View {
     }
 }
 
-/// Who made it and where it lives: "by Robin Sloan · robinsloan.com", either half alone.
+/// Who made it and where it lives: "by Robin Sloan · robinsloan.com", either half alone; a highlight's adds what it's
+/// from ("from Tiny internets · by Robin Sloan").
 private struct DomainLine: View {
     let record: RecordWidgetEntry.Shown
 
     var body: some View {
-        let parts = [record.creator.map { "by \($0)" }, record.domain].compactMap(\.self)
+        let parts = record.quote != nil
+            ? [record.source.map { "from \($0)" }, record.creator.map { "by \($0)" }].compactMap(\.self)
+            : [record.creator.map { "by \($0)" }, record.domain].compactMap(\.self)
         if !parts.isEmpty {
             Text(verbatim: parts.joined(separator: " · "))
                 .font(Typography.byline)
                 .foregroundStyle(Palette.textMuted)
                 .lineLimit(1)
         }
+    }
+}
+
+/// A highlight's passage in the serif, as the widget's main text.
+private struct WidgetQuote: View {
+    let text: String
+    var size: CGFloat
+    var lines: Int
+
+    var body: some View {
+        Text(verbatim: "“\(text)”")
+            .font(Typography.serif(size: size, relativeTo: .body))
+            .lineSpacing(2)
+            .foregroundStyle(Palette.textHighlighted)
+            .lineLimit(lines)
     }
 }
 
@@ -345,7 +385,11 @@ private struct SmallRecord: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.metaGap) {
             TypeLine(record: record)
-            WidgetTitle(text: record.title, size: 19, lines: 4)
+            if let quote = record.quote {
+                WidgetQuote(text: quote, size: 15, lines: 5)
+            } else {
+                WidgetTitle(text: record.title, size: 19, lines: 4)
+            }
             Spacer(minLength: 0)
             DomainLine(record: record)
         }
@@ -361,7 +405,11 @@ private struct MediumRecord: View {
         HStack(spacing: Space.cardPadding) {
             VStack(alignment: .leading, spacing: Space.iconGap) {
                 TypeLine(record: record)
-                WidgetTitle(text: record.title, size: 20, lines: 2)
+                if let quote = record.quote {
+                    WidgetQuote(text: quote, size: 17, lines: 4)
+                } else {
+                    WidgetTitle(text: record.title, size: 20, lines: 2)
+                }
                 if let text = record.summary ?? record.content {
                     WidgetBody(text: text, lines: 3)
                         .padding(.top, 2)
@@ -392,7 +440,11 @@ private struct LargeRecord: View {
             }
             VStack(alignment: .leading, spacing: Space.iconGap) {
                 TypeLine(record: record)
-                WidgetTitle(text: record.title, size: 24, lines: 3)
+                if let quote = record.quote {
+                    WidgetQuote(text: quote, size: 21, lines: 13)
+                } else {
+                    WidgetTitle(text: record.title, size: 24, lines: 3)
+                }
             }
             if let summary = record.summary {
                 WidgetBody(text: summary, lines: 4)

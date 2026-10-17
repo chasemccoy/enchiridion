@@ -285,6 +285,27 @@ struct RecordShortcutsTests {
         #expect(RecordShortcuts.alternatingImages(Array(rows.prefix(2)), count: 4).map(\.id) == [1, 2])
     }
 
+    @Test func widgetPicksAlwaysIncludeHighlights() async throws {
+        let book = Fixture.row(1, title: "Book", curated: true)
+        let draft = Fixture.row(2, title: "Uncurated", curated: false)
+        var quote = Fixture.row(3, curated: false)
+        quote.outgoingLinks = [.init(predicate: .containedBy, target: RecordRef(id: 1, title: "Book", slug: "book"))]
+        let highlight = quote
+        let transport = StubTransport { request in
+            let filters = request.json()["filters"] as? [String: Any] ?? [:]
+            #expect(filters["isCurated"] == nil || filters["isCurated"] is NSNull, "curation is decided here")
+            #expect(filters["hideUntitledChildren"] == nil || filters["hideUntitledChildren"] is NSNull,
+                    "untitled highlights come too")
+            return .json([book, draft, highlight])
+        }
+        let shortcuts = RecordShortcuts(environment: .test(transport), role: .widget)
+        let picks = try await shortcuts.widgetPicks(5, pause: .zero, using: { $0 })
+        #expect(picks.map(\.record.id) == [1, 3], "the uncurated highlight stays; the uncurated record doesn't")
+        #expect(picks.last?.parent?.id == 1)
+        let all = try await shortcuts.widgetPicks(5, curatedOnly: false, pause: .zero, using: { $0 })
+        #expect(all.map(\.record.id) == [1, 2, 3])
+    }
+
     @Test func aSampleRetriesWhileTheNetworkIsDown() async throws {
         let calls = Mutex(0)
         let transport = StubTransport { _ in
