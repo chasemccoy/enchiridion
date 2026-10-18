@@ -35,11 +35,11 @@
 import RecordDetail from '@app/components/RecordDetail.vue';
 import useRecord from '@app/composables/useRecord';
 import useMedia from '@app/composables/useMedia';
-import { computed, ref, toRaw, watch } from 'vue';
+import { computed, onBeforeUnmount, onDeactivated, ref, toRaw, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Head } from '@unhead/vue/components';
 import type { GetRecordBySlugAPIResponse } from '@db/queries/records';
-import { useDebounceFn } from '@vueuse/core';
+import { useQueryClient } from '@tanstack/vue-query';
 import type { LinkInsert, LinkSelect, RecordInsert } from '@db/schema';
 import type { Predicate, PredicateSlug } from '@shared/types';
 import useLink from '@app/composables/useLink';
@@ -77,19 +77,60 @@ const { mutate: deleteMediaMutation } = deleteMedia();
 const { mutate: deleteMediaForRecordMutation } = deleteMediaForRecord();
 const { mutate: deleteRecordMutation } = deleteRecord();
 
-const debouncedMutate = useDebounceFn(
-  (data: RecordInsert) => {
-    mutateRecord(data);
-  },
-  1000,
-  { maxWait: 5000 },
-);
+const queryClient = useQueryClient();
+
+// Edits save a second after the last change (at most five seconds after the first), and a pending save always
+// goes out before the page moves on: switching records, leaving the view or closing the tab sends it at once.
+// A shared debounce used to swap a pending save for the next record's no-op one, losing the edit (a curate
+// undone by opening another record within a second). Only real edits save: loading a record, or the server's
+// answer, never writes it back.
+const SAVE_DELAY = 1000;
+const SAVE_MAX_WAIT = 5000;
+let pending: { data: RecordInsert; slug: string } | null = null;
+let timer: ReturnType<typeof setTimeout> | undefined;
+let firstPendingAt = 0;
+/** The record as last loaded or sent, serialized: a change matching it isn't an edit. */
+let lastSynced: string | null = null;
+
+function flushSave() {
+  clearTimeout(timer);
+  timer = undefined;
+  if (!pending) return;
+  const { data: body, slug } = pending;
+  pending = null;
+  mutateRecord(body, {
+    onSuccess: (saved) => {
+      // The cached copy shows what was saved, so coming back to the record never shows (or re-saves) the old one.
+      queryClient.setQueryData<GetRecordBySlugAPIResponse>(['get-record-by-slug', slug], (old) =>
+        old ? { ...old, ...saved } : old,
+      );
+    },
+  });
+}
+
+function scheduleSave(data: RecordInsert, slug: string) {
+  if (pending && pending.data.id !== data.id) flushSave();
+  if (!pending) firstPendingAt = Date.now();
+  pending = { data: structuredClone(toRaw(data)), slug };
+  clearTimeout(timer);
+  const wait = Math.min(SAVE_DELAY, Math.max(0, firstPendingAt + SAVE_MAX_WAIT - Date.now()));
+  timer = setTimeout(flushSave, wait);
+}
+
+watch(recordSlug, flushSave);
+onDeactivated(flushSave);
+onBeforeUnmount(flushSave);
+window.addEventListener('pagehide', flushSave);
+onBeforeUnmount(() => window.removeEventListener('pagehide', flushSave));
 
 watch(
   data,
   () => {
     if (!data.value) return;
+    // Never over an edit still waiting to save: the server's copy is older than what's on screen.
+    if (pending && pending.data.id === data.value.id) return;
     record.value = structuredClone(toRaw(data.value));
+    lastSynced = JSON.stringify(record.value);
   },
   { immediate: true },
 );
@@ -98,7 +139,10 @@ watch(
   record,
   () => {
     if (!record.value) return;
-    debouncedMutate(record.value);
+    const serialized = JSON.stringify(record.value);
+    if (serialized === lastSynced) return;
+    lastSynced = serialized;
+    scheduleSave(record.value, recordSlug.value);
   },
   { deep: true },
 );
