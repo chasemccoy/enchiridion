@@ -81,8 +81,6 @@ struct RecordWidgetEntry: TimelineEntry {
         var id: Int
         /// The title; for an untitled record (a highlight), the start of its content.
         var title: String
-        var typeName: String
-        var symbolName: String
         var summary: String?
         /// The content as plain text, unless it's what the title already shows.
         var content: String?
@@ -105,7 +103,7 @@ struct RecordWidgetEntry: TimelineEntry {
 
     static let sample = RecordWidgetEntry(
         date: .now,
-        record: Shown(id: 0, title: "Appropriate uses for SQLite", typeName: "Artifact", symbolName: "shippingbox",
+        record: Shown(id: 0, title: "Appropriate uses for SQLite",
                       summary: "Situations where SQLite works well, and where a client/server database is better.",
                       content: "SQLite does not compete with client/server databases. SQLite competes with fopen().",
                       domain: "sqlite.org", creator: "D. Richard Hipp"))
@@ -123,8 +121,8 @@ extension RecordWidgetEntry.Shown {
         }
         let source = parent.title?.trimmingCharacters(in: .whitespacesAndNewlines)
         let creator = (pick.parent?.creator?.title ?? row.creator?.title)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.init(id: row.id, title: source?.isEmpty == false ? source! : parent.slug, typeName: "Highlight",
-                  symbolName: Symbol.quote, summary: nil, content: nil, domain: pick.parent?.domain ?? row.domain,
+        self.init(id: row.id, title: source?.isEmpty == false ? source! : parent.slug,
+                  summary: nil, content: nil, domain: pick.parent?.domain ?? row.domain,
                   creator: creator?.isEmpty == false ? creator : nil, image: nil, quote: quote,
                   source: source?.isEmpty == false ? source : parent.slug)
     }
@@ -136,7 +134,6 @@ extension RecordWidgetEntry.Shown {
         let summary = row.summary?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.init(id: row.id,
                   title: titled ? title! : (excerpt?.split(whereSeparator: \.isNewline).first.map(String.init) ?? row.slug),
-                  typeName: row.type.displayName, symbolName: row.type.symbolName,
                   summary: summary?.isEmpty == false ? summary : nil,
                   content: titled ? excerpt : nil,
                   domain: row.domain,
@@ -244,12 +241,16 @@ struct RecordWidgetView: View {
                 switch family {
                 case .accessoryRectangular:
                     VStack(alignment: .leading, spacing: 1) {
-                        Label(record.creator ?? record.source ?? record.typeName, systemImage: record.symbolName)
-                            .font(.caption2)
-                            .widgetAccentable()
+                        // Who, never the type: with no one to name, the text takes the line.
+                        if let byline = record.creator ?? record.source {
+                            Text(verbatim: byline)
+                                .font(.caption2)
+                                .widgetAccentable()
+                                .lineLimit(1)
+                        }
                         Text(verbatim: record.quote ?? record.title)
                             .font(record.quote == nil ? .headline : .subheadline)
-                            .lineLimit(record.quote == nil ? 2 : 3)
+                            .lineLimit(record.creator ?? record.source == nil ? 3 : (record.quote == nil ? 2 : 3))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 case .systemSmall:
@@ -277,24 +278,6 @@ struct RecordWidgetView: View {
             }
         }
         .widgetURL(entry.record.map { DeepLink.record($0.id) })
-    }
-}
-
-/// The record's type, small and muted, above its title.
-private struct TypeLine: View {
-    let record: RecordWidgetEntry.Shown
-
-    var body: some View {
-        // A Label's system gap is wide at this size: the icon sits as close as a badge's does.
-        HStack(spacing: Space.iconGap) {
-            Image(systemName: record.symbolName)
-                .imageScale(.small)
-                .accessibilityHidden(true)
-            Text(verbatim: record.typeName)
-        }
-        .font(Typography.byline)
-        .foregroundStyle(Palette.textMuted)
-        .lineLimit(1)
     }
 }
 
@@ -378,18 +361,16 @@ private struct WidgetPicture: View {
     }
 }
 
-/// Type, title, creator and domain: the small size has no room for more.
+/// Title, creator and domain: the small size has no room for more.
 private struct SmallRecord: View {
     let record: RecordWidgetEntry.Shown
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.metaGap) {
-            // A highlight drops the type line: its quote takes that line too.
             if let quote = record.quote {
                 WidgetQuote(text: quote, size: 15, lines: 6)
             } else {
-                TypeLine(record: record)
-                WidgetTitle(text: record.title, size: 19, lines: 4)
+                WidgetTitle(text: record.title, size: 19, lines: 5)
             }
             Spacer(minLength: 0)
             DomainLine(record: record)
@@ -398,7 +379,7 @@ private struct SmallRecord: View {
     }
 }
 
-/// Words on the left (type, title, summary or content, creator and domain), the image on the right when there is one.
+/// Words on the left (title, summary or content, creator and domain), the image on the right when there is one.
 private struct MediumRecord: View {
     let record: RecordWidgetEntry.Shown
 
@@ -408,11 +389,10 @@ private struct MediumRecord: View {
                 if let quote = record.quote {
                     WidgetQuote(text: quote, size: 17, lines: 5)
                 } else {
-                    TypeLine(record: record)
                     WidgetTitle(text: record.title, size: 20, lines: 2)
                 }
                 if let text = record.summary ?? record.content {
-                    WidgetBody(text: text, lines: 3)
+                    WidgetBody(text: text, lines: 4)
                         .padding(.top, 2)
                 }
                 Spacer(minLength: 0)
@@ -428,7 +408,7 @@ private struct MediumRecord: View {
     }
 }
 
-/// The image across the top, then type, title, summary and content, as much as fits, and the creator and domain.
+/// The image across the top, then title, summary and content, as much as fits, and the creator and domain.
 private struct LargeRecord: View {
     let record: RecordWidgetEntry.Shown
     @Environment(\.widgetFamily) private var family
@@ -443,12 +423,11 @@ private struct LargeRecord: View {
                 if let quote = record.quote {
                     WidgetQuote(text: quote, size: 21, lines: 14)
                 } else {
-                    TypeLine(record: record)
                     WidgetTitle(text: record.title, size: 24, lines: 3)
                 }
             }
             if let summary = record.summary {
-                WidgetBody(text: summary, lines: 4)
+                WidgetBody(text: summary, lines: 5)
             }
             if let content = record.content {
                 WidgetBody(text: content, lines: record.image == nil ? 12 : 6)
