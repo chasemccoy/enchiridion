@@ -83,27 +83,74 @@ const queryClient = useQueryClient();
 // goes out before the page moves on: switching records, leaving the view or closing the tab sends it at once.
 // A shared debounce used to swap a pending save for the next record's no-op one, losing the edit (a curate
 // undone by opening another record within a second). Only real edits save: loading a record, or the server's
-// answer, never writes it back.
+// answer, never writes it back. A save sends only the columns that differ from the server's copy, so a change made
+// elsewhere meanwhile (the iOS app curating it, say) isn't overwritten by this tab's older value. A save that fails
+// says so, and the edit stays: Retry, or the next edit, sends it again.
 const SAVE_DELAY = 1000;
 const SAVE_MAX_WAIT = 5000;
+/** The columns an edit can change; a save sends only those that differ from `serverCopy`. */
+const EDITABLE: Array<keyof RecordInsert> = [
+  'slug',
+  'type',
+  'title',
+  'url',
+  'isCurated',
+  'summary',
+  'content',
+  'notes',
+  'source',
+  'contentCreatedAt',
+  'contentUpdatedAt',
+];
 let pending: { data: RecordInsert; slug: string } | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let firstPendingAt = 0;
+/** Saves sent and not yet answered: a refetch landing meanwhile may predate them, so it isn't shown. */
+let inFlight = 0;
 /** The record as last loaded or sent, serialized: a change matching it isn't an edit. */
 let lastSynced: string | null = null;
+/** The server's copy as last loaded or saved: what a save is diffed against. */
+let serverCopy: Partial<RecordInsert> | null = null;
+
+function changedColumns(data: RecordInsert): Partial<RecordInsert> {
+  const changed: Partial<RecordInsert> = {};
+  for (const key of EDITABLE) {
+    if (JSON.stringify(data[key] ?? null) !== JSON.stringify(serverCopy?.[key] ?? null)) {
+      (changed as Record<string, unknown>)[key] = data[key] ?? null;
+    }
+  }
+  return changed;
+}
 
 function flushSave() {
   clearTimeout(timer);
   timer = undefined;
   if (!pending) return;
-  const { data: body, slug } = pending;
+  const { data, slug } = pending;
   pending = null;
-  mutateRecord(body, {
+  const changed = changedColumns(data);
+  if (Object.keys(changed).length === 0) return;
+  inFlight += 1;
+  mutateRecord({ id: data.id, slug: data.slug, ...changed } as RecordInsert, {
     onSuccess: (saved) => {
+      inFlight -= 1;
+      serverCopy = { ...serverCopy, ...saved };
       // The cached copy shows what was saved, so coming back to the record never shows (or re-saves) the old one.
       queryClient.setQueryData<GetRecordBySlugAPIResponse>(['get-record-by-slug', slug], (old) =>
         old ? { ...old, ...saved } : old,
       );
+    },
+    onError: (error) => {
+      inFlight -= 1;
+      // Keep the edit to send again, unless a newer one is already waiting (it carries this change too).
+      if (!pending) pending = { data, slug };
+      toast.add({
+        title: 'Couldn’t save your changes',
+        description: error.message.slice(0, 250),
+        color: 'error',
+        icon: 'i-lucide-circle-alert',
+        actions: [{ label: 'Retry', onClick: () => flushSave() }],
+      });
     },
   });
 }
@@ -127,9 +174,10 @@ watch(
   data,
   () => {
     if (!data.value) return;
-    // Never over an edit still waiting to save: the server's copy is older than what's on screen.
-    if (pending && pending.data.id === data.value.id) return;
+    // Never over an edit still waiting to save or being saved: the server's copy is older than what's on screen.
+    if (record.value?.id === data.value.id && (pending || inFlight > 0)) return;
     record.value = structuredClone(toRaw(data.value));
+    serverCopy = structuredClone(toRaw(data.value));
     lastSynced = JSON.stringify(record.value);
   },
   { immediate: true },
@@ -206,11 +254,29 @@ function handleUpdatePredicate({ link, predicate }: { link: LinkSelect; predicat
   });
 }
 
+// Media first, then the record, as the iOS app does: deleting the record first would drop its media rows and leave
+// the files on voyager's disk with nothing pointing at them.
 function handleDeleteRecord(id: DbId) {
+  // A pending edit to a record about to be deleted has nowhere to go.
+  pending = null;
+  clearTimeout(timer);
   if (record.value?.media && record.value.media.length > 0) {
-    deleteMediaForRecordMutation(id);
+    deleteMediaForRecordMutation(id, {
+      onSuccess: () => deleteRecordAndLeave(id),
+      onError: (error) =>
+        toast.add({
+          title: 'Couldn’t delete the record',
+          description: error.message.slice(0, 250),
+          color: 'error',
+          icon: 'i-lucide-circle-alert',
+        }),
+    });
+  } else {
+    deleteRecordAndLeave(id);
   }
+}
 
+function deleteRecordAndLeave(id: DbId) {
   deleteRecordMutation(id, {
     onSuccess: (record) => {
       // Pop up to the parent list route (the index) when a detail child was
@@ -228,6 +294,13 @@ function handleDeleteRecord(id: DbId) {
         color: 'success',
       });
     },
+    onError: (error) =>
+      toast.add({
+        title: 'Couldn’t delete the record',
+        description: error.message.slice(0, 250),
+        color: 'error',
+        icon: 'i-lucide-circle-alert',
+      }),
   });
 }
 </script>

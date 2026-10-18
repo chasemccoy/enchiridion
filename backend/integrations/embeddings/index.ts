@@ -188,6 +188,38 @@ export const embedRecord = async (record: EmbeddableRecord): Promise<void> => {
   }
 };
 
+/** How long a record must go unsaved before its embedding is refreshed (`scheduleEmbedRecord`). */
+export const EMBED_QUIET_MS = 5000;
+
+const embedTimers = new Map<number, ReturnType<typeof setTimeout>>();
+const embedRuns = new Map<number, Promise<void>>();
+
+/**
+ * Refresh a record's embedding once it has stopped changing: the web app saves a record every second or so while
+ * someone types in it, and embedding each save would spend a request per save and let an older answer land after a
+ * newer one. Each call restarts the record's quiet period; when it ends, the record is read back as stored now and
+ * embedded, one run at a time per record. Best-effort, like `embedRecord`.
+ */
+export const scheduleEmbedRecord = (recordId: number, quietMs = EMBED_QUIET_MS): void => {
+  if (!isEmbeddingEnabled()) return;
+  clearTimeout(embedTimers.get(recordId));
+  embedTimers.set(
+    recordId,
+    setTimeout(() => {
+      embedTimers.delete(recordId);
+      const previous = embedRuns.get(recordId) ?? Promise.resolve();
+      const run = previous.then(async () => {
+        const current = await db.query.records.findFirst({ where: { id: recordId } });
+        if (current) await embedRecord(current);
+      });
+      embedRuns.set(recordId, run);
+      void run.finally(() => {
+        if (embedRuns.get(recordId) === run) embedRuns.delete(recordId);
+      });
+    }, quietMs),
+  );
+};
+
 export interface SemanticSearchResult {
   record: RecordSelect;
   /** Cosine distance (0 = identical, 2 = opposite). */

@@ -29,6 +29,17 @@ describe('PUT /record', () => {
     expect(res.body.title).toBe('After');
   });
 
+  it('leaves columns a partial update leaves out unchanged', async () => {
+    // The web's detail page and the iOS app send only what changed, so a stale copy open elsewhere never writes
+    // its old values back.
+    const record = await createRecord({ title: 'Kept', summary: 'Also kept', isCurated: false });
+    const res = await request(app)
+      .put('/record')
+      .send({ id: record.id, slug: record.slug, isCurated: true });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ title: 'Kept', summary: 'Also kept', isCurated: true });
+  });
+
   it('rejects an invalid body via errorHandler as JSON', async () => {
     const res = await request(app).put('/record').send({ title: 'no slug' });
     expect(res.status).toBe(500);

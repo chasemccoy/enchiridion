@@ -16,7 +16,7 @@ import {
   type PredicateSlug,
 } from '@shared/types';
 import { archiveUrlToWayback } from '@integrations/wayback/archive';
-import { embedRecord, removeRecordEmbeddings } from '@integrations/embeddings';
+import { embedRecord, removeRecordEmbeddings, scheduleEmbedRecord } from '@integrations/embeddings';
 
 export const getRecord = (recordId: RecordSelect['id']) => {
   return db.query.records.findFirst({
@@ -205,7 +205,14 @@ export const listRecords = async (input: ListRecordsInput = {}) => {
 
 export type ListRecordsAPIResponse = APIResponse<typeof listRecords>;
 
-export const upsertRecord = async (record: RecordInsert, options: { embed?: boolean } = {}) => {
+/**
+ * `embed`: `true` (the default) embeds now; `'debounced'` waits until the record stops changing (the API's saves,
+ * which arrive every second or so while someone types); `false` skips it.
+ */
+export const upsertRecord = async (
+  record: RecordInsert,
+  options: { embed?: boolean | 'debounced' } = {},
+) => {
   const { embed = true } = options;
   const isNewRecord = !record.id;
 
@@ -238,7 +245,9 @@ export const upsertRecord = async (record: RecordInsert, options: { embed?: bool
 
   // Generate/refresh the record's embedding in the background. Best-effort:
   // embedRecord never throws and no-ops when OPENAI_API_KEY is unset.
-  if (embed) {
+  if (embed === 'debounced') {
+    scheduleEmbedRecord(modifiedRecord.id);
+  } else if (embed) {
     void embedRecord(modifiedRecord);
   }
 

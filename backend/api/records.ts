@@ -179,7 +179,8 @@ recordRoutes.post('/record/:id/archive', async (req, res, next) => {
 recordRoutes.put('/record', async (req, res, next) => {
   try {
     const record = RecordInsertSchema.parse(req.body);
-    const updatedRecord = await upsertRecord(record);
+    // Saves arrive every second or so while someone types: embed once the record settles.
+    const updatedRecord = await upsertRecord(record, { embed: 'debounced' });
     res.json(updatedRecord);
   } catch (error) {
     next(error);
