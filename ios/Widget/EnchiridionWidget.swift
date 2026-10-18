@@ -384,10 +384,11 @@ private struct SmallRecord: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.metaGap) {
-            TypeLine(record: record)
+            // A highlight drops the type line: its quote takes that line too.
             if let quote = record.quote {
-                WidgetQuote(text: quote, size: 15, lines: 5)
+                WidgetQuote(text: quote, size: 15, lines: 6)
             } else {
+                TypeLine(record: record)
                 WidgetTitle(text: record.title, size: 19, lines: 4)
             }
             Spacer(minLength: 0)
@@ -404,10 +405,10 @@ private struct MediumRecord: View {
     var body: some View {
         HStack(spacing: Space.cardPadding) {
             VStack(alignment: .leading, spacing: Space.iconGap) {
-                TypeLine(record: record)
                 if let quote = record.quote {
-                    WidgetQuote(text: quote, size: 17, lines: 4)
+                    WidgetQuote(text: quote, size: 17, lines: 5)
                 } else {
+                    TypeLine(record: record)
                     WidgetTitle(text: record.title, size: 20, lines: 2)
                 }
                 if let text = record.summary ?? record.content {
@@ -439,10 +440,10 @@ private struct LargeRecord: View {
                     .frame(height: family == .systemExtraLarge ? 200 : 140)
             }
             VStack(alignment: .leading, spacing: Space.iconGap) {
-                TypeLine(record: record)
                 if let quote = record.quote {
-                    WidgetQuote(text: quote, size: 21, lines: 13)
+                    WidgetQuote(text: quote, size: 21, lines: 14)
                 } else {
+                    TypeLine(record: record)
                     WidgetTitle(text: record.title, size: 24, lines: 3)
                 }
             }
