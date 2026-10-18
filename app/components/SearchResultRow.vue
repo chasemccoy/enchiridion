@@ -74,7 +74,7 @@
 import useApiClient from '@app/composables/useApiClient';
 import { getIconForRecordType, getOriginOfUrl } from '@app/utils';
 import type { ListRecordsAPIResponse } from '@db/queries/records';
-import { capitalize, pluralize, slugify } from '@shared/lib/formatting';
+import { pluralize, slugify } from '@shared/lib/formatting';
 import { excerpt, highlightSegments, plainText } from '@shared/lib/search-preview';
 import { isPredicateType } from '@shared/types';
 import { computed } from 'vue';
@@ -134,7 +134,6 @@ const meta = computed(() =>
   [
     creator.value ? `by ${creator.value.title ?? creator.value.slug}` : null,
     domain.value,
-    record.type !== 'artifact' ? capitalize(record.type) : null,
     highlights.value > 0 ? pluralize(highlights.value, 'highlight', 'highlights') : null,
     ...tags.value.slice(0, 3),
   ]
