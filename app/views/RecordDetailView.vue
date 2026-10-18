@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
 import RecordDetail from '@app/components/RecordDetail.vue';
+import useApiClient from '@app/composables/useApiClient';
 import useRecord from '@app/composables/useRecord';
 import useMedia from '@app/composables/useMedia';
 import { computed, onBeforeUnmount, onDeactivated, ref, toRaw, watch } from 'vue';
@@ -53,6 +54,7 @@ const toast = useToast();
 const { getRecordBySlug, getRecordLinks, upsertRecord, deleteRecord, getSimilarRecords } =
   useRecord();
 const { uploadMedia, deleteMedia, deleteMediaForRecord } = useMedia();
+const { fetch: apiFetch } = useApiClient();
 const { upsertLink, deleteLink } = useLink();
 
 const record = ref<GetRecordBySlugAPIResponse | undefined>();
@@ -122,7 +124,11 @@ function changedColumns(data: RecordInsert): Partial<RecordInsert> {
   return changed;
 }
 
-function flushSave() {
+/**
+ * Sends the pending edit now. `keepalive` is for a page that's going away (the tab closing or hidden): the browser
+ * finishes a keepalive request after the page is gone, where it would cancel an ordinary one.
+ */
+function flushSave(options: { keepalive?: boolean } = {}) {
   clearTimeout(timer);
   timer = undefined;
   if (!pending) return;
@@ -130,6 +136,18 @@ function flushSave() {
   pending = null;
   const changed = changedColumns(data);
   if (Object.keys(changed).length === 0) return;
+  if (options.keepalive) {
+    serverCopy = { ...serverCopy, ...changed };
+    apiFetch('/record', {
+      method: 'PUT',
+      body: JSON.stringify({ id: data.id, slug: data.slug, ...changed }),
+      keepalive: true,
+    }).catch(() => {
+      // The page is going away; if it stays after all, the edit goes again with the next one.
+      if (!pending) pending = { data, slug };
+    });
+    return;
+  }
   inFlight += 1;
   mutateRecord({ id: data.id, slug: data.slug, ...changed } as RecordInsert, {
     onSuccess: (saved) => {
@@ -164,11 +182,24 @@ function scheduleSave(data: RecordInsert, slug: string) {
   timer = setTimeout(flushSave, wait);
 }
 
-watch(recordSlug, flushSave);
-onDeactivated(flushSave);
-onBeforeUnmount(flushSave);
-window.addEventListener('pagehide', flushSave);
-onBeforeUnmount(() => window.removeEventListener('pagehide', flushSave));
+function flushBeforeLeaving() {
+  flushSave({ keepalive: true });
+}
+
+function flushWhenHidden() {
+  // Safari on a phone may never fire pagehide for a tab it discards, but always reports it hidden first.
+  if (document.visibilityState === 'hidden') flushSave({ keepalive: true });
+}
+
+watch(recordSlug, () => flushSave());
+onDeactivated(() => flushSave());
+onBeforeUnmount(() => flushSave());
+window.addEventListener('pagehide', flushBeforeLeaving);
+document.addEventListener('visibilitychange', flushWhenHidden);
+onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', flushBeforeLeaving);
+  document.removeEventListener('visibilitychange', flushWhenHidden);
+});
 
 watch(
   data,

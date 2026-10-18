@@ -32,9 +32,8 @@ import { useMediaQuery } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import type { FetchTweetAPIResponse } from '@api/twitter';
 import { getImagesFromTweet } from '@app/utils';
-import useMedia from '@app/composables/useMedia';
+import useNewRecordExtras from '@app/composables/useNewRecordExtras';
 import { mapTweetToRecord } from '@integrations/twitter/records';
-import useLink from '@app/composables/useLink';
 import type { GetRecordBySlugAPIResponse } from '@db/queries/records';
 
 const modelValue = defineModel<boolean>('open', { required: true, default: false });
@@ -77,29 +76,15 @@ const emptyRecord: RecordInsert = {
 const record = ref<RecordInsert>(emptyRecord);
 
 const { upsertRecord } = useRecord();
-const { uploadMedia } = useMedia();
-const { upsertLink } = useLink();
-const { mutate: upsertLinkMutation } = upsertLink();
+const { addExtras } = useNewRecordExtras();
 const { mutate: upsertRecordMutation } = upsertRecord();
-const { mutate: uploadMediaMutation } = uploadMedia();
 
 function handleSubmit(data: NewRecordData) {
   const { record: newRecord, files = [], links = [] } = data;
 
   upsertRecordMutation(newRecord, {
     onSuccess: (r) => {
-      for (const file of files) {
-        if (!file.file) continue;
-
-        uploadMediaMutation({
-          file: file.file,
-          recordId: r.id,
-        });
-      }
-
-      for (const link of links) {
-        upsertLinkMutation({ sourceId: r.id, ...link });
-      }
+      void addExtras(r.id, files, links);
 
       emit('close');
       record.value = emptyRecord;
