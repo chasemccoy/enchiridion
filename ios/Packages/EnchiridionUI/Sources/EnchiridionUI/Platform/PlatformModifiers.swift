@@ -69,6 +69,16 @@ extension View {
 }
 
 extension ToolbarItemPlacement {
+    /// The bar's leading edge on iOS: explicitly there, where `.navigation` lets iOS decide (and, on a bar laid out
+    /// mid-transition, center it). macOS's equivalent is `.navigation`.
+    static var leadingBarOrNavigation: ToolbarItemPlacement {
+        #if canImport(UIKit)
+        .topBarLeading
+        #else
+        .navigation
+        #endif
+    }
+
     /// The bottom toolbar, where iOS puts Liquid Glass controls; macOS has none, so the automatic place.
     static var bottomBarOrAutomatic: ToolbarItemPlacement {
         #if canImport(UIKit)

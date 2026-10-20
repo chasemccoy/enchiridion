@@ -46,10 +46,24 @@ private struct StackLibrary: View {
     @Environment(LibraryModel.self) private var library
     @Binding var editor: EditorSession?
     @State private var path: [RecordRoute] = []
+    /// The list has been on screen. A record opened before then (a widget's or Shortcut's link at launch) waits for
+    /// it: pushed over a list that was never drawn, the list's bar is laid out only on the way back, and iOS then
+    /// centers the wordmark as if it were a title.
+    @State private var listShown = false
 
     var body: some View {
         NavigationStack(path: $path) {
             LibraryList(editor: $editor)
+                .onAppear {
+                    guard !listShown else { return }
+                    listShown = true
+                    guard let selected = library.selectedID, path.isEmpty else { return }
+                    // A beat after the list's first frame, so its bar exists before the record covers it.
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(150))
+                        if path.isEmpty, library.selectedID == selected { path = [RecordRoute(id: selected)] }
+                    }
+                }
                 .navigationDestination(for: RecordRoute.self) { route in
                     DetailHost(id: route.id, library: library, editor: $editor) {
                         // A linked record deleted from its own screen pops it. The first screen is the selection, which
@@ -63,6 +77,7 @@ private struct StackLibrary: View {
                 path = []
                 return
             }
+            guard listShown else { return }
             guard path.first?.id != selected else { return }
             if path.isEmpty {
                 path = [RecordRoute(id: selected)]
@@ -156,7 +171,7 @@ private struct LibraryList: View {
         .inlineNavigationTitle()
         .toolbar {
             // Nothing else lives up top, so the wordmark and the count share one line: no second line of title.
-            ToolbarItem(placement: .navigation) {
+            ToolbarItem(placement: .leadingBarOrNavigation) {
                 LibraryWordmark()
             }
             .sharedBackgroundVisibility(.hidden)
