@@ -71,6 +71,7 @@
               <UButton
                 type="submit"
                 size="sm"
+                class="BrowserFrame__pastSubmit"
                 label="Archive"
                 :disabled="!pastInput.trim()"
               />
@@ -381,6 +382,10 @@ const showLiveFrame = computed(() => !isArchived.value && isSupportedUrl.value);
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--ui-text);
+}
+
+.BrowserFrame__pastSubmit {
+  justify-self: end;
 }
 
 .BrowserFrame__pastHint {
