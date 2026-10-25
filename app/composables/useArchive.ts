@@ -1,6 +1,8 @@
 import useApiClient from '@app/composables/useApiClient';
 import type { ArchiveSelect } from '@db/schema';
-import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import type { ArchiveVersion } from '@shared/types/archive';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { toValue, type MaybeRefOrGetter } from 'vue';
 
 export default function useArchive() {
   const { fetch, backendBaseUrl } = useApiClient();
@@ -9,14 +11,17 @@ export default function useArchive() {
   /**
    * Trigger (or re-trigger) a local archive of a record's page. The backend
    * responds 202 with a 'pending' archive row and captures in the background;
-   * the record queries poll while pending to pick up the outcome.
+   * the record queries poll while pending to pick up the outcome. `at` (a date,
+   * "latest" or a web.archive.org link) archives that past version from the
+   * Wayback Machine into the same timeline instead.
    */
   function archiveRecord() {
     const toast = useToast();
     return useMutation({
-      mutationFn: (id: number) =>
+      mutationFn: ({ id, at }: { id: number; at?: string }) =>
         fetch<ArchiveSelect>(`/record/${id}/archive`, {
           method: 'POST',
+          body: JSON.stringify(at ? { at } : {}),
         }),
       onError: (error) => {
         toast.add({
@@ -35,6 +40,23 @@ export default function useArchive() {
     });
   }
 
+  /** A record's archive captures, newest first: the current copy and its past versions. */
+  function archiveVersions(
+    recordId: MaybeRefOrGetter<number>,
+    enabled: MaybeRefOrGetter<boolean> = true,
+  ) {
+    return useQuery({
+      queryKey: ['archive-versions', recordId],
+      queryFn: () => fetch<ArchiveVersion[]>(`/record/${toValue(recordId)}/archive/versions`),
+      enabled,
+    });
+  }
+
+  /** Same-origin URL of one capture (a version's folder) in the archive library. */
+  function versionSrc(version: Pick<ArchiveVersion, 'path'>): string {
+    return `${backendBaseUrl}/archives/${version.path}/index.html`;
+  }
+
   /** Same-origin URL of a stored archive's offline copy (null until archived). */
   function archiveSrc(archive: Pick<ArchiveSelect, 'path'> | null | undefined): string | null {
     if (!archive?.path) return null;
@@ -44,5 +66,7 @@ export default function useArchive() {
   return {
     archiveRecord,
     archiveSrc,
+    archiveVersions,
+    versionSrc,
   };
 }

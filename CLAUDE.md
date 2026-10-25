@@ -139,10 +139,13 @@ Required environment variables (see `.env.example`). The ports are parsed at sta
 
 Optional (local web archives — the record detail "Archive this page" action, backed by the `amber` library at `../amber`):
 
+The server imports amber's **built** output (`../amber/dist`, linked as `node_modules/amber`), not its source, so after pulling amber run `pnpm --dir ../amber build` and restart the API, or Enchiridion keeps archiving with the old build. Archives keep their history as folders (amber's `<slug>/versions/<stamp>/`); a record's archive row points at the folder, and `GET /record/:id/archive/versions` lists the captures in it. `POST /record/:id/archive` with `{ at }` (a date, a Wayback timestamp, `latest`, or a web.archive.org link to the same page) archives a past version from the Wayback Machine into that timeline; `ench archive <id> --at=…` does the same.
+
 - `ANTHROPIC_API_KEY` - Drives the archive cleanup plan; archiving falls back to heuristics if unset
 - `ARCHIVE_DIR` - Where archive folders are written (defaults to `~/Documents/Archives`)
 - `ARCHIVE_BACKEND` - Capture backend: `playwright` (default, full render — runs JS and triggers lazy-loaded images), `auto` (static fetch, escalate only if the page looks empty), or `fetch` (static only)
 - `ARCHIVE_INSECURE_TLS` - Set to `1` only behind a trusted TLS-intercepting proxy
+- `ARCHIVE_WAYBACK_BASE` - Test seam: an alternate Wayback Machine host for past-version captures (tests point it at a local stand-in; unset in production)
 - `WAYBACK_AUTO_ARCHIVE` - Set to `0` to stop new records from being auto-submitted to the Wayback Machine on creation (tests set this; explicit `ench wayback archive` is unaffected)
 
 Optional (Tailscale auth — see Auth below):

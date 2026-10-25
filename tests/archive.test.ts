@@ -6,7 +6,16 @@
 import { describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { db } from '@db/index';
-import { claimArchive, runArchive } from '@integrations/archive';
+import * as http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import request from 'supertest';
+import { app } from '@api/app';
+import {
+  claimArchive,
+  listArchiveVersions,
+  pastVersionStamp,
+  runArchive,
+} from '@integrations/archive';
 import { createRecord, servePage } from './helpers';
 
 const PAGE = '<html><head><title>Test Page</title></head><body><p>hello</p></body></html>';
@@ -135,5 +144,93 @@ describe('runArchive', () => {
     } finally {
       await page.close();
     }
+  });
+});
+
+/** A stand-in Wayback Machine: every request answers with `html` as the capture from 9 March 2000. */
+async function serveWayback(html: string): Promise<{ base: string; close: () => Promise<void> }> {
+  const server = http.createServer((_req, res) => {
+    res.setHeader('content-type', 'text/html; charset=utf-8');
+    res.setHeader('memento-datetime', 'Thu, 09 Mar 2000 21:22:37 GMT');
+    res.end(html);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    base: `http://127.0.0.1:${port}`,
+    close: () => new Promise((resolve) => server.close(() => resolve())),
+  };
+}
+
+describe('pastVersionStamp', () => {
+  it('reads dates, stamps and latest', () => {
+    expect(pastVersionStamp('2000', 'https://kottke.org/')).toBe('2000');
+    expect(pastVersionStamp(' 2000-03-09 ', 'https://kottke.org/')).toBe('20000309');
+    expect(pastVersionStamp('20000309212237', 'https://kottke.org/')).toBe('20000309212237');
+    expect(pastVersionStamp('Latest', 'https://kottke.org/')).toBe('latest');
+  });
+
+  it('takes a Wayback link to the same page, www or not', () => {
+    expect(
+      pastVersionStamp(
+        'https://web.archive.org/web/20000309212237/http://www.kottke.org/',
+        'https://kottke.org/',
+      ),
+    ).toBe('20000309212237');
+  });
+
+  it('refuses a Wayback link to another page, and anything unreadable', () => {
+    expect(() =>
+      pastVersionStamp(
+        'https://web.archive.org/web/2000/http://example.com/',
+        'https://kottke.org/',
+      ),
+    ).toThrow(/not this record/);
+    expect(() => pastVersionStamp('last spring', 'https://kottke.org/')).toThrow(/Can't read/);
+  });
+});
+
+describe('past versions', () => {
+  it('files a Wayback capture as a past version and leaves the current copy alone', async () => {
+    const page = await servePage(PAGE);
+    const wayback = await serveWayback(
+      '<html><head><title>Old Page</title></head><body><p>the year 2000</p></body></html>',
+    );
+    process.env.ARCHIVE_WAYBACK_BASE = wayback.base;
+    try {
+      const record = await createRecord({ url: `${page.url}/site` });
+      await claimArchive(record);
+      const current = await runArchive(record);
+      expect(current.status).toBe('ok');
+
+      await claimArchive(record);
+      const filed = await runArchive(record, { at: '2000' });
+      expect(filed.status).toBe('ok');
+      expect(filed.path).toBe(current.path);
+      expect(filed.title).toBe('Test Page');
+      expect(filed.archivedAt).toBe(current.archivedAt);
+
+      const versions = listArchiveVersions(filed.path);
+      expect(versions).toHaveLength(2);
+      expect(versions[0]).toMatchObject({ current: true, wayback: false, title: 'Test Page' });
+      expect(versions[1]).toMatchObject({ current: false, wayback: true, title: 'Old Page' });
+      expect(versions[1]?.date).toMatch(/^2000-03-09/);
+      expect(versions[1]?.path).toMatch(new RegExp(`^${current.path}/versions/`));
+    } finally {
+      delete process.env.ARCHIVE_WAYBACK_BASE;
+      await page.close();
+      await wayback.close();
+    }
+  });
+
+  it('lists nothing for a record never archived, and refuses an unreadable date', async () => {
+    const record = await createRecord({ url: 'https://kottke.org/' });
+    const versions = await request(app).get(`/record/${record.id}/archive/versions`);
+    expect(versions.status).toBe(200);
+    expect(versions.body).toEqual([]);
+
+    const refused = await request(app).post(`/record/${record.id}/archive`).send({ at: 'someday' });
+    expect(refused.status).toBe(400);
+    expect(refused.body.message).toMatch(/Can't read/);
   });
 });

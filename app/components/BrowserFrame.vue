@@ -12,14 +12,71 @@
       </div>
 
       <div class="BrowserFrame__actions">
+        <UDropdownMenu
+          v-if="isArchived && versionItems.length > 1"
+          :items="versionItems"
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            color="neutral"
+            variant="outline"
+            size="sm"
+            class="BrowserFrame__archivedBadge"
+            icon="i-lucide-history"
+            trailing-icon="i-lucide-chevron-down"
+            aria-label="Choose an archived version"
+            :label="archivedLabel"
+          />
+        </UDropdownMenu>
         <UBadge
-          v-if="isArchived"
+          v-else-if="isArchived"
           color="neutral"
           variant="outline"
           class="BrowserFrame__archivedBadge"
           icon="i-lucide-archive"
           :label="archivedLabel"
         />
+        <UPopover v-model:open="isAddingPast">
+          <UTooltip text="Archive a past version from the Wayback Machine">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-calendar-clock"
+              aria-label="Archive a past version"
+              :disabled="isArchiving"
+            />
+          </UTooltip>
+          <template #content>
+            <form
+              class="BrowserFrame__pastForm"
+              @submit.prevent="archivePast"
+            >
+              <label
+                class="BrowserFrame__pastLabel"
+                for="past-version"
+                >Archive a past version</label
+              >
+              <UInput
+                id="past-version"
+                v-model="pastInput"
+                size="sm"
+                placeholder="2000-03, or a web.archive.org link"
+                autofocus
+              />
+              <p class="BrowserFrame__pastHint">
+                The Wayback Machine's capture nearest that date, kept alongside this page's other
+                versions.
+              </p>
+              <UButton
+                type="submit"
+                size="sm"
+                label="Archive"
+                :disabled="!pastInput.trim()"
+              />
+            </form>
+          </template>
+        </UPopover>
         <UTooltip
           v-if="isArchived"
           text="Open archived copy in a new tab"
@@ -31,7 +88,7 @@
             icon="i-lucide-external-link"
             aria-label="Open archived copy in a new tab"
             target="_blank"
-            :to="archivedSrc"
+            :to="shownSrc"
           />
         </UTooltip>
         <UTooltip :text="isArchived ? 'Re-archive this page' : 'Save a local offline copy'">
@@ -54,7 +111,7 @@
       class="BrowserFrame__iframe"
       loading="lazy"
       sandbox=""
-      :src="archivedSrc"
+      :src="shownSrc"
     />
     <iframe
       v-else-if="showLiveFrame"
@@ -85,10 +142,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { formatDate } from '@shared/lib/formatting';
 import useArchive from '@app/composables/useArchive';
 import type { ArchiveSelect } from '@db/schema';
+import type { ArchiveVersion } from '@shared/types/archive';
 
 const props = defineProps<{
   url: string;
@@ -96,11 +154,29 @@ const props = defineProps<{
   archive?: ArchiveSelect | null;
 }>();
 
-const { archiveRecord, archiveSrc } = useArchive();
+const { archiveRecord, archiveSrc, archiveVersions, versionSrc } = useArchive();
 const { mutate, isPending } = archiveRecord();
 
 function runArchive() {
-  mutate(props.recordId);
+  mutate({ id: props.recordId });
+}
+
+// A past version: a date or a Wayback link, captured from the Wayback Machine and filed into this page's timeline.
+const isAddingPast = ref(false);
+const pastInput = ref('');
+
+function archivePast() {
+  const at = pastInput.value.trim();
+  if (!at) return;
+  mutate(
+    { id: props.recordId, at },
+    {
+      onSuccess: () => {
+        isAddingPast.value = false;
+        pastInput.value = '';
+      },
+    },
+  );
 }
 
 // A stored copy exists — independent of the latest run's status, so a failed
@@ -113,7 +189,56 @@ const isArchiving = computed(() => isPending.value || props.archive?.status === 
 
 const archivedSrc = computed(() => archiveSrc(props.archive) ?? undefined);
 
+// The captures in the archive folder (amber's timeline): the current copy and past versions, newest first.
+const { data: versions, refetch: refetchVersions } = archiveVersions(
+  () => props.recordId,
+  isArchived,
+);
+// A run finishing (the row leaving 'pending') may have added a version.
+watch(
+  () => [props.archive?.status, props.archive?.recordUpdatedAt],
+  () => {
+    if (isArchived.value) void refetchVersions();
+  },
+);
+
+/** The version on show: a path picked from the menu, else the current copy. */
+const pickedPath = ref<string | null>(null);
+watch(
+  () => props.recordId,
+  () => {
+    pickedPath.value = null;
+  },
+);
+const shownVersion = computed<ArchiveVersion | undefined>(
+  () =>
+    versions.value?.find((version) => version.path === pickedPath.value) ??
+    versions.value?.find((version) => version.current),
+);
+const shownSrc = computed(() =>
+  shownVersion.value && !shownVersion.value.current
+    ? versionSrc(shownVersion.value)
+    : archivedSrc.value,
+);
+
+function versionLabel(version: ArchiveVersion): string {
+  const date = version.date ? formatDate(version.date) : 'Undated';
+  return version.wayback ? `${date} · Wayback` : date;
+}
+
+const versionItems = computed(() =>
+  (versions.value ?? []).map((version) => ({
+    label: versionLabel(version),
+    icon: version.path === shownVersion.value?.path ? 'i-lucide-check' : undefined,
+    onSelect: () => {
+      pickedPath.value = version.current ? null : version.path;
+    },
+  })),
+);
+
 const archivedLabel = computed(() => {
+  const shown = shownVersion.value;
+  if (shown && !shown.current) return versionLabel(shown);
   if (!props.archive?.archivedAt) return 'Archived';
   return `Archived on ${formatDate(props.archive.archivedAt)}`;
 });
@@ -243,6 +368,24 @@ const showLiveFrame = computed(() => !isArchived.value && isSupportedUrl.value);
     height: 12px;
     color: var(--ui-text-muted);
   }
+}
+
+.BrowserFrame__pastForm {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  width: 280px;
+}
+
+.BrowserFrame__pastLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ui-text);
+}
+
+.BrowserFrame__pastHint {
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
 }
 
 .BrowserFrame__iframe {

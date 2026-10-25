@@ -8,7 +8,8 @@
 
 import { db } from '@db/index';
 import { getRecord } from '@db/queries/records';
-import { archiveRecord } from '@integrations/archive';
+import { archiveRecord, pastVersionStamp } from '@integrations/archive';
+import { z } from 'zod/v4';
 import { BaseOptionsSchema, parseId, parseOptions } from '../lib/args';
 import { createError } from '../lib/errors';
 import { success } from '../lib/output';
@@ -19,13 +20,16 @@ function isProbablyUrl(value: string): boolean {
 }
 
 /**
- * Usage: ench archive <record-id-or-url>
+ * Usage: ench archive <record-id-or-url> [--at=<date|stamp|latest|wayback-url>]
  *
  * A URL is resolved to the record that owns it (every archive belongs to a
- * record), so a URL with no matching record is an error.
+ * record), so a URL with no matching record is an error. `--at` archives a past
+ * version from the Wayback Machine into the same folder's timeline.
  */
+const ArchiveOptionsSchema = BaseOptionsSchema.extend({ at: z.string().optional() });
+
 export const create: CommandHandler = async (args, options) => {
-  parseOptions(BaseOptionsSchema, options);
+  const { at: requested } = parseOptions(ArchiveOptionsSchema, options);
   const target = args[0];
   if (!target) {
     throw createError('VALIDATION_ERROR', 'Usage: ench archive <record-id-or-url>');
@@ -50,7 +54,16 @@ export const create: CommandHandler = async (args, options) => {
     throw createError('VALIDATION_ERROR', `Record ${record.id} has no URL to archive`);
   }
 
-  const archive = await archiveRecord(record);
+  let at: string | undefined;
+  if (requested?.trim()) {
+    try {
+      at = pastVersionStamp(requested, record.url);
+    } catch (error) {
+      throw createError('VALIDATION_ERROR', (error as Error).message);
+    }
+  }
+
+  const archive = await archiveRecord(record, { at });
   return success({
     recordId: record.id,
     url: archive.url,

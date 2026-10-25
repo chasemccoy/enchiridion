@@ -144,6 +144,7 @@ Commands:
   wayback status <url>                 Most recent snapshot for URL
 
   archive <record-id-or-url>           Save a local offline copy of a record's page
+                                       --at=2000-03 | --at=<web.archive.org link>: a past version
 
 Records List Filters:
   --type=<types>          artifact|entity|concept (comma-separated)

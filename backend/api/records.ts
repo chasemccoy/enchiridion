@@ -13,7 +13,13 @@ import {
 import { findSimilarRecords } from '@db/queries/similar-records';
 import { findAllRelatedRecords } from '@db/queries/related-records';
 import { getFamilyTree } from '@db/queries/tree';
-import { claimArchive, runArchive } from '@integrations/archive';
+import {
+  claimArchive,
+  listArchiveVersions,
+  pastVersionStamp,
+  runArchive,
+} from '@integrations/archive';
+import { db } from '@db/index';
 import { PredicateSlugSchema } from '@shared/types';
 import { z } from 'zod/v4';
 
@@ -134,7 +140,22 @@ recordRoutes.post('/records', async (req, res, next) => {
   }
 });
 
+// The captures in a record's archive folder, newest first: the current copy and its past versions (amber keeps them
+// as folders, so this reads them from disk). Empty until the record has been archived.
+recordRoutes.get('/record/:id/archive/versions', async (req, res, next) => {
+  try {
+    const { id } = IdParamSchema.parse(req.params);
+    const archive = await db.query.archives.findFirst({ where: { recordId: id } });
+    res.json(listArchiveVersions(archive?.path ?? null));
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Start archiving (or re-archiving) a record's URL into a local offline copy.
+// A body of `{ at }` (a date, a Wayback timestamp, "latest", or a web.archive.org
+// link to this page) archives that past version from the Wayback Machine instead,
+// filed into the same folder's timeline.
 // Responds 202 with the claimed 'pending' archive row immediately — the capture
 // can take minutes (longer than browsers keep a request open), so it continues
 // in the background and writes 'ok' or 'failed' onto the same row, which
@@ -154,6 +175,17 @@ recordRoutes.post('/record/:id/archive', async (req, res, next) => {
       return;
     }
 
+    let at: string | undefined;
+    const requested = (req.body as { at?: unknown } | undefined)?.at;
+    if (typeof requested === 'string' && requested.trim()) {
+      try {
+        at = pastVersionStamp(requested, record.url);
+      } catch (error) {
+        res.status(400).json({ message: (error as Error).message });
+        return;
+      }
+    }
+
     const pending = await claimArchive(record);
     if (!pending) {
       res.status(409).json({ message: `Record ${id} is already being archived` });
@@ -163,7 +195,7 @@ recordRoutes.post('/record/:id/archive', async (req, res, next) => {
 
     // Detached on purpose: runArchive persists its own failures onto the row,
     // so this catch only covers that persistence itself blowing up.
-    runArchive(record).catch((error) => {
+    runArchive(record, { at }).catch((error) => {
       // eslint-disable-next-line no-console
       console.error(`Archive run for record ${id} failed to persist its outcome:`, error);
     });

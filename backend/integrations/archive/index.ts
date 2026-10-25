@@ -14,12 +14,16 @@
  * processes an in-memory lock can't see).
  */
 
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { archiveUrl, slugifyUrl } from 'amber';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@db/index';
 import { archives, type ArchiveSelect, type RecordSelect } from '@db/schema';
+import type { ArchiveVersion } from '@shared/types/archive';
+
+export type { ArchiveVersion } from '@shared/types/archive';
 
 /** Root directory archive folders are written to (and served from). */
 export function archiveRoot(): string {
@@ -100,31 +104,39 @@ export async function claimArchive(record: RecordSelect): Promise<ArchiveSelect 
   return claimed ?? null;
 }
 
-/** Write a run's outcome onto the record's (claimed) archive row. */
+/**
+ * Write a run's outcome onto the record's (claimed) archive row. `filed` is a past version (a Wayback capture older
+ * than the current copy) filed into `versions/`: the run succeeded, but the current copy, and so the row's
+ * path/title/archivedAt, stay as they were.
+ */
 async function finishArchive(
   recordId: RecordSelect['id'],
   outcome:
-    { status: 'ok'; path: string; title: string | null } | { status: 'failed'; error: string },
+    | { status: 'ok'; path: string; title: string | null }
+    | { status: 'filed' }
+    | { status: 'failed'; error: string },
 ): Promise<ArchiveSelect> {
   const [saved] = await db
     .update(archives)
     .set(
-      outcome.status === 'ok'
-        ? {
-            status: 'ok',
-            path: outcome.path,
-            title: outcome.title,
-            error: null,
-            archivedAt: sql`(CURRENT_TIMESTAMP)`,
-            recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
-          }
-        : {
-            // Leave path/title/archivedAt alone: they point at the last
-            // successful capture, which a failed re-run must not orphan.
-            status: 'failed',
-            error: outcome.error,
-            recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
-          },
+      outcome.status === 'filed'
+        ? { status: 'ok', error: null, recordUpdatedAt: sql`(CURRENT_TIMESTAMP)` }
+        : outcome.status === 'ok'
+          ? {
+              status: 'ok',
+              path: outcome.path,
+              title: outcome.title,
+              error: null,
+              archivedAt: sql`(CURRENT_TIMESTAMP)`,
+              recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
+            }
+          : {
+              // Leave path/title/archivedAt alone: they point at the last
+              // successful capture, which a failed re-run must not orphan.
+              status: 'failed',
+              error: outcome.error,
+              recordUpdatedAt: sql`(CURRENT_TIMESTAMP)`,
+            },
     )
     .where(eq(archives.recordId, recordId))
     .returning();
@@ -136,11 +148,92 @@ async function finishArchive(
 }
 
 /**
+ * A past version to archive, as asked for: a date ("2000", "2000-03", "2000-03-09"), a Wayback timestamp
+ * ("20000309212237"), "latest" (a dead site's last capture), or a web.archive.org link to a capture of this record's
+ * own page. Returns the timestamp amber takes as `at`; throws a message for the person when it can't be read, or
+ * when the link is a capture of some other page.
+ */
+export function pastVersionStamp(input: string, recordUrl: string): string {
+  const value = input.trim();
+  const link = /^https?:\/\/(?:www\.)?web\.archive\.org\/web\/(\d{4,14})[a-z_]*\/(.+)$/i.exec(
+    value,
+  );
+  if (link) {
+    let original = link[2]!.replace(/^(https?:)\/(?!\/)/i, '$1//');
+    if (!/^https?:\/\//i.test(original)) original = `http://${original}`;
+    if (slugifyUrl(original) !== slugifyUrl(recordUrl)) {
+      throw new Error(`That Wayback link is a capture of ${original}, not this record's page`);
+    }
+    return link[1]!;
+  }
+  if (/^(latest|\d{4,14})$/i.test(value)) return value.toLowerCase();
+  const date = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(value);
+  if (date) return date.slice(1).filter(Boolean).join('');
+  throw new Error(
+    `Can't read "${input}" as a date: use 2000, 2000-03, 2000-03-09, or a web.archive.org link`,
+  );
+}
+
+/**
+ * The captures in an archive folder, newest first: the top copy, then `versions/<stamp>/`, each read from the
+ * manifest amber writes beside it. The folders are the history, so nothing about versions is stored in the
+ * database. A folder without a readable manifest is skipped.
+ */
+export function listArchiveVersions(archivePath: string | null): ArchiveVersion[] {
+  if (!archivePath) return [];
+  const root = archiveRoot();
+  const folder = path.resolve(root, archivePath);
+  if (!folder.startsWith(path.resolve(root) + path.sep)) return [];
+
+  const read = (dir: string, current: boolean): ArchiveVersion | null => {
+    try {
+      const manifest = JSON.parse(readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as {
+        snapshotAt?: string;
+        capturedAt?: string;
+        wayback?: unknown;
+        title?: string;
+      };
+      return {
+        path: path.relative(root, dir),
+        date: manifest.snapshotAt ?? manifest.capturedAt ?? null,
+        wayback: Boolean(manifest.wayback),
+        title: manifest.title ?? null,
+        current,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const versionsDir = path.join(folder, 'versions');
+  const past = existsSync(versionsDir)
+    ? readdirSync(versionsDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => read(path.join(versionsDir, entry.name), false))
+    : [];
+  return [read(folder, true), ...past]
+    .filter((version): version is ArchiveVersion => version !== null)
+    .sort((a, b) => (a.current ? -1 : b.current ? 1 : (b.date ?? '').localeCompare(a.date ?? '')));
+}
+
+/** Test seam: an alternate Wayback host, with no politeness delay (ARCHIVE_WAYBACK_BASE). */
+function waybackOptions(): { base: string; requestDelayMs: number } | undefined {
+  const base = process.env.ARCHIVE_WAYBACK_BASE?.trim();
+  return base ? { base, requestDelayMs: 0 } : undefined;
+}
+
+/**
  * Run the capture for an already-claimed record and persist the outcome.
  * Best-effort: a failed run is recorded on the row rather than thrown, so the
- * failure is visible in the UI.
+ * failure is visible in the UI. `at` archives a past version from the Wayback
+ * Machine (`pastVersionStamp`): amber files it into the same folder's timeline
+ * by its snapshot date, as a past version when the folder already has a newer
+ * copy.
  */
-export async function runArchive(record: RecordSelect): Promise<ArchiveSelect> {
+export async function runArchive(
+  record: RecordSelect,
+  options: { at?: string } = {},
+): Promise<ArchiveSelect> {
   if (!record.url) {
     throw new Error(`Record ${record.id} has no URL to archive`);
   }
@@ -157,8 +250,10 @@ export async function runArchive(record: RecordSelect): Promise<ArchiveSelect> {
       timeoutMs: 4 * 60 * 1000,
       insecureTLS: process.env.ARCHIVE_INSECURE_TLS === '1',
       verbose: false,
+      ...(options.at ? { at: options.at, wayback: waybackOptions() } : {}),
     });
 
+    if (res.filedAs) return await finishArchive(record.id, { status: 'filed' });
     return await finishArchive(record.id, {
       status: 'ok',
       path: path.relative(root, res.outDir),
@@ -177,10 +272,13 @@ export async function runArchive(record: RecordSelect): Promise<ArchiveSelect> {
  * anything happy to wait out the capture). Throws when another run already
  * holds the claim.
  */
-export async function archiveRecord(record: RecordSelect): Promise<ArchiveSelect> {
+export async function archiveRecord(
+  record: RecordSelect,
+  options: { at?: string } = {},
+): Promise<ArchiveSelect> {
   const claimed = await claimArchive(record);
   if (!claimed) {
     throw new Error(`Record ${record.id} is already being archived`);
   }
-  return runArchive(record);
+  return runArchive(record, options);
 }
